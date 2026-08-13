@@ -89,13 +89,18 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .at.xi{background:#12283d;color:var(--acc);border:1px solid #1d4d73}
 .at.bn{background:#1d2430;color:var(--sub);border:1px solid var(--line)}
 .fam{width:32px;text-align:center;font-size:11px;font-weight:800;border-radius:5px;padding:1px 0}
+/* 선발 한 명 = 두 줄. 윗줄이 선수, 아랫줄이 역할·임무다 */
+.xir{border-bottom:1px solid #1b2028}
+.xir:last-child{border-bottom:0}
+.xir.sel{background:#12283d;box-shadow:inset 3px 0 0 var(--acc)}
+.rsel{display:grid;grid-template-columns:1fr 88px;gap:5px;padding:0 9px 7px 40px}
+.rsel select{padding:3px 6px;font-size:11.5px;font-weight:600;border-radius:6px}
 
 /* ── 별점 ─────────────────────────────────── */
 .stars{position:relative;display:inline-block;color:#39404d;letter-spacing:1.5px;
        font-size:12px;white-space:nowrap;line-height:1}
 .stars::before{content:'★★★★★';position:absolute;left:0;top:0;width:var(--pct,0%);
        overflow:hidden;color:var(--gold);white-space:nowrap}
-.stars.silver::before{color:#aab4c0}
 
 .note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
       border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
@@ -145,6 +150,12 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
       <div class="card">
         <h3 id="xiTitle">선발</h3>
         <div class="plist" id="xilist" style="max-height:none"></div>
+        <div class="note">
+          역할과 임무는 그 선수가 <b>무엇을 하러 그 자리에 서는가</b>입니다.
+          같은 왼쪽 윙어라도 "윙"은 벌려서 크로스를 올리고, "인사이드 포워드"는 안으로 파고들어 마무리합니다.
+          <br>역할이 요구하는 능력치를 갖추지 못하면 <b>그 역할을 제대로 소화하지 못합니다</b> —
+          어울리는 선수에게 맡기세요.
+        </div>
       </div>
       <div class="card">
         <h3 id="bnTitle">교체 명단</h3>
@@ -167,6 +178,7 @@ let team = null, formation = "4-3-3";
 let xi = {};                          // 전술판 자리 -> 선수 id. 언제나 11명 이하다.
 let bench = new Array(9).fill(null);  // 교체 명단 S1~S9. 빈 칸은 null — 자리 자체가 아홉 개다.
 let tac = {};
+let roles = {};        // 선수 id -> {r:역할키, d:임무키}. 엔진의 tactic.role 과 같은 모양이다.
 let sel = null;         // {kind:"slot", slot} | {kind:"player", id}
 let drag = null;        // 끌고 있는 것 — 마우스용. 손가락은 sel 로 같은 일을 한다.
 
@@ -204,9 +216,9 @@ const PRESETS = {
   "측면 공략":    { pass:2, tempo:2, press:2, line:2, width:4, mentality:3, tackle:2, longShot:1, counter:false },
 };
 
-const SILVER_TOP = 0.5;
-const rank = p => (p.silver ? p.star / 5 * SILVER_TOP : p.star);
-const stars = p => `<span class="stars${p.silver ? " silver" : ""}" style="--pct:${Math.round((p.star||0)/5*100)}%">★★★★★</span>`;
+// 눈금은 하나뿐이다 — 별이 많을수록 언제나 더 나은 선수다 (잠재력은 반영하지 않는다)
+const rank = p => p.star || 0;
+const stars = p => `<span class="stars" style="--pct:${Math.round((p.star||0)/5*100)}%" title="${p.star||0}★">★★★★★</span>`;
 
 const famOf = (p, slot) => (p.posFam && p.posFam[T.slotFam[slot]]) || 0;
 const famLv = v => T.famLv.find(l => v >= l.min) || T.famLv[T.famLv.length - 1];
@@ -251,7 +263,7 @@ async function boot() {
   // 전술판이 모든 자리를 보여 주므로, 포메이션은 "이 모양으로 다시 세워 줘"라는 뜻이다
   $("#formation").onchange = () => { formation = $("#formation").value; autoFill(); sel = null; draw(); };
   $("#auto").onclick = () => { autoFill(); sel = null; draw(); };
-  $("#clear").onclick = () => { xi = {}; bench = new Array(9).fill(null); sel = null; draw(); };
+  $("#clear").onclick = () => { xi = {}; bench = new Array(9).fill(null); roles = {}; sel = null; draw(); };
 }
 
 function drawTeams(lg) {
@@ -261,7 +273,7 @@ function drawTeams(lg) {
       <span class="chip" style="background:${esc(t.col)}"></span>${esc(t.short)}</button>`;
   }).join("");
   $("#teams").querySelectorAll(".team").forEach(b => b.onclick = () => {
-    team = b.dataset.id; xi = {}; bench = new Array(9).fill(null); sel = null;
+    team = b.dataset.id; xi = {}; bench = new Array(9).fill(null); roles = {}; sel = null;
     drawTeams(lg); autoFill(); $("#main").style.display = ""; draw();
   });
 }
@@ -382,26 +394,50 @@ function drawXI() {
     }
   }
   $("#xilist").innerHTML = rows.length ? rows.map(([slot, p]) => {
-    const lv = famLv(famOf(p, slot)), ro = roleOf(slot);
+    const lv = famLv(famOf(p, slot)), rd = effRole(slot, p.id);
     const isSel = sel && sel.kind === "slot" && sel.slot === slot;
-    return `<div class="prow${isSel ? " sel" : ""}" data-slot="${slot}" data-id="${p.id}" draggable="true">
-      <span class="at xi" style="min-width:38px;text-align:center">${esc(slot)}</span>
-      <span class="nm">${esc(p.name)}</span>
-      <span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${famOf(p, slot)}</span>
-      ${ro ? `<span class="pp">${esc(ro.k)}·${esc(ro.duty)}</span>` : ""}
-      ${stars(p)}
+    const opts = rolesFor(slot);
+    const R = opts.find(r => r.k === rd.r) || opts[0];
+    return `<div class="xir${isSel ? " sel" : ""}" data-slot="${slot}" data-id="${p.id}">
+      <div class="prow" style="border-bottom:0;padding-bottom:3px" draggable="true">
+        <span class="at xi" style="min-width:38px;text-align:center">${esc(slot)}</span>
+        <span class="nm">${esc(p.name)}</span>
+        <span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${famOf(p, slot)}</span>
+        ${stars(p)}
+      </div>
+      <div class="rsel">
+        <select data-role="${p.id}">${opts.map(r =>
+          `<option value="${r.k}"${r.k === rd.r ? " selected" : ""}>${esc(r.k)} · ${esc(r.n)}</option>`).join("")}</select>
+        <select data-duty="${p.id}">${(R ? R.duty : ["S"]).map(d =>
+          `<option value="${d}"${d === rd.d ? " selected" : ""}>${esc(T.dutyN[d] || d)}</option>`).join("")}</select>
+      </div>
     </div>`;
   }).join("") : `<div style="padding:12px;text-align:center" class="sub">아직 아무도 세우지 않았습니다</div>`;
 
-  $("#xilist").querySelectorAll(".prow").forEach(el => {
-    const slot = el.dataset.slot;
-    el.onclick = () => tapSlot(slot);
-    el.ondragstart = e => {
-      drag = { from: "slot", slot, id: +el.dataset.id };
+  $("#xilist").querySelectorAll(".xir").forEach(box => {
+    const slot = box.dataset.slot, pid = +box.dataset.id;
+    const row = box.querySelector(".prow");
+    row.onclick = () => tapSlot(slot);
+    row.ondragstart = e => {
+      drag = { from: "slot", slot, id: pid };
       e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", el.dataset.id);
+      e.dataTransfer.setData("text/plain", String(pid));
     };
-    el.ondragend = () => { drag = null; };
+    row.ondragend = () => { drag = null; };
+
+    // 드롭다운은 줄 선택과 따로 논다 — 안 막으면 역할을 고를 때마다 자리가 선택된다
+    box.querySelectorAll("select").forEach(s => s.onclick = e => e.stopPropagation());
+    box.querySelector(`[data-role="${pid}"]`).onchange = e => {
+      const R = T.roles.find(r => r.k === e.target.value);
+      const cur = effRole(slot, pid);
+      // 역할을 바꾸면 임무도 그 역할이 허용하는 것 중에서 고른다
+      roles[pid] = { r: e.target.value, d: R && R.duty.includes(cur.d) ? cur.d : (R ? R.duty[0] : "S") };
+      draw();
+    };
+    box.querySelector(`[data-duty="${pid}"]`).onchange = e => {
+      roles[pid] = { r: effRole(slot, pid).r, d: e.target.value };
+      draw();
+    };
   });
 }
 
@@ -416,12 +452,28 @@ function drawHint() {
   $("#hint").innerHTML = h;
 }
 
-/** 그 자리의 기본 역할·임무 — KM26 전술판의 "W · 지원" 배지 */
-function roleOf(slot) {
+/* ── 역할·임무 ────────────────────────────────────────────────
+   엔진은 team.tactic.role[선수id] = {r:역할키, d:임무키} 를 읽는다. 그 자리에서 맡을 수
+   없는 역할이면 자리 기본값으로 되돌린다 — 아래 effRole 이 그 규칙을 그대로 따른다.
+   (커널 getRole 과 같은 판정이어야 화면과 경기가 어긋나지 않는다) */
+function rolesFor(slot) {
   const g = T.roleGrp[slot];
-  const d = g && T.roleDef[g];
-  if (!d) return null;
-  return { k: d[0], n: T.roleN[d[0]] || d[0], duty: T.dutyN[d[1]] || d[1] };
+  return T.roles.filter(r => r.grp.includes(g));
+}
+function effRole(slot, pid) {
+  const g = T.roleGrp[slot];
+  const cur = roles[pid];
+  if (cur) {
+    const R = T.roles.find(r => r.k === cur.r);
+    if (R && R.grp.includes(g) && R.duty.includes(cur.d)) return cur;
+  }
+  const d = T.roleDef[g] || ["CM", "S"];
+  return { r: d[0], d: d[1] };
+}
+/** 전술판 배지에 찍는 "W · 지원" */
+function roleOf(slot, pid) {
+  const rd = effRole(slot, pid);
+  return { k: rd.r, n: T.roleN[rd.r] || rd.r, duty: T.dutyN[rd.d] || rd.d };
 }
 
 /* 위(공격)에서 아래(수비) 순서. KM26 전술판과 같은 줄 순서다. */
@@ -438,7 +490,7 @@ function drawPitch() {
       return `<div class="cell${isSel ? " sel" : ""}${isDrop ? " drop" : ""}"
         data-slot="${slot}" data-drop="1">${esc(slot)}</div>`;
     }
-    const lv = famLv(famOf(p, slot)), r = roleOf(slot);
+    const lv = famLv(famOf(p, slot)), r = roleOf(slot, p.id);
     return `<div class="cell has${isSel ? " sel" : ""}${isDrop ? " drop" : ""}"
         data-slot="${slot}" data-drop="1" draggable="true" title="${esc(slot)} · ${esc(lv.n)}">
       ${r ? `<span class="role">${esc(r.k)} · ${esc(r.duty)}</span>` : ""}

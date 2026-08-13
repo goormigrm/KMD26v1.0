@@ -50,7 +50,7 @@ function RNG(){
 var playerKeep = []string{
 	"id", "name", "pos", "prefPos", "no", "by", "bd", "h", "w", "frn", "foot",
 	"ovr", "pers", "traits", "attr", "gkA", "gk", "posFam",
-	"star", "silver", // 화면에 띄우는 별점 — 숫자 대신 이걸 보여 준다
+	"star", // 화면에 띄우는 별점 — 숫자 대신 이걸 보여 준다 (눈금은 하나뿐, 은색 없음)
 }
 
 var teamKeep = []string{"id", "name", "short", "col", "col2", "div"}
@@ -90,21 +90,35 @@ func main() {
     var _k2 = D2.map(function(d){ return mkTeam(d, 2); });
 
     /* 별점 — 화면에 능력치 숫자를 그대로 띄우면 라인업을 짤 때 고민이 사라진다.
-       KM26 과 같은 눈금을 써야 하므로 계산식을 베끼지 않고 원본 함수를 그대로 돌린다.
-       기준(starRefLevel)이 **리그 전체 평균**이라 29개 구단이 다 만들어진 뒤에 매겨야 한다. */
+       기준(starRefLevel)이 **리그 전체 평균**이라 29개 구단이 다 만들어진 뒤에 매긴다. */
     G.teams = {};
     _k1.concat(_k2).forEach(function(t){ G.teams[t.id] = t; });
     var _ref = starRefLevel();
-    _k1.concat(_k2).forEach(function(t){
-      t.players.forEach(function(p){
-        var gr = starGrade(62 + (playerLevel(p) - _ref) * STAR_GAIN);
-        p.star = gr.v;              // 0.5~5, 0.5 단위
-        p.silver = !!gr.silver;     // 1군 눈금 미달 — 은색으로 표시한다
-      });
+    var _all = [];
+    _k1.concat(_k2).forEach(function(t){ t.players.forEach(function(p){ _all.push(p); }); });
+
+    /* ── 눈금은 하나만 쓴다 (KM26 의 은색 눈금을 걷어냈다) ─────────────────
+       KM26 은 1군 수준에 못 미치는 선수를 "은색" 눈금으로 갈아태운다. 시즌 게임에서는
+       유스와 1군을 갈라 보여 주는 장치라 뜻이 있지만, 듀얼에서는 해롭다.
+       금색 2.5개짜리 주전보다 은색 3.5개짜리 후보가 **별이 많아 보인다** —
+       실제로는 한참 아래인데도. 라인업만 짜는 게임에서 이건 그냥 거짓 정보다.
+
+       듀얼은 육성도 잠재력도 없고 오로지 지금 실력으로 겨루므로, 눈금을 하나로 합친다.
+       리그 전체 실력 분포의 2%~98% 구간을 0.5★~5★ 에 펼친다 — 양 끝의 극단값 몇 명 때문에
+       가운데가 뭉개지지 않게 백분위를 쓴다. */
+    var _lv = _all.map(playerLevel).sort(function(a,b){ return a-b; });
+    var _q = function(f){ return _lv[Math.min(_lv.length-1, Math.max(0, Math.round((_lv.length-1)*f)))]; };
+    var _lo = _q(0.02), _hi = _q(0.98);
+    var _span = Math.max(1, _hi - _lo);
+    _all.forEach(function(p){
+      var t = (playerLevel(p) - _lo) / _span;              // 0(하위 2%) ~ 1(상위 2%)
+      var v = 0.5 + t * 4.5;
+      p.star = Math.max(0.5, Math.min(5, Math.round(v * 2) / 2));
     });
 
     JSON.stringify({
       starRef: _ref,
+      starLo: _lo, starHi: _hi,
       k1: _k1,
       k2: _k2,
       // 화면이 쓸 이름표 — 한글 라벨을 UI 에 베껴 두면 원본이 바뀔 때 어긋난다
@@ -128,7 +142,10 @@ func main() {
         roleGrp: ROLE_GRP,           // 자리 → 역할 묶음
         roleDef: ROLE_DEFAULT,       // 역할 묶음 → [역할키, 임무]
         dutyN: DUTY_N,               // 임무 키 → 이름
-        roleN: ROLES.reduce(function(o, r){ o[r.k] = r.n; return o; }, {})
+        roleN: ROLES.reduce(function(o, r){ o[r.k] = r.n; return o; }, {}),
+        // 역할 목록 — grp 가 그 역할을 맡을 수 있는 자리 묶음, duty 가 고를 수 있는 임무다.
+        // fx(효과 함수)는 엔진 쪽 일이라 넘기지 않는다.
+        roles: ROLES.map(function(r){ return {k:r.k, n:r.n, grp:r.grp, duty:r.duty}; })
       }
     });
   `, *seed)
@@ -141,6 +158,8 @@ func main() {
 		Labels  map[string]any   `json:"labels"`
 		Tables  map[string]any   `json:"tables"`
 		StarRef float64          `json:"starRef"`
+		StarLo  float64          `json:"starLo"`
+		StarHi  float64          `json:"starHi"`
 	}
 	check(json.Unmarshal([]byte(v.String()), &built), "생성 결과를 읽지 못했습니다")
 
@@ -201,6 +220,7 @@ func main() {
 		"teamCount":  len(teams),
 		"playerCount": total,
 		"starRef":    built.StarRef,
+		"starRange":  []float64{built.StarLo, built.StarHi},
 		"dataHash":   dataHash,
 		"note": "tools/gendata 가 만든 파일입니다. 손으로 고치지 마세요 — " +
 			"원본이 갱신되면 extract_data.py 를 다시 돌린 뒤 이 도구를 실행하세요.",
