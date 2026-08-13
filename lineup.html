@@ -205,9 +205,12 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
           <button id="auto">자동 배치</button>
           <button id="clear">비우기</button>
           <button id="go" class="on">▶ 이 라인업으로 경기</button>
+          <button id="mkCode">🔗 대전 코드</button>
         </div>
         <div class="sub" id="count"></div>
       </div>
+      <!-- 대전 코드 (단계 5) — 상대에게 건네면 둘이 같은 경기를 본다 -->
+      <div class="note" id="codeBox" style="display:none"></div>
       <div class="pitch" id="pitch">
         <!-- 반코트 배경 — 예전 화면에 있던 코트를 격자 뒤에 다시 깐 것 -->
         <div class="pmark" aria-hidden="true">
@@ -257,6 +260,8 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js";
+
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -359,6 +364,7 @@ async function boot() {
 
   /* 경기 화면으로 넘긴다. 단계 5 의 대전 코드가 생기면 이 자리를 코드가 대신한다 —
      지금은 같은 브라우저 안에서만 오가므로 저장소에 두고 간다. */
+  $("#mkCode").onclick = showCode;
   $("#go").onclick = () => {
     if (xiCount() !== 11) { flash("선발 열한 명을 채워야 경기를 시작할 수 있습니다."); drawHint(); return; }
     // ⚠ formation 을 빼먹으면 경기 화면이 4-3-3 으로 세운다 — 고른 모양이 그대로 가야 한다
@@ -595,6 +601,54 @@ function showProfile(id) {
       판단·위치선정처럼 자리 이해가 필요한 쪽이 크게 깎입니다. 그래도 세울 수는 있습니다.</div>`;
   $("#prof").classList.add("on");
   $("#profClose").onclick = closeProfile;
+}
+
+/* ── 대전 코드 (단계 5) ────────────────────────────────────────
+   라인업 한 벌을 51자로 담아 상대에게 건넵니다. 시드는 양쪽 코드에서 함께 유도되므로
+   (D-1) 어느 쪽도 유리한 시드를 골라 보낼 수 없습니다.
+   링크를 기본으로 두고 코드는 보조로 둡니다 — 폰에서 코드 상자에 붙여넣는 건 고통스럽습니다. */
+function codeCtx() {
+  return { order: DB.order, tables: T, players: DB.players, dataHash: DB.meta.dataHash };
+}
+
+function showCode() {
+  if (!team) { flash("먼저 구단을 고르세요."); drawHint(); return; }
+  if (xiCount() !== 11) { flash("선발 열한 명을 채워야 코드를 만들 수 있습니다."); drawHint(); return; }
+  let code;
+  try {
+    code = encodePlan({ id: team, xiMap: xi, bench, tac, roles }, codeCtx());
+  } catch (e) {
+    flash("코드를 만들지 못했습니다 — " + e.message); drawHint(); return;
+  }
+  const link = inviteLink(code, location.origin + location.pathname.replace(/lineup\.html$/, "match.html"));
+  const box = $("#codeBox");
+  box.style.display = "";
+  box.innerHTML = `
+    <b>🔗 대전 코드</b> — 상대에게 이 코드나 링크를 건네세요. 상대 코드를 받아 경기 화면에 넣으면
+    <b>둘이 같은 경기</b>를 봅니다.
+    <div class="row" style="margin-top:7px">
+      <input id="codeTxt" readonly value="${esc(code)}"
+        style="flex:1;min-width:230px;background:var(--bg2);color:var(--gold);border:1px solid var(--line);
+               border-radius:7px;padding:6px 9px;font-size:12.5px;font-family:monospace">
+      <button id="copyCode">복사</button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <input id="linkTxt" readonly value="${esc(link)}"
+        style="flex:1;min-width:230px;background:var(--bg2);color:var(--acc);border:1px solid var(--line);
+               border-radius:7px;padding:6px 9px;font-size:12px">
+      <button id="copyLink">링크 복사</button>
+    </div>
+    <div class="sub" style="margin-top:6px">코드가 담는 것 — 구단·포메이션·선발 열한 명·교체 아홉 명·
+      역할·임무·슬라이더 여덟 개·역습·조건부 지시 여섯 칸. 한 글자만 어긋나도 체크섬에서 걸립니다.</div>`;
+  const copy = (el, btn) => {
+    const t = $(el);
+    t.select();
+    navigator.clipboard?.writeText(t.value).then(
+      () => { $(btn).textContent = "복사됨 ✓"; setTimeout(() => { $(btn).textContent = btn === "#copyCode" ? "복사" : "링크 복사"; }, 1600); },
+      () => { $(btn).textContent = "Ctrl+C 로 복사"; });
+  };
+  $("#copyCode").onclick = () => copy("#codeTxt", "#copyCode");
+  $("#copyLink").onclick = () => copy("#linkTxt", "#copyLink");
 }
 
 function closeProfile() { $("#prof").classList.remove("on"); }

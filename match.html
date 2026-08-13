@@ -21,6 +21,10 @@ h3{font-size:14px;color:var(--gold);margin-bottom:8px}
 .mrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
 .mrow .lb{width:34px;flex:none;color:var(--sub);font-size:12.5px;font-weight:800}
 .mrow select{min-width:0}
+/* 대전 코드 상자 — 51자가 한눈에 들어오게 고정폭 글꼴 */
+.cin{flex:1;min-width:210px;background:var(--bg3);color:var(--gold);border:1px solid var(--line);
+     border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:monospace}
+.cin.bad{border-color:var(--bad);color:var(--bad)}
 select,button{background:var(--bg3);color:var(--txt);border:1px solid var(--line);
        border-radius:8px;padding:8px 12px;font-size:13.5px;font-weight:700;cursor:pointer}
 button:hover:not(:disabled){border-color:var(--acc)}
@@ -158,6 +162,12 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <select id="awaySel"></select><select id="awayPlan"></select>
     <!-- 연습 상대일 때만 나오는 전술 프리셋 (어려움은 상성으로 자동) -->
     <select id="awayAi" style="display:none"></select></div>
+  <!-- 대전 코드 (단계 5) — 코드를 고른 쪽만 상자가 나온다 -->
+  <div class="mrow" id="codeRow" style="display:none">
+    <span class="lb">코드</span>
+    <input id="homeCode" class="cin" placeholder="홈 코드 (KM26D1-…)" style="display:none">
+    <input id="awayCode" class="cin" placeholder="원정 코드 (KM26D1-…)" style="display:none">
+  </div>
   <div class="row" style="margin-top:9px"><button id="start" class="pri">▶ 경기 시작</button></div>
   <div class="note" id="setupNote"></div>
 </div>
@@ -208,6 +218,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 
 <script type="module">
 import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -218,6 +229,8 @@ let minute = 0, idx = 0, timer = null, speed = 2, playing = false;
 /* 어디까지 장면을 보여 줄지. 클립에는 엔진이 매긴 무게가 붙어 있다
    (결정적 기회 1 · 선방 2 · 퇴장 3 · PK 4 · 골 5 — 커널 HL_W 와 같다). */
 let sceneMode = "all";
+/* 이 경기를 치른 라인업 두 벌 — 결과 링크를 만들 때 쓴다 (연습은 발급하지 않으므로 null) */
+let lastPlans = null;
 const SCENE_MIN = { all: 1, goal: 5, off: 99 };
 
 /* 1분을 몇 밀리초에 흘려보낼지. 1배속이면 90분 경기가 1분쯤 걸린다.
@@ -264,6 +277,25 @@ async function boot() {
     $(`#${s}Plan`).onchange = () => { if (s === "away") drawAiSel(); describe(); };
   }
   $("#awayAi").onchange = describe;
+  $("#homeCode").oninput = describe;
+  $("#awayCode").oninput = describe;
+
+  /* 링크로 들어온 경우 (설계서 4-1)
+     #c=<코드>        상대가 건넨 초대 링크 — 그 팀을 원정에 앉힌다
+     #m=<코드A>.<코드B>  결과 링크 — 양쪽을 코드로 세워 그 경기를 그대로 재현한다 */
+  const mm = parseResultLink(location.hash);
+  if (mm) {
+    $("#homePlan").value = "code"; $("#awayPlan").value = "code";
+    $("#homeCode").value = mm.a; $("#awayCode").value = mm.b;
+    drawCodeRow();
+  } else {
+    const cm = /[#&?]c=([^&#\s]+)/.exec(location.hash || location.search);
+    if (cm) {
+      $("#awayPlan").value = "code"; $("#awayCode").value = decodeURIComponent(cm[1]);
+      drawAiSel(); drawCodeRow();
+    }
+  }
+  describe();
   $("#start").onclick = start;
   $("#again").onclick = () => {
     stop(); stopClip(); lastClip = null;
@@ -340,11 +372,39 @@ function planSources(teamId, side) {
   SLOTS.forEach((s, i) => {
     if (s.id === teamId) out.push({ v: "slot:" + i, t: `저장 ${i + 1}번 · ${s.formation || ""}`.trim() });
   });
+  // 대전 코드 — 상대가 건넨 51자를 그대로 붙여 넣는다 (양쪽 다 가능: 남의 경기 검증도 된다)
+  out.push({ v: "code", t: "🔗 대전 코드 붙여넣기" });
   // 원정 쪽에만 연습 상대를 둔다 — 홈은 언제나 내가 짠 팀이다
   if (side === "away") {
     for (const k of ["easy", "normal", "hard"]) out.push({ v: "ai:" + k, t: `🤖 연습 · ${AI_LV[k]}` });
   }
   return out;
+}
+
+/** 코드 상자를 쓰는 쪽만 보여 준다 */
+function drawCodeRow() {
+  const h = $("#homePlan").value === "code", a = $("#awayPlan").value === "code";
+  $("#homeCode").style.display = h ? "" : "none";
+  $("#awayCode").style.display = a ? "" : "none";
+  $("#codeRow").style.display = (h || a) ? "" : "none";
+}
+
+/**
+ * 코드 한 장 → 라인업. 구단·포메이션·역할까지 코드가 다 들고 있으므로
+ * 화면의 구단 선택은 코드에 맞춰 따라간다.
+ */
+function planFromCode(side) {
+  const box = $(`#${side}Code`);
+  const raw = (box.value || "").trim();
+  if (!raw) throw new Error(`${side === "home" ? "홈" : "원정"} 코드를 넣어 주세요`);
+  const p = decodePlan(raw, codeCtx());
+  const sel = $(`#${side}Sel`);
+  if (sel.value !== p.id) { sel.value = p.id; drawPlanSel(side); }
+  return p;
+}
+
+function codeCtx() {
+  return { order: DB.order, tables: T, players: DB.players, dataHash: DB.meta.dataHash };
 }
 
 function drawPlanSel(side) {
@@ -353,6 +413,7 @@ function drawPlanSel(side) {
   sel.innerHTML = list.map(o => `<option value="${esc(o.v)}">${esc(o.t)}</option>`).join("");
   if (list.some(o => o.v === keep)) sel.value = keep;
   if (side === "away") drawAiSel();
+  drawCodeRow();
 }
 
 /** 연습 상대의 전술 프리셋 칸 — 어려움은 상성으로 고르므로 고를 것이 없다 */
@@ -412,8 +473,19 @@ function describe() {
     return;
   }
 
-  const hp = planFor(hid, $("#homePlan").value), ap = planFor(aid, aSrc);
-  const same = hid === aid;
+  let hp, ap;
+  try {
+    hp = $("#homePlan").value === "code" ? planFromCode("home") : planFor(hid, $("#homePlan").value);
+    ap = aSrc === "code" ? planFromCode("away") : planFor(aid, aSrc);
+  } catch (e) {
+    // 코드가 잘못됐으면 조용히 다른 라인업으로 해석하지 않고 그 자리에서 알린다 (설계서 4-2)
+    $("#setupNote").innerHTML = `<span style="color:var(--bad)">코드를 읽지 못했습니다 — ${esc(e.message)}</span>`;
+    $("#homeCode").classList.toggle("bad", $("#homePlan").value === "code");
+    $("#awayCode").classList.toggle("bad", aSrc === "code");
+    return;
+  }
+  $("#homeCode").classList.remove("bad"); $("#awayCode").classList.remove("bad");
+  const same = hp.id === ap.id;
   const note = [];
   if (same) {
     note.push(planSig(hp) === planSig(ap)
@@ -434,14 +506,21 @@ function describe() {
 function start() {
   const hid = $("#homeSel").value, aid = $("#awaySel").value;
   const aSrc = $("#awayPlan").value;
-  const hp = planFor(hid, $("#homePlan").value);
   const practice = isAi(aSrc);
+  let hp;
+  try { hp = $("#homePlan").value === "code" ? planFromCode("home") : planFor(hid, $("#homePlan").value); }
+  catch (e) { describe(); return; }
 
   /* 연습이면 상대 라인업은 일꾼이 짠다(AI 감독). "어려움"이 쓰는 slotRating 이
      커널 함수라 화면에서는 부를 수 없기 때문이다. */
-  const ap = practice
-    ? { id: aid, tables: T, ai: { id: aid, level: aiLevelOf(aSrc), preset: $("#awayAi").value } }
-    : planFor(aid, aSrc);
+  let ap;
+  try {
+    ap = practice
+      ? { id: aid, tables: T, ai: { id: aid, level: aiLevelOf(aSrc), preset: $("#awayAi").value } }
+      : (aSrc === "code" ? planFromCode("away") : planFor(aid, aSrc));
+  } catch (e) { describe(); return; }
+  // 코드가 구단을 정하므로 전광판은 코드가 가리키는 구단으로 그린다
+  const hid2 = hp.id, aid2 = ap.id;
 
   /* 같은 구단끼리는 붙을 수 있다 — 선수와 전술이 다르면 다른 팀이다.
      다만 라인업 지문까지 똑같으면 두 팀을 가릴 것이 없다(일꾼도 같은 이유로 막는다). */
@@ -456,8 +535,8 @@ function start() {
   $("#clock").textContent = "계산 중";
   $("#prog").style.width = "0%";
   // 전광판은 결과가 오기 전에도 켜진다 — 같은 구단이면 여기서도 이름표를 갈라 둔다
-  const L = hid === aid ? sideLabels(DB.teams[hid]) : null;
-  paintTeams(L ? L.h : DB.teams[hid], L ? L.a : DB.teams[aid]);
+  const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
+  paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
   const w = new Worker("src/engine/matchworker.js", { type: "module" });
   w.onmessage = e => {
@@ -478,6 +557,8 @@ function start() {
     w.terminate();
     logSet(`<div class="ev bad"><span class="m"></span><span class="x">일꾼 오류 — ${esc(ev.message || "알 수 없음")}</span></div>`);
   };
+  lastPlans = practice ? null : { hp, ap };
+
   w.postMessage({
     teams: DB.teams, players: DB.players, reactions: DB.react,
     home: hp, away: ap,
@@ -602,6 +683,7 @@ function finish() {
         : `같은 라인업끼리 붙으면 언제 어디서 돌려도 이 지문이 나옵니다.
            단계 5에서 이 값이 대전 코드에 담깁니다.`}</span>
     </div>
+    ${drawResultLink()}
     ${drawHighlightList()}
     ${drawReactions()}`;
 
@@ -610,6 +692,13 @@ function finish() {
     playClip(c, `${c.min}' ${kindLabel(c)}`, () => freezeField(c));
     $("#hl").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
+  const cr = $("#copyRes");
+  if (cr) cr.onclick = () => {
+    const t = $("#resLink"); t.select();
+    navigator.clipboard?.writeText(t.value).then(
+      () => { cr.textContent = "복사됨 ✓"; setTimeout(() => { cr.textContent = "복사"; }, 1600); },
+      () => { cr.textContent = "Ctrl+C"; });
+  };
   bindReactions();
 }
 
@@ -870,6 +959,29 @@ function clipAt(min) {
         (c.min === best.min && (c.weight || 1) > (best.weight || 1))) best = c;
   }
   return best;
+}
+
+/* ── 결과 링크 (단계 5) ────────────────────────────────────────
+   코드 두 개만 있으면 누구나 같은 경기를 재현합니다 — 제3자 중재도 됩니다.
+   양쪽 값이 다르면 조작이 드러나므로 결과 지문을 함께 적어 둡니다(설계서 2-3). */
+function drawResultLink() {
+  if (!lastPlans) return "";           // 연습 경기는 발급하지 않는다
+  let a, b;
+  try {
+    a = encodePlan(lastPlans.hp, codeCtx());
+    b = encodePlan(lastPlans.ap, codeCtx());
+  } catch (e) { return ""; }
+  const link = resultLink(a, b);
+  return `<h3 style="margin-top:14px">🔗 결과 링크</h3>
+    <div class="row">
+      <input id="resLink" readonly value="${esc(link)}"
+        style="flex:1;min-width:240px;background:var(--bg3);color:var(--acc);border:1px solid var(--line);
+               border-radius:7px;padding:6px 9px;font-size:12px">
+      <button id="copyRes">복사</button>
+    </div>
+    <div class="note">이 링크를 열면 <b>같은 경기가 그대로</b> 재생됩니다 — 코드 두 개에서 시드가
+      나오기 때문입니다. 상대에게 보내 결과 지문 <code>${esc(R.fp)}</code> 이 같은지 맞춰 보세요.
+      값이 다르면 한쪽 데이터가 다릅니다.</div>`;
 }
 
 function drawHighlightList() {
