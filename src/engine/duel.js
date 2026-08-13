@@ -11,6 +11,10 @@
 import { MatchSim, SIM_SECONDS, MATCH_CLOCK_SCALE, onPitch } from "./kernel.js";
 import { installEngineContext, normalizeTeam } from "./stubs.js";
 import { seedRNG, deriveSeed } from "./rng.js";
+import { installDuelRules } from "./rules.js";
+
+// 듀얼 규칙(D-3)은 커널을 감싸는 방식이라, 경기를 만들기 전에 한 번 입혀 둔다
+installDuelRules();
 
 /** 출전 기록 한 줄 — KM26 createMatch 의 mk() 와 같은 모양 */
 function entry(p) {

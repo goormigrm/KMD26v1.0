@@ -5,12 +5,17 @@ KM26 v2.0 index.html -> KMD26 엔진 커널 추출기 (단계 1)
 MatchSim 의존성 폐포를 계산해 원본 순서 그대로 뽑아낸다.
 UI/달력 클러스터는 제외하고, 전역 상태(G)는 런타임 스텁으로 대체한다.
 
-사용: python extract_engine.py <원본 index.html> <출력 kernel.js>
+이 파일이 만드는 건 "원본 그대로"입니다. 듀얼용 버그 수정은 다음 단계에서 붙습니다.
+
+    python tools/extract_engine.py <원본 index.html> src/engine/kernel.raw.js
+    python tools/patch_kernel.py   src/engine/kernel.raw.js src/engine/kernel.js
+
+사용: python extract_engine.py <원본 index.html> <출력 kernel.raw.js>
 """
 import re, io, json, sys, hashlib
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "KM26v2/new.html"
-OUT = sys.argv[2] if len(sys.argv) > 2 else "kernel.js"
+OUT = sys.argv[2] if len(sys.argv) > 2 else "src/engine/kernel.raw.js"
 
 # 폐포 탐색을 멈출 지점 — 전역 상태·UI·시즌 누적값
 STUB = set("""G userTeam saveGame addNews notify flash gameAlert showConfirm show refreshTactics
@@ -90,6 +95,7 @@ hdr = (
     "   추출 선언 %d개 / %d줄\n"
     "   난수 시드화: Math.random() %d곳 → RNG()\n"
     "   ⚠ 전역 상태(G)·UI 함수는 src/engine/stubs.js 가 제공합니다.\n"
+    "   ⚠ 이건 원본 그대로입니다. 듀얼 버그 수정은 tools/patch_kernel.py 가 붙입니다.\n"
     "   ───────────────────────────────────────────────────────────── */\n"
     'import { RNG } from "./rng.js";\n\n'
 ) % (srchash, len(order), code.count("\n"), RNG_SITES)

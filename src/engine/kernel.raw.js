@@ -7,13 +7,6 @@
    난수 시드화: Math.random() 127곳 → RNG()
    ⚠ 전역 상태(G)·UI 함수는 src/engine/stubs.js 가 제공합니다.
    ⚠ 이건 원본 그대로입니다. 듀얼 버그 수정은 tools/patch_kernel.py 가 붙입니다.
-
-   ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────
-   원본(kernel.raw.js) 해시: sha256:2214dce31f98
-   · PK-01  kickoff() 이 b.isPenalty 를 지우지 않아, PK 다음 킥오프가 센터서클에서 '페널티킥'이 된다
-   · PK-02  PK 득점이 VAR 로 취소된다. PK 는 오프사이드도 빌드업 반칙도 있을 수 없다 (분 단위 엔진에는 isPen 가드가 있다)
-   · PK-03  90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다
-   ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.
    ───────────────────────────────────────────────────────────── */
 import { RNG } from "./rng.js";
 
@@ -3674,7 +3667,6 @@ class MatchSim{
     b.ownerId=mid.id; b.state="SETTLED";
     b.x=0.5; b.y=0.5; b.hold=1.6*TEMPO;
     b.setPiece=null; b.shot=null; b.celebrate=null; b.foulScene=null;
-    b.isPenalty=false;   // [KMD26 PK-01] 플레이가 새로 시작되면 PK 플래그도 죽는다
     this.pendingOff=null;   // 킥오프로 상황이 끊겼다 — 깃발도 무효
     for(const q of this.agents) q._spSpot=null;
     b.z=0; b.vx=0; b.vy=0; b.vz=0; b.inNet=false;
@@ -5686,7 +5678,7 @@ class MatchSim{
         }
         /* 📺 VAR 온필드 리뷰 — 실제 경기(emitEvents)에서만, 낮은 확률로.
            환호가 터진 직후 주심이 헤드셋에 손을 얹고, 몇 초 뒤 인정/취소가 갈린다. */
-        if(this.emitEvents && !sh.isPen && RNG()<VAR_CHECK_P){   // [KMD26 PK-02] PK 골은 판독 대상이 아니다
+        if(this.emitEvents && RNG()<VAR_CHECK_P){
           this.lastEvent={kind:"VAR", side, t:this.t};
           this.markHighlight("goal", side, HL_W.goal);
           b.inNet=true; b.vx*=0.55; b.vy*=0.55; b.vz*=0.35; b.ownerId=null;
@@ -6024,16 +6016,7 @@ class MatchSim{
   run(seconds){
     const end=seconds||SIM_SECONDS;
     let guard=0;
-    /* [KMD26 PK-03] 경기는 PK 가 끝나야 끝난다.
-       실제 축구도 종료 직전 PK 가 선언되면 그 킥이 마무리될 때까지 시간을 연장한다.
-       판정 대기 → 세트피스 준비 → 슛이 날아가는 구간까지가 '아직 안 끝난 PK'다.
-       키퍼가 쳐낸 뒤의 세컨볼은 연장 대상이 아니다 (경기규칙과 같다). */
-    const penPending=()=>{ const b=this.ball||{};
-      return !!(b.isPenalty
-             || (b.foulScene && b.foulScene.pen)
-             || (b.setPiece && b.setPiece.kind==="penalty")
-             || (b.shot && b.shot.isPen)); };
-    while((this.clock<end || penPending()) && guard++<200000){
+    while(this.clock<end && guard++<200000){
       this.tick();
       // 하프타임 — 해설에 한 줄 남긴다 (실제 경기 모드일 때만)
       if(this.emitEvents && !this.halfDone && this.clock>=SIM_SECONDS/2){
