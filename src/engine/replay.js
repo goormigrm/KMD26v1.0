@@ -92,7 +92,25 @@ export function installReplay() {
     this._clips.push(this._pend);
   };
 
-  /* 2) 매 틱 — 잡고 있는 장면의 뒷부분을 채운다 */
+  /* 2) 도움 준 선수 — 득점 기록에 이름을 함께 남긴다.
+     커널은 `M.sc` 에 {n, side, min} 만 담고, 도움은 해설 문장 안에만 들어간다
+     (`{p}의 골! 도움은 {a}`). 화면이 문장을 되짚어 이름을 뽑아내는 건 깨지기 쉬우므로,
+     메서드 경계에서 받아 적는다 — recordGoal 이 끝나면 goalTag.aid 에 도움 준 선수 id 가 있다.
+     ⚠ 커널은 손대지 않는다(설계 원칙). 난수도 쓰지 않으므로 경기 결과에 영향이 없다. */
+  const _recordGoal = MatchSim.prototype.recordGoal;
+  MatchSim.prototype.recordGoal = function (side, sh) {
+    _recordGoal.call(this, side, sh);
+    try {
+      const sc = this.M && this.M.sc;
+      if (!sc || !sc.length) return;
+      const last = sc[sc.length - 1];
+      const aid = this.goalTag && this.goalTag.sid === sh.shooterId ? this.goalTag.aid : null;
+      const ap = aid != null ? this.byId(aid) : null;
+      if (ap && ap.p) last.a = ap.p.name;
+    } catch (e) { /* 이름표가 없어도 경기는 그대로 간다 */ }
+  };
+
+  /* 3) 매 틱 — 잡고 있는 장면의 뒷부분을 채운다 */
   const _record = MatchSim.prototype.recordFrame;
   MatchSim.prototype.recordFrame = function () {
     _record.call(this);

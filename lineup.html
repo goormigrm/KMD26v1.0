@@ -125,6 +125,33 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
       border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
 .warn{color:var(--warn)}
+
+/* ── 선수 프로필 ──────────────────────────────────────────────
+   선수단 화면으로 넘어가지 않고 이 자리에서 세부 능력치를 본다.
+   라인업을 짜다 말고 페이지를 옮기면 짜던 것이 날아간다. */
+.prof{display:none;position:fixed;inset:0;z-index:50;background:#000000b8;
+      padding:20px 12px;overflow:auto}
+.prof.on{display:block}
+.profBox{max-width:760px;margin:0 auto;background:var(--bg2);border:1px solid var(--line);
+      border-radius:12px;padding:15px 16px;box-shadow:0 18px 50px #000a}
+.profTop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.profTop .nm{font-size:18px;font-weight:800}
+.bio{color:var(--sub);font-size:12.5px;margin-top:2px}
+.pgrid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.pgrid2 h4{font-size:12px;color:var(--gold);border-bottom:1px solid var(--line);padding-bottom:3px;margin-bottom:4px}
+.at{display:flex;justify-content:space-between;gap:6px;font-size:12.5px;padding:1px 0}
+.at span{color:var(--sub)}
+.famg{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:5px;margin-top:6px}
+.fmc{background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:3px 5px;
+     font-size:11px;text-align:center;font-weight:700}
+.fmc.z{opacity:.45}
+.fmc .v{display:block;font-size:13px;font-weight:800}
+.tagx{display:inline-block;background:#0b0f14;border:1px solid var(--line);border-radius:5px;
+      padding:1px 7px;font-size:11.5px;color:var(--acc);margin:3px 3px 0 0}
+/* 목록 줄의 프로필 버튼 — 줄 선택과 따로 논다 */
+.pf{background:#161b22;border:1px solid var(--line);border-radius:5px;color:var(--sub);
+    padding:1px 6px;font-size:10.5px;font-weight:800;cursor:pointer;flex:none}
+.pf:hover{border-color:var(--acc);color:var(--acc)}
 </style>
 </head>
 <body>
@@ -226,6 +253,9 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
   </div>
 </div>
 
+<!-- 선수 프로필 — 페이지를 옮기지 않고 이 자리에서 능력치를 본다 -->
+<div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
+
 <script type="module">
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -275,6 +305,7 @@ const PRESETS = {
 
 // 눈금은 하나뿐이다 — 별이 많을수록 언제나 더 나은 선수다 (잠재력은 반영하지 않는다)
 const rank = p => p.star || 0;
+const SEASON = 2026;   // 나이 표시 기준 — 데이터가 2026 시즌 등록 명단이다 (squad.html 과 같다)
 const stars = p => `<span class="stars" style="--pct:${Math.round((p.star||0)/5*100)}%" title="${p.star||0}★">★★★★★</span>`;
 
 const famOf = (p, slot) => (p.posFam && p.posFam[T.slotFam[slot]]) || 0;
@@ -294,7 +325,8 @@ async function boot() {
       fetch("data/teams.json" + v).then(r => r.json()),
       fetch("data/players.json" + v).then(r => r.json()),
     ]);
-    DB = { teams: t.teams, order: t.order, players: p, meta: m };
+    // labels — 프로필 창이 쓰는 능력치 이름표. 원본에서 뽑은 것이라 화면에 베껴 두지 않는다
+    DB = { teams: t.teams, order: t.order, players: p, meta: m, L: t.labels };
     T = t.tables;
     if (!T) throw new Error("전술판 표가 없습니다 — 데이터를 다시 만들어 주세요");
   } catch (e) {
@@ -472,7 +504,7 @@ function drawXI() {
         <span class="at xi" style="min-width:38px;text-align:center">${esc(slot)}</span>
         <span class="nm">${esc(p.name)}</span>
         <span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${famOf(p, slot)}</span>
-        ${stars(p)}
+        ${stars(p)}<button class="pf" data-pf="${p.id}" title="세부 능력치 보기">프로필</button>
       </div>
       <div class="rsel">
         <select data-role="${p.id}">${opts.map(r =>
@@ -483,6 +515,7 @@ function drawXI() {
     </div>`;
   }).join("") : `<div style="padding:12px;text-align:center" class="sub">아직 아무도 세우지 않았습니다</div>`;
 
+  bindProfile($("#xilist"));
   $("#xilist").querySelectorAll(".xir").forEach(box => {
     const slot = box.dataset.slot, pid = +box.dataset.id;
     const row = box.querySelector(".prow");
@@ -509,6 +542,64 @@ function drawXI() {
     };
   });
 }
+
+/* ── 선수 프로필 ───────────────────────────────────────────────
+   선수단 화면과 같은 표를 이 자리에 띄운다. 이름표(labels)는 원본에서 뽑은 것을 쓴다 —
+   화면에 베껴 두면 원본이 바뀔 때 어긋난다. */
+const toneOf = v => v >= 80 ? "#3fb950" : v >= 65 ? "#79c0ff" : v >= 50 ? "#e3b341" : v >= 35 ? "#d29922" : "#f85149";
+
+function showProfile(id) {
+  const p = byId(id);
+  if (!p || !DB.L) return;
+  const L = DB.L, age = SEASON - p.by;
+  const col = (title, keys, bag) => `
+    <div><h4>${title}</h4>
+      ${(keys || []).filter(k => bag && typeof bag[k] === "number").map(k => `
+        <div class="at"><span>${esc(L.attr[k] || k)}</span>
+          <b style="color:${toneOf(bag[k])}">${bag[k]}</b></div>`).join("")}
+    </div>`;
+
+  // 지금 이 선수가 서 있는 자리의 능숙도를 먼저 알려 준다 — 라인업을 짜는 중이니까
+  const at = slotOfPlayer(id);
+  const fam = (L.famOrder || []).map(f => {
+    const v = (p.posFam && p.posFam[f]) || 0;
+    return `<div class="fmc${v ? "" : " z"}">${esc(L.fam[f] || f)}
+      <span class="v" style="color:${v ? toneOf(v) : "var(--sub)"}">${v}</span></div>`;
+  }).join("");
+
+  $("#profBox").innerHTML = `
+    <div class="profTop">
+      <div>
+        <div class="nm">${esc(p.name)} ${p.frn ? '<span class="tagx">외국인</span>' : ""}</div>
+        <div class="bio">${esc(p.pos)} · 선호 ${esc(p.prefPos)} · ${age}세 · ${p.h}cm ${p.w}kg
+          · 등번호 ${p.no ?? "-"}${at ? ` · <b style="color:var(--acc)">지금 ${esc(at)} 자리</b>
+          (능숙도 ${famOf(p, at)})` : ""}</div>
+      </div>
+      <div style="text-align:right">
+        ${stars(p)}<div class="sub">${p.star ?? 0}★</div>
+        <button id="profClose" style="margin-top:6px;padding:4px 10px;font-size:12px">닫기 ✕</button>
+      </div>
+    </div>
+    ${(p.traits || []).length
+      ? `<div style="margin-top:6px">${p.traits.map(t => `<span class="tagx">${esc(L.trait[t] || t)}</span>`).join("")}</div>` : ""}
+    <div class="pgrid2">
+      ${col("기술", L.tech, p.attr)}
+      ${col("정신", L.ment, p.attr)}
+      ${col("신체", L.phys, p.attr)}
+      ${p.gkA ? col("골키퍼", L.gk, p.gkA) : ""}
+    </div>
+    <h4 style="font-size:12px;color:var(--gold);margin:14px 0 0;border-bottom:1px solid var(--line);padding-bottom:3px">
+      포지션 능숙도</h4>
+    <div class="famg">${fam}</div>
+    <div class="note">능숙도는 <b>그 자리에서 제 기량이 나오는 정도</b>입니다. 낮은 자리에 세우면
+      판단·위치선정처럼 자리 이해가 필요한 쪽이 크게 깎입니다. 그래도 세울 수는 있습니다.</div>`;
+  $("#prof").classList.add("on");
+  $("#profClose").onclick = closeProfile;
+}
+
+function closeProfile() { $("#prof").classList.remove("on"); }
+$("#prof").onclick = e => { if (e.target.id === "prof") closeProfile(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeProfile(); });
 
 function drawHint() {
   let h;
@@ -573,10 +664,11 @@ function drawPitch() {
       ${r ? `<span class="role">${esc(r.k)} · ${esc(r.duty)}</span>` : ""}
       <span class="who"><span class="fdot" style="background:${lv.c}"></span>
         <span class="nm">${esc(p.name)}</span></span>
-      <span class="sl">${esc(slot)}</span>
+      <span class="sl">${esc(slot)}</span><button class="pf" data-pf="${p.id}" title="세부 능력치 보기">프로필</button>
     </div>`;
   }).join("")}</div>`).join("");
 
+  bindProfile($("#pgrid"));
   $("#pgrid").querySelectorAll(".cell[data-slot]").forEach(el => {
     const slot = el.dataset.slot;
     el.onclick = () => tapSlot(slot);
@@ -631,10 +723,19 @@ function drawList() {
       <span class="nm">${esc(p.name)}</span>
       ${slot ? `<span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${fv}</span>` : ""}
       ${at ? `<span class="at xi">${esc(at)}</span>` : bi !== null ? `<span class="at bn">S${bi + 1}</span>` : ""}
-      <span class="pp">${esc(p.prefPos)}</span>${stars(p)}
+      <span class="pp">${esc(p.prefPos)}</span>${stars(p)}<button class="pf" data-pf="${p.id}" title="세부 능력치 보기">프로필</button>
     </div>`;
   }).join("") : `<div style="padding:12px;text-align:center" class="sub">남은 선수가 없습니다</div>`;
   $("#plist").querySelectorAll(".prow").forEach(el => bindRow(el));
+  bindProfile($("#plist"));
+}
+
+/** 프로필 버튼을 걸어 준다 — 줄 선택·드래그와 섞이지 않게 여기서만 처리한다 */
+function bindProfile(root) {
+  root.querySelectorAll("[data-pf]").forEach(b => {
+    b.onclick = e => { e.stopPropagation(); showProfile(+b.dataset.pf); };
+    b.ondragstart = e => e.preventDefault();
+  });
 }
 
 /** 목록의 한 줄 — 누르면 고르고, 끌면 전술판에 놓을 수 있다 */
@@ -657,11 +758,12 @@ function drawBench() {
     return `<div class="prow${isSel ? " sel" : ""}" data-i="${i}"${p ? ` data-id="${id}" draggable="true"` : ""}>
       <span class="at bn" style="min-width:30px;text-align:center">S${i + 1}</span>
       ${p ? `<span class="nm">${esc(p.name)}</span>
-             <span class="pp">${esc(p.prefPos)}</span>${stars(p)}`
+             <span class="pp">${esc(p.prefPos)}</span>${stars(p)}<button class="pf" data-pf="${p.id}" title="세부 능력치 보기">프로필</button>`
           : `<span class="nm sub" style="font-weight:400">비어 있음</span>`}
     </div>`;
   }).join("");
 
+  bindProfile($("#bench"));
   $("#bench").querySelectorAll(".prow").forEach(el => {
     const i = +el.dataset.i;
     el.onclick = () => {

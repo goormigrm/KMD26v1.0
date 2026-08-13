@@ -63,11 +63,13 @@ self.onmessage = (e) => {
       clips: r.clips || [], roster: r.roster || {},
       // 장면이 없는 동안 화면에 세워 둘 킥오프 한 장 (0:0 경기에서도 필드가 보이게)
       form0: r.form0 || null,
-      // 팬 반응 — 양쪽 시선 모두. 경기가 끝난 뒤에 뽑으므로 결과에 영향이 없다.
-      react: {
-        h: makeReactions(Object.assign({}, r, {home:H.short, away:A.short, seed}), reactions, "h"),
-        a: makeReactions(Object.assign({}, r, {home:H.short, away:A.short, seed}), reactions, "a"),
-      },
+      /* 팬 반응 — 양쪽 시선 모두. 경기가 끝난 뒤에 뽑으므로 결과에 영향이 없다.
+         구단 id 도 넘긴다 — 이름이 붙은 더비(슈퍼매치 등)를 가리는 데 쓴다. */
+      react: (() => {
+        const ctx = Object.assign({}, r,
+          { home: H.short, away: A.short, homeId: H.id, awayId: A.id, seed });
+        return { h: makeReactions(ctx, reactions, "h"), a: makeReactions(ctx, reactions, "a") };
+      })(),
       possession: r.possession, referee: r.referee,
       clock: r.clock, elapsedMs: r.elapsedMs, nameOf,
     });

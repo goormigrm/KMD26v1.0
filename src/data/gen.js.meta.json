@@ -1,7 +1,7 @@
 {
  "srcHash": "d18fe0dfc09c",
- "declCount": 97,
- "lineCount": 2217,
+ "declCount": 108,
+ "lineCount": 3044,
  "rngSites": 18,
  "exports": [
   "mkTeam",
@@ -37,7 +37,18 @@
   "SOC",
   "FMK",
   "FMK_NICK",
-  "FMK_RIVAL_NICK"
+  "FMK_RIVAL_NICK",
+  "RIV",
+  "FRIV",
+  "SOC_HANDLES",
+  "SOC_NICK2",
+  "SOC_NICK3",
+  "SOC_NICK_EXTRA",
+  "RIVAL_HANDLES",
+  "RIVAL_NICK2",
+  "SOC_TROLL",
+  "TROLL_SAY",
+  "RIVALS"
  ],
  "patches": [
   {
@@ -407,6 +418,38 @@
    "srcLine": 11091
   },
   {
+   "name": "SOC_HANDLES",
+   "srcLine": 12061
+  },
+  {
+   "name": "SOC_NICK_EXTRA",
+   "srcLine": 12068
+  },
+  {
+   "name": "SOC_NICK3",
+   "srcLine": 12102
+  },
+  {
+   "name": "SOC_TROLL",
+   "srcLine": 12112
+  },
+  {
+   "name": "TROLL_SAY",
+   "srcLine": 12114
+  },
+  {
+   "name": "SOC_NICK2",
+   "srcLine": 12191
+  },
+  {
+   "name": "RIVAL_HANDLES",
+   "srcLine": 12230
+  },
+  {
+   "name": "RIVAL_NICK2",
+   "srcLine": 12236
+  },
+  {
    "name": "SOC",
    "srcLine": 12297
   },
@@ -421,6 +464,18 @@
   {
    "name": "FMK",
    "srcLine": 12953
+  },
+  {
+   "name": "RIVALS",
+   "srcLine": 19311
+  },
+  {
+   "name": "RIV",
+   "srcLine": 21231
+  },
+  {
+   "name": "FRIV",
+   "srcLine": 21367
   },
   {
    "name": "AFF_DEF",

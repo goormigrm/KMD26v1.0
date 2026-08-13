@@ -152,7 +152,19 @@ func main() {
          한글 조사는 "이/가" 처럼 마커로 들어 있어 F_() 가 앞 글자 받침을 보고 고른다. */
       reactions: {
         soc: SOC, fmk: FMK,
-        nick: FMK_NICK, rivalNick: FMK_RIVAL_NICK
+        // 타구단 팬 — 같은 경기를 남의 눈으로 본 글. 우리 팬 표와 섞이지 않는다
+        riv: RIV, friv: FRIV,
+        nick: FMK_NICK, rivalNick: FMK_RIVAL_NICK,
+        /* 소셜 계정 이름 — 원본 socHandle()/rivalHandle() 이 쓰는 풀을 그대로 나눠 담는다.
+           handles 쪽은 뒤에 숫자를 붙여 쓰고(원정석구석4821), nick 쪽은 그대로 쓴다.
+           [이름, 이모지] 짝이다. */
+        socHandles: SOC_HANDLES, socNick2: SOC_NICK2, socNick3: SOC_NICK3,
+        socNickExtra: SOC_NICK_EXTRA,
+        rivalHandles: RIVAL_HANDLES, rivalNick2: RIVAL_NICK2,
+        // 상주 악플러 — 원본과 같이 펨코에만 세운다
+        troll: SOC_TROLL, trollSay: TROLL_SAY,
+        // 더비 표 [구단A, 구단B, 이름, 등급] — 등급 2가 대형 더비다
+        rivals: RIVALS
       }
     });
   `, *seed)

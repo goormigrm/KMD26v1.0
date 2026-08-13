@@ -31,6 +31,21 @@ import jsclosure as J
 SRC = sys.argv[1] if len(sys.argv) > 1 else "index.html"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "src/data/gen.js"
 
+# ── 경기 뒤 반응 ─────────────────────────────────────────────
+# 소셜미디어(SOC)·FM코리아(FMK) 문구 표와 **계정 이름표**까지 함께 가져온다.
+# 문구만 가져오면 피드가 심심해진다 — 원본은 이모지가 붙은 이름을 여러 풀에서 확률로
+# 섞고, 일부 풀에는 뒤에 숫자를 붙인다(socHandle/rivalHandle).
+# RIVALS 는 더비 표다. 슈퍼매치·동해안 더비처럼 이름이 붙은 대결은 반응의 결이 다르다.
+REACT = ["SOC", "FMK", "FMK_NICK", "FMK_RIVAL_NICK",
+         # 타구단 팬 — 원본은 우리 팬(SOC/FMK)과 남의 팬(RIV/FRIV)의 표를 아예 따로 둔다.
+         # 같은 경기를 남의 눈으로 다시 보는 글이라 결이 완전히 다르다.
+         "RIV", "FRIV",
+         "SOC_HANDLES", "SOC_NICK2", "SOC_NICK3", "SOC_NICK_EXTRA",
+         "RIVAL_HANDLES", "RIVAL_NICK2",
+         # 상주 악플러(시모·독고)와 세금리그 타령 — 원본에서도 펨코에만 나타난다
+         "SOC_TROLL", "TROLL_SAY",
+         "RIVALS"]
+
 # 뿌리 — 여기서 시작해 필요한 것만 따라간다.
 # 표 세 개는 함수가 인자로 받으므로 참조 그래프에 안 걸린다. 직접 넣어 준다.
 ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", "CUR_YEAR",
@@ -45,10 +60,7 @@ ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", 
          "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS",
          # 전술판 격자 — KM26 은 자유 배치가 아니라 "한 줄 5칸"의 고정 격자다.
          # 이미 KM26 을 하던 사람들이 오므로 그 형태를 그대로 써야 한다.
-         "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES",
-         # 경기 뒤 반응 — 소셜미디어(SOC)와 FM코리아(FMK) 문구 표.
-         # KM26 이 경기 결과를 두고 팬들이 떠드는 걸 보여 주는 재미가 크다.
-         "SOC", "FMK", "FMK_NICK", "FMK_RIVAL_NICK"]
+         "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES"] + REACT
 
 # 탐색을 멈출 지점 — 시즌 상태·UI·저장. 선수를 만드는 데는 필요 없다.
 STUB = set("""G userTeam saveGame addNews notify flash gameAlert showConfirm show refreshTactics
@@ -110,10 +122,7 @@ exports = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE"
            "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER",
            "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN",
            "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS", "SLOT_FAM",
-           "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES",
-         # 경기 뒤 반응 — 소셜미디어(SOC)와 FM코리아(FMK) 문구 표.
-         # KM26 이 경기 결과를 두고 팬들이 떠드는 걸 보여 주는 재미가 크다.
-         "SOC", "FMK", "FMK_NICK", "FMK_RIVAL_NICK"]
+           "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES"] + REACT
 exports = [e for e in exports if e in seen]
 tail = "\n\nexport {\n  " + ",\n  ".join(exports) + "\n};\n"
 

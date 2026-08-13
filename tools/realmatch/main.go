@@ -200,7 +200,8 @@ func main() {
 		r := v.Export().(map[string]any)
 		fps = append(fps, str(r["fp"]))
 		if i == 0 {
-			fmt.Printf("  %s vs %s\n", str(r["hName"]), str(r["aName"]))
+			// 시드도 함께 — 브라우저 결과창의 시드와 맞춰 보면 라인업이 같은지 바로 안다
+			fmt.Printf("  %s vs %s  (시드 %x)\n", str(r["hName"]), str(r["aName"]), int64(num(r["seed"])))
 		}
 		fmt.Printf("  %v : %v  (%.0f분 · 이벤트 %v건 · 주심 %v)  %v\n",
 			r["hg"], r["ag"], num(r["clock"])/60, r["events"], r["ref"], time.Since(t0).Round(time.Millisecond))
