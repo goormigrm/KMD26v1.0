@@ -23,8 +23,8 @@
      같아야 하기 때문입니다. 경기 결과에는 영향이 없습니다(이미 끝났으므로).
    ───────────────────────────────────────────────────────────── */
 
-import { F_ } from "./kernel.js?v=1e69f53a50";
-import { seedRNG, RNG } from "./rng.js?v=1e69f53a50";
+import { F_ } from "./kernel.js?v=c757310e91";
+import { seedRNG, RNG } from "./rng.js?v=c757310e91";
 
 // 커널에도 R() 이 있다 — 모듈을 이어 붙여 쓰는 도구(goja)에서 겹치므로 이름을 달리한다
 const rnd = n => Math.floor(RNG() * n);

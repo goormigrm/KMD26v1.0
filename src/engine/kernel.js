@@ -25,7 +25,7 @@
    · [보류] WIDTH-01  크로스 판단 문턱이 팀 '폭'을 읽지 않는다 (수정안이 역효과라 보류)
    ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "./rng.js?v=1e69f53a50";
+import { RNG } from "./rng.js?v=c757310e91";
 
 const R = (n)=>Math.floor(RNG()*n);
 
@@ -1252,8 +1252,12 @@ function aiFillGap(M, sd, key){
   const gap=sd.list.find(x=>x.injGap && x.off!==null && !x.red);
   if(!gap) return false;
   const inP=subPickIn(sd, gap);
-  gap.injGap=false;                    // 되든 안 되든 이 자리는 다시 보지 않는다
-  return !!(inP && subIn(M, sd, key, gap, inP));
+  if(!inP){ gap.injGap=false; return false; }   // 채울 사람이 없다 — 다시 보지 않는다
+  /* injGap 은 subIn **뒤에** 내린다. 먼저 내리면 subIn 의 '이미 나간 선수를 또 빼는가'
+     가드(outX.off!==null && !outX.injGap)에 걸려 교체가 조용히 실패한다. */
+  const ok=!!subIn(M, sd, key, gap, inP);
+  gap.injGap=false;
+  return ok;
 }
 /* 한 명만 바꾼다. 바꿨으면 true. */
 
