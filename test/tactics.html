@@ -40,10 +40,11 @@ code{background:#0b0f14;padding:1px 6px;border-radius:4px;color:var(--gold)}
   <div style="margin-bottom:6px">
     <label class="sub">비교 쌍 수 &nbsp;</label>
     <select id="pairs">
-      <option value="8">8쌍 (빠름 · 대략 25초/항목)</option>
-      <option value="16" selected>16쌍 (권장 · 대략 50초/항목)</option>
-      <option value="32">32쌍 (정밀 · 대략 100초/항목)</option>
+      <option value="8">8쌍 (빠른 훑기)</option>
+      <option value="16" selected>16쌍 (권장)</option>
+      <option value="32">32쌍 (정밀)</option>
     </select>
+    <span class="sub" id="cores"></span>
   </div>
   <button id="runQuick">① 반영 여부만 즉시 확인</button>
   <button id="runAll" class="alt">② 전체 항목 측정</button>
@@ -60,7 +61,7 @@ code{background:#0b0f14;padding:1px 6px;border-radius:4px;color:var(--gold)}
   <div class="sub">
     <b>① 반영 여부</b> — 같은 시드로 슬라이더만 바꿔 한 판씩 돌립니다. 결과 지문이 똑같으면
     그 슬라이더는 엔진이 <b>아예 안 읽는다</b>는 뜻입니다. 지문이 다르다고 해서 영향이 크다는 뜻은 아닙니다 —
-    "최소한 연결은 돼 있다"까지만 말해 줍니다. 1초면 끝납니다.
+    "최소한 연결은 돼 있다"까지만 말해 줍니다.
     <br><br>
     <b>② 방향성</b> — 같은 시드 쌍으로 낮은 값과 높은 값을 나란히 돌려, 그 슬라이더가 직접 건드려야 할
     지표(예: 압박 → 태클 수)가 <b>기대한 쪽으로 움직인 쌍이 몇 %인지</b> 셉니다.
@@ -76,8 +77,8 @@ code{background:#0b0f14;padding:1px 6px;border-radius:4px;color:var(--gold)}
 </div>
 
 <script type="module">
-import { runHeadless, deriveSeed } from "../src/engine/duel.js";
-import { makeTeam } from "./fixture.js";
+// 경기는 일꾼(simworker.js)이 돌립니다 — 이 페이지는 시드만 정하고 결과를 모읍니다
+import { deriveSeed } from "../src/engine/rng.js";
 
 const $ = s => document.querySelector(s);
 
@@ -107,48 +108,90 @@ const SLIDERS = [
 
 $("#one").innerHTML = SLIDERS.map((s,i) => `<option value="${i}">${s.name}</option>`).join("");
 
-/* 홈 팀만 해당 슬라이더를 바꾼 대진 — 양 팀 전력·선수는 항상 같다 */
-function pairFor(key, val) {
-  return [
-    makeTeam("alpha", "알파 FC", "알파", 72, 11, { [key]: val }),
-    makeTeam("bravo", "브라보 FC", "브라보", 72, 22),
-  ];
-}
-
-function play(key, val, seed) {
-  const [h, a] = pairFor(key, val);
-  return runHeadless(h, a, { seed });
-}
-
 const seedOf = (key, i) => deriveSeed("KMD26-tactics", key + "#" + i);
-
-/* 무거운 루프가 화면을 막지 않도록 한 쌍씩 끊어 돈다 */
-function chunked(n, step, done) {
-  let i = 0;
-  const tick = () => {
-    step(i); i++;
-    $("#bar").style.width = Math.round(i / n * 100) + "%";
-    if (i < n) setTimeout(tick, 0); else { $("#bar").style.width = "0%"; done(); }
-  };
-  setTimeout(tick, 0);
-}
 
 function lock(on) { document.querySelectorAll("button,select").forEach(b => b.disabled = on); }
 const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const mmss = (s) => s < 60 ? `${Math.ceil(s)}초` : `${Math.floor(s / 60)}분 ${Math.round(s % 60)}초`;
+
+/* ── 코어를 나눠 쓴다 ─────────────────────────────────────────
+   경기 한 판이 8초쯤 걸립니다. 13,500틱 동안 22명이 각자 판단하니 원래 무거운 일이고,
+   줄일 수 있는 종류의 비용이 아닙니다. 대신 판이 서로 독립이라 나눠 돌릴 수 있습니다.
+
+   결정론은 그대로입니다 — 일꾼마다 모듈이 따로 올라가 난수 상태도 따로 살고,
+   시드는 경기마다 미리 정해져 있어서 어느 일꾼이 맡든 같은 경기가 나옵니다. */
+const POOL = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
+$("#cores").textContent = `· 코어 ${POOL}개로 나눠 돌립니다`;
+
+function runJobs(jobs, label) {
+  return new Promise((resolve, reject) => {
+    const out = new Array(jobs.length);
+    const t0 = performance.now();
+    let next = 0, done = 0, failed = null;
+    const pool = [];
+
+    const feed = (w) => {
+      if (next >= jobs.length) { w.terminate(); return; }
+      w.postMessage(jobs[next++]);
+    };
+    const finish = () => { pool.forEach(w => w.terminate()); };
+
+    for (let i = 0; i < Math.min(POOL, jobs.length); i++) {
+      let w;
+      try { w = new Worker("simworker.js", { type: "module" }); }
+      catch (e) { return reject(new Error("일꾼을 만들지 못했습니다 — " + e.message)); }
+      w.onerror = (e) => { failed = failed || new Error(e.message || "일꾼 오류"); finish(); reject(failed); };
+      w.onmessage = (e) => {
+        if (e.data.error) { finish(); return reject(new Error(e.data.error)); }
+        out[e.data.i] = e.data;
+        done++;
+
+        const el = (performance.now() - t0) / 1000;
+        const eta = el / done * (jobs.length - done);
+        $("#bar").style.width = Math.round(done / jobs.length * 100) + "%";
+        $("#hint").textContent =
+          `${label} — ${done}/${jobs.length}경기 · 남은 시간 약 ${mmss(eta)} (판당 ${Math.round(el / done * 1000)}ms)`;
+
+        if (done === jobs.length) { finish(); $("#bar").style.width = "0%"; $("#hint").textContent = ""; resolve(out); }
+        else feed(w);
+      };
+      pool.push(w);
+    }
+    pool.forEach(feed);
+  });
+}
+
+async function guard(fn) {
+  lock(true);
+  try { await fn(); }
+  catch (e) {
+    $("#res").style.display = "";
+    $("#res").innerHTML = `<div class="big bad">❌ 실행에 실패했습니다</div>
+      <pre style="white-space:pre-wrap">${String(e.message || e)}</pre>`;
+    $("#bar").style.width = "0%"; $("#hint").textContent = "";
+  }
+  lock(false);
+}
 
 /* ── ① 반영 여부 — 같은 시드로 한 판씩 ───────────────────────── */
-$("#runQuick").onclick = () => {
-  lock(true); $("#hint").textContent = "슬라이더별 한 판씩 비교 중…";
-  const rows = [];
-  chunked(SLIDERS.length, (i) => {
-    const s = SLIDERS[i], seed = seedOf(s.k, 0);
-    const A = play(s.k, s.lo, seed), B = play(s.k, s.hi, seed);
-    rows.push({ s, A, B, same: A.fp === B.fp });
-  }, () => {
-    const dead = rows.filter(r => r.same);
-    const pass = dead.length === 0;
-    $("#res").style.display = "";
-    $("#res").innerHTML = `
+$("#runQuick").onclick = () => guard(async () => {
+  // 항목당 두 판(낮음·높음)씩 — 같은 시드로
+  const jobs = [];
+  SLIDERS.forEach((s, gi) => {
+    const seed = seedOf(s.k, 0);
+    jobs.push({ i: gi * 2,     key: s.k, val: s.lo, seed });
+    jobs.push({ i: gi * 2 + 1, key: s.k, val: s.hi, seed });
+  });
+  const res = await runJobs(jobs, "반영 여부 확인");
+
+  const rows = SLIDERS.map((s, gi) => {
+    const A = res[gi * 2], B = res[gi * 2 + 1];
+    return { s, A, B, same: A.fp === B.fp };
+  });
+  const dead = rows.filter(r => r.same);
+  const pass = dead.length === 0;
+  $("#res").style.display = "";
+  $("#res").innerHTML = `
       <div class="big ${pass ? "ok" : "bad"}">
         ${pass ? "✅ 9종 모두 엔진에 연결돼 있습니다" : `❌ ${dead.length}종이 경기에 아무 영향을 주지 않습니다`}
       </div>
@@ -169,31 +212,37 @@ $("#runQuick").onclick = () => {
         이건 <b>최소 조건</b>입니다. "연결은 돼 있다"까지만 말해 줍니다.
         얼마나·어느 방향으로 바꾸는지는 ② 전체 측정으로 봐야 합니다.
       </div>`;
-    $("#hint").textContent = ""; lock(false);
-  });
-};
+});
 
 /* ── ② 방향성 측정 ──────────────────────────────────────────── */
 function measure(list) {
-  const N = +$("#pairs").value;
-  lock(true);
-  const out = list.map(s => ({ s, lo: [], hi: [], loWin: 0, hiWin: 0, diff: 0 }));
-  const total = list.length * N;
-  let done = 0;
+  return guard(async () => {
+    const N = +$("#pairs").value;
 
-  chunked(total, (n) => {
-    const gi = Math.floor(n / N), i = n % N;
-    const rec = out[gi], s = rec.s, seed = seedOf(s.k, i);
-    const A = play(s.k, s.lo, seed), B = play(s.k, s.hi, seed);
-    rec.lo.push(s.f(A.stats.h, A.stats.a));
-    rec.hi.push(s.f(B.stats.h, B.stats.a));
-    if (A.hg > A.ag) rec.loWin++;
-    if (B.hg > B.ag) rec.hiWin++;
-    if (A.fp !== B.fp) rec.diff++;
-    done++;
-    $("#hint").textContent = `${s.name} — ${i + 1}/${N}쌍 (전체 ${done}/${total})`;
-  }, () => {
-    render(out, N); $("#hint").textContent = ""; lock(false);
+    // 일감을 미리 다 펼쳐 둔다 — 판마다 시드가 정해져 있어 순서가 결과를 바꾸지 않는다
+    const jobs = [];
+    list.forEach((s, gi) => {
+      for (let i = 0; i < N; i++) {
+        const seed = seedOf(s.k, i), b = (gi * N + i) * 2;
+        jobs.push({ i: b,     key: s.k, val: s.lo, seed });
+        jobs.push({ i: b + 1, key: s.k, val: s.hi, seed });
+      }
+    });
+    const res = await runJobs(jobs, list.length === 1 ? list[0].name : "전체 항목 측정");
+
+    const out = list.map((s, gi) => {
+      const rec = { s, lo: [], hi: [], loWin: 0, hiWin: 0, diff: 0 };
+      for (let i = 0; i < N; i++) {
+        const b = (gi * N + i) * 2, A = res[b], B = res[b + 1];
+        rec.lo.push(s.f(A.h, A.a));
+        rec.hi.push(s.f(B.h, B.a));
+        if (A.hg > A.ag) rec.loWin++;
+        if (B.hg > B.ag) rec.hiWin++;
+        if (A.fp !== B.fp) rec.diff++;
+      }
+      return rec;
+    });
+    render(out, N);
   });
 }
 
