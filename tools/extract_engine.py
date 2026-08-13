@@ -12,7 +12,8 @@ UI/달력 클러스터는 제외하고, 전역 상태(G)는 런타임 스텁으�
 
 사용: python extract_engine.py <원본 index.html> <출력 kernel.raw.js>
 """
-import re, io, json, sys, hashlib
+import io, json, sys, hashlib
+import jsclosure as J
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "KM26v2/new.html"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "src/engine/kernel.raw.js"
@@ -27,63 +28,17 @@ tfLogAdd devSnapshot armyAttach joinClub gainPosFam""".split())
 EXCLUDE = set("""home nextOpponent staffOpt nextFriendly calOpenDate dateOfDay matchDayOf
 tableOf isSellout attEstimate DOW_KR""".split())
 
-BLOCK = re.compile(r'/\*.*?\*/', re.S); LINEC = re.compile(r'//[^\n]*')
-TPL = re.compile(r'`(?:\\.|[^`\\])*`', re.S)
-DQ = re.compile(r'"(?:\\.|[^"\\])*"'); SQ = re.compile(r"'(?:\\.|[^'\\])*'")
-PROP = re.compile(r'\.\s*([A-Za-z_$][\w$]*)')
-def clean(s):
-    for r, x in ((BLOCK, ' '), (LINEC, ' '), (TPL, '""'), (DQ, '""'), (SQ, '""'), (PROP, ' ')):
-        s = r.sub(x, s)
-    return s
+src, js, base = J.read_script(SRC)
+body, start = J.collect_decls(js)
 
-src = open(SRC, encoding="utf-8").read()
-m = re.search(r'<script>(.*)</script>', src, re.S)
-js = m.group(1); base = src[:m.start(1)].count("\n") + 1
-L = js.split("\n")
-
-DECL = re.compile(r'^(?:async\s+)?(function|class|const|let|var)\s+([A-Za-z_$][\w$]*)')
-decls = []
-for i, ln in enumerate(L):
-    mm = DECL.match(ln)
-    if mm: decls.append((mm.group(2), i))
-
-body, start = {}, {}
-for j, (nm, i) in enumerate(decls):
-    end = decls[j + 1][1] if j + 1 < len(decls) else len(L)
-    body[nm] = body.get(nm, "") + "\n".join(L[i:end]).rstrip() + "\n"
-    start.setdefault(nm, i)
-
-IDENT = re.compile(r'\b([A-Za-z_$][\w$]*)\b')
-KW = set("""var let const function class return if else for while do switch case break continue new
-typeof instanceof in of this null true false undefined try catch finally throw delete void
-await async get set static extends super Math JSON Object Array String Number Boolean Date
-Map Set Promise Error console window document parseInt parseFloat isNaN Infinity NaN""".split())
-
-seen, stack = set(), ["MatchSim"]
-while stack:
-    n = stack.pop()
-    if n in seen or n in STUB or n in EXCLUDE or n not in body: continue
-    seen.add(n)
-    for r in IDENT.findall(clean(body[n])):
-        if r in body and r not in KW and r not in seen:
-            stack.append(r)
-
-order = sorted(seen, key=lambda x: start[x])
-parts = [body[n] for n in order]
-code = "\n".join(parts)
+seen = J.closure(body, ["MatchSim"], STUB, EXCLUDE)
+order, code = J.emit(body, start, seen)
 
 # ── 단계 2: 난수 시드화 ──────────────────────────────────────
 # 두 사람이 같은 경기를 보려면 엔진 안의 모든 무작위가 하나의 시드에서 나와야 한다.
 #   · 사전 검사에서 문자열·주석 안에는 한 건도 없음을 확인했으므로 단순 치환이 안전하다
 #   · 괄호 없는 참조(Math.random 을 함수로 넘기는 형태)가 있으면 중단한다
-bare = len(re.findall(r'Math\.random(?!\s*\()', code))
-if bare:
-    sys.exit("중단: 괄호 없는 Math.random 참조 %d건. 수동 확인 필요." % bare)
-RNG_SITES = len(re.findall(r'Math\.random\(\)', code))
-code = code.replace("Math.random()", "RNG()")
-left = len(re.findall(r'Math\.random', code))
-if left:
-    sys.exit("중단: 치환 후에도 Math.random 이 %d건 남음." % left)
+code, RNG_SITES = J.seed_random(code, "커널")
 
 srchash = hashlib.sha256(src.encode("utf-8")).hexdigest()[:12]
 hdr = (
@@ -103,7 +58,8 @@ hdr = (
 exports = ["MatchSim", "matchSkills", "TAC", "getPosFam", "initPosFam", "canonSlot",
            "computeFormationPositions", "computeRenderSlots", "FORMATION_SHAPE", "SLOT_FAM",
            "FAM_NEAR", "FAM_POS", "ROLES", "ROLE_BY_KEY", "TRAITS", "SIM_SECONDS", "SIM_DT",
-           "MATCH_CLOCK_SCALE", "TAC_KEYS", "TAC_DEF", "SLOT_XY", "refCrewOf", "COMM", "onPitch"]
+           "MATCH_CLOCK_SCALE", "TAC_KEYS", "TAC_DEF", "SLOT_XY", "refCrewOf", "COMM", "onPitch",
+           "slotRating", "ovrStarVal", "playerLevel"]
 exports = [e for e in exports if e in seen]
 tail = "\n\nexport {\n  " + ",\n  ".join(exports) + "\n};\n"
 

@@ -1,0 +1,275 @@
+{
+ "srcHash": "d18fe0dfc09c",
+ "declCount": 63,
+ "lineCount": 1101,
+ "rngSites": 18,
+ "exports": [
+  "mkTeam",
+  "D1",
+  "D2",
+  "ROSTER26",
+  "PLAYER_TWEAK",
+  "PREF_POS_OVERRIDE",
+  "CUR_YEAR"
+ ],
+ "patches": [
+  {
+   "id": "D2-01",
+   "why": "estimateOvr 의 ±3 난수 제거 — 대전에서 같은 선수가 판마다 다른 능력치면 성립하지 않는다 (설계 결정 D-2)"
+  }
+ ],
+ "order": [
+  {
+   "name": "CUR_YEAR",
+   "srcLine": 1136
+  },
+  {
+   "name": "D1",
+   "srcLine": 1137
+  },
+  {
+   "name": "D2",
+   "srcLine": 1200
+  },
+  {
+   "name": "ROSTER26",
+   "srcLine": 1234
+  },
+  {
+   "name": "R",
+   "srcLine": 1272
+  },
+  {
+   "name": "clamp",
+   "srcLine": 1274
+  },
+  {
+   "name": "PID",
+   "srcLine": 1322
+  },
+  {
+   "name": "wageExpect",
+   "srcLine": 1328
+  },
+  {
+   "name": "TECH_ATTRS",
+   "srcLine": 1358
+  },
+  {
+   "name": "MENT_ATTRS",
+   "srcLine": 1359
+  },
+  {
+   "name": "PHYS_ATTRS",
+   "srcLine": 1360
+  },
+  {
+   "name": "GKT_ATTRS",
+   "srcLine": 1361
+  },
+  {
+   "name": "LEGACY_FROM",
+   "srcLine": 1392
+  },
+  {
+   "name": "syncLegacyAttrs",
+   "srcLine": 1396
+  },
+  {
+   "name": "ATTR_SPREAD",
+   "srcLine": 1463
+  },
+  {
+   "name": "ROLE_MOD_FM",
+   "srcLine": 1464
+  },
+  {
+   "name": "POS_WEIGHT",
+   "srcLine": 1487
+  },
+  {
+   "name": "genAttrsFM",
+   "srcLine": 1501
+  },
+  {
+   "name": "SPEC_KEEP",
+   "srcLine": 1527
+  },
+  {
+   "name": "SPEC_ELITE",
+   "srcLine": 1528
+  },
+  {
+   "name": "SPEC_CUT_MAX",
+   "srcLine": 1534
+  },
+  {
+   "name": "SPEC_CORE",
+   "srcLine": 1535
+  },
+  {
+   "name": "applySpecialization",
+   "srcLine": 1545
+  },
+  {
+   "name": "DRI_TALL_H",
+   "srcLine": 1577
+  },
+  {
+   "name": "applyTallDribble",
+   "srcLine": 1578
+  },
+  {
+   "name": "AGE_PEAK",
+   "srcLine": 1594
+  },
+  {
+   "name": "AGE_FALL",
+   "srcLine": 1595
+  },
+  {
+   "name": "AGE_CEIL_W",
+   "srcLine": 1597
+  },
+  {
+   "name": "AGE_CEIL_FROM",
+   "srcLine": 1598
+  },
+  {
+   "name": "ageCeil",
+   "srcLine": 1599
+  },
+  {
+   "name": "applyAgeDecline",
+   "srcLine": 1605
+  },
+  {
+   "name": "HT_FROM",
+   "srcLine": 1635
+  },
+  {
+   "name": "HT_FALL",
+   "srcLine": 1636
+  },
+  {
+   "name": "applyHeightBody",
+   "srcLine": 1637
+  },
+  {
+   "name": "genGkAttrsFM",
+   "srcLine": 1648
+  },
+  {
+   "name": "syncLegacyGk",
+   "srcLine": 1660
+  },
+  {
+   "name": "genBody",
+   "srcLine": 1667
+  },
+  {
+   "name": "TRAITS",
+   "srcLine": 1929
+  },
+  {
+   "name": "TRAIT_CONFLICT",
+   "srcLine": 2050
+  },
+  {
+   "name": "genTraits",
+   "srcLine": 2058
+  },
+  {
+   "name": "careerGuess",
+   "srcLine": 2118
+  },
+  {
+   "name": "mkPlayer",
+   "srcLine": 2125
+  },
+  {
+   "name": "PREF_POS_OVERRIDE",
+   "srcLine": 2185
+  },
+  {
+   "name": "inferPrefPos",
+   "srcLine": 2254
+  },
+  {
+   "name": "PLAYER_TWEAK",
+   "srcLine": 2282
+  },
+  {
+   "name": "applyPlayerTweak",
+   "srcLine": 2513
+  },
+  {
+   "name": "applyTweakObj",
+   "srcLine": 2516
+  },
+  {
+   "name": "assignPrefPos",
+   "srcLine": 2544
+  },
+  {
+   "name": "FAM_POS",
+   "srcLine": 2551
+  },
+  {
+   "name": "SLOT_FAM",
+   "srcLine": 2558
+  },
+  {
+   "name": "FAM_NEAR",
+   "srcLine": 2562
+  },
+  {
+   "name": "initPosFam",
+   "srcLine": 2585
+  },
+  {
+   "name": "SQ_PREF",
+   "srcLine": 2648
+  },
+  {
+   "name": "RETIRED_DEF",
+   "srcLine": 2746
+  },
+  {
+   "name": "retiredList",
+   "srcLine": 2768
+  },
+  {
+   "name": "assignNumbers",
+   "srcLine": 2802
+  },
+  {
+   "name": "mkTeam",
+   "srcLine": 2945
+  },
+  {
+   "name": "teamBaseFromSquad",
+   "srcLine": 2978
+  },
+  {
+   "name": "estimateOvr",
+   "srcLine": 2988
+  },
+  {
+   "name": "rawCA",
+   "srcLine": 6271
+  },
+  {
+   "name": "AFF_DEF",
+   "srcLine": 23026
+  },
+  {
+   "name": "aff",
+   "srcLine": 23027
+  },
+  {
+   "name": "W",
+   "srcLine": 26647
+  }
+ ]
+}

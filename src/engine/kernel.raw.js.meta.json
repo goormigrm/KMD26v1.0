@@ -26,7 +26,10 @@
   "SLOT_XY",
   "refCrewOf",
   "COMM",
-  "onPitch"
+  "onPitch",
+  "slotRating",
+  "ovrStarVal",
+  "playerLevel"
  ],
  "excluded": [
   "DOW_KR",

@@ -9,3 +9,9 @@ tools/**/tmp/
 # 프로젝트와 무관한 개인 파일
 handover.md
 HANDOVER*.md
+
+# Go 빌드 산출물
+tools/gendata/gendata.exe
+
+# Python 캐시
+__pycache__/

@@ -1,0 +1,271 @@
+{
+ "order": {
+  "k1": [
+   "ulsan",
+   "jeonbuk",
+   "daejeon",
+   "gimcheon",
+   "gangwon",
+   "gwangju",
+   "seoul",
+   "pohang",
+   "jeju",
+   "anyang",
+   "incheon",
+   "bucheon"
+  ],
+  "k2": [
+   "suwon",
+   "daegu",
+   "suwonfc",
+   "busan",
+   "jeonnam",
+   "seoule",
+   "seongnam",
+   "cheongju",
+   "asan",
+   "hwaseong",
+   "gimpo",
+   "gyeongnam",
+   "cheonan",
+   "ansan",
+   "gimhae",
+   "yongin",
+   "paju"
+  ]
+ },
+ "teams": {
+  "ansan": {
+   "col": "#0b6b32",
+   "col2": "#1c1c1c",
+   "div": 2,
+   "id": "ansan",
+   "name": "안산 그리너스",
+   "short": "안산"
+  },
+  "anyang": {
+   "col": "#5f2c8c",
+   "col2": "#e4002b",
+   "div": 1,
+   "id": "anyang",
+   "name": "FC 안양",
+   "short": "안양"
+  },
+  "asan": {
+   "col": "#2a5caa",
+   "col2": "#ffd200",
+   "div": 2,
+   "id": "asan",
+   "name": "충남아산 FC",
+   "short": "아산"
+  },
+  "bucheon": {
+   "col": "#e4002b",
+   "col2": "#1c1c1c",
+   "div": 1,
+   "id": "bucheon",
+   "name": "부천 FC 1995",
+   "short": "부천"
+  },
+  "busan": {
+   "col": "#c8102e",
+   "col2": "#1c1c1c",
+   "div": 2,
+   "id": "busan",
+   "name": "부산 아이파크",
+   "short": "부산"
+  },
+  "cheonan": {
+   "col": "#4fb0e8",
+   "col2": "#e2b93b",
+   "div": 2,
+   "id": "cheonan",
+   "name": "천안 시티 FC",
+   "short": "천안"
+  },
+  "cheongju": {
+   "col": "#1257a8",
+   "col2": "#f5d000",
+   "div": 2,
+   "id": "cheongju",
+   "name": "충북청주 FC",
+   "short": "청주"
+  },
+  "daegu": {
+   "col": "#87ceeb",
+   "col2": "#0b2a53",
+   "div": 2,
+   "id": "daegu",
+   "name": "대구 FC",
+   "short": "대구"
+  },
+  "daejeon": {
+   "col": "#7c1c2c",
+   "col2": "#00815c",
+   "div": 1,
+   "id": "daejeon",
+   "name": "대전 하나 시티즌",
+   "short": "대전"
+  },
+  "gangwon": {
+   "col": "#d75427",
+   "col2": "#004c25",
+   "div": 1,
+   "id": "gangwon",
+   "name": "강원 FC",
+   "short": "강원"
+  },
+  "gimcheon": {
+   "col": "#8c1c34",
+   "col2": "#003876",
+   "div": 1,
+   "id": "gimcheon",
+   "name": "김천 상무 FC",
+   "short": "김천"
+  },
+  "gimhae": {
+   "col": "#c2273d",
+   "col2": "#f2c500",
+   "div": 2,
+   "id": "gimhae",
+   "name": "김해 FC",
+   "short": "김해"
+  },
+  "gimpo": {
+   "col": "#1a9e4b",
+   "col2": "#123c22",
+   "div": 2,
+   "id": "gimpo",
+   "name": "김포 FC",
+   "short": "김포"
+  },
+  "gwangju": {
+   "col": "#ffb91c",
+   "col2": "#c8322e",
+   "div": 1,
+   "id": "gwangju",
+   "name": "광주 FC",
+   "short": "광주"
+  },
+  "gyeongnam": {
+   "col": "#e4002b",
+   "col2": "#f5d000",
+   "div": 2,
+   "id": "gyeongnam",
+   "name": "경남 FC",
+   "short": "경남"
+  },
+  "hwaseong": {
+   "col": "#f26522",
+   "col2": "#1c1c1c",
+   "div": 2,
+   "id": "hwaseong",
+   "name": "화성 FC",
+   "short": "화성"
+  },
+  "incheon": {
+   "col": "#0d5ba4",
+   "col2": "#1c1c1c",
+   "div": 1,
+   "id": "incheon",
+   "name": "인천 유나이티드",
+   "short": "인천"
+  },
+  "jeju": {
+   "col": "#f36f21",
+   "col2": "#e4002b",
+   "div": 1,
+   "id": "jeju",
+   "name": "제주 SK FC",
+   "short": "제주"
+  },
+  "jeonbuk": {
+   "col": "#0a8547",
+   "col2": "#c5a253",
+   "div": 1,
+   "id": "jeonbuk",
+   "name": "전북 현대 모터스",
+   "short": "전북"
+  },
+  "jeonnam": {
+   "col": "#ffd200",
+   "col2": "#0b6138",
+   "div": 2,
+   "id": "jeonnam",
+   "name": "전남 드래곤즈",
+   "short": "전남"
+  },
+  "paju": {
+   "col": "#e75480",
+   "col2": "#4a1b2c",
+   "div": 2,
+   "id": "paju",
+   "name": "파주 시민축구단",
+   "short": "파주"
+  },
+  "pohang": {
+   "col": "#c8102e",
+   "col2": "#000000",
+   "div": 1,
+   "id": "pohang",
+   "name": "포항 스틸러스",
+   "short": "포항"
+  },
+  "seongnam": {
+   "col": "#101010",
+   "col2": "#e6e6e6",
+   "div": 2,
+   "id": "seongnam",
+   "name": "성남 FC",
+   "short": "성남"
+  },
+  "seoul": {
+   "col": "#e4002b",
+   "col2": "#1d1d1b",
+   "div": 1,
+   "id": "seoul",
+   "name": "FC 서울",
+   "short": "서울"
+  },
+  "seoule": {
+   "col": "#12275c",
+   "col2": "#ffffff",
+   "div": 2,
+   "id": "seoule",
+   "name": "서울 이랜드 FC",
+   "short": "서울E"
+  },
+  "suwon": {
+   "col": "#004b9e",
+   "col2": "#e4002b",
+   "div": 2,
+   "id": "suwon",
+   "name": "수원 삼성 블루윙즈",
+   "short": "수원"
+  },
+  "suwonfc": {
+   "col": "#1b4fa0",
+   "col2": "#e4002b",
+   "div": 2,
+   "id": "suwonfc",
+   "name": "수원 FC",
+   "short": "수원FC"
+  },
+  "ulsan": {
+   "col": "#0053a0",
+   "col2": "#ffd24f",
+   "div": 1,
+   "id": "ulsan",
+   "name": "울산 HD FC",
+   "short": "울산"
+  },
+  "yongin": {
+   "col": "#ff3b30",
+   "col2": "#ffffff",
+   "div": 2,
+   "id": "yongin",
+   "name": "용인 FC",
+   "short": "용인"
+  }
+ }
+}

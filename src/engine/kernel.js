@@ -9,7 +9,7 @@
    ⚠ 이건 원본 그대로입니다. 듀얼 버그 수정은 tools/patch_kernel.py 가 붙입니다.
 
    ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────
-   원본(kernel.raw.js) 해시: sha256:2214dce31f98
+   원본(kernel.raw.js) 해시: sha256:6cb75bb1f842
    · PK-01  kickoff() 이 b.isPenalty 를 지우지 않아, PK 다음 킥오프가 센터서클에서 '페널티킥'이 된다
    · PK-02  PK 득점이 VAR 로 취소된다. PK 는 오프사이드도 빌드업 반칙도 있을 수 없다 (분 단위 엔진에는 isPen 가드가 있다)
    · PK-03  90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다
@@ -6156,5 +6156,8 @@ export {
   SLOT_XY,
   refCrewOf,
   COMM,
-  onPitch
+  onPitch,
+  slotRating,
+  ovrStarVal,
+  playerLevel
 };

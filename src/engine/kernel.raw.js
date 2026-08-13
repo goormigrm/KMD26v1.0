@@ -6139,5 +6139,8 @@ export {
   SLOT_XY,
   refCrewOf,
   COMM,
-  onPitch
+  onPitch,
+  slotRating,
+  ovrStarVal,
+  playerLevel
 };
