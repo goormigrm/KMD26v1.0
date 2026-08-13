@@ -67,6 +67,19 @@ order = sorted(seen, key=lambda x: start[x])
 parts = [body[n] for n in order]
 code = "\n".join(parts)
 
+# ── 단계 2: 난수 시드화 ──────────────────────────────────────
+# 두 사람이 같은 경기를 보려면 엔진 안의 모든 무작위가 하나의 시드에서 나와야 한다.
+#   · 사전 검사에서 문자열·주석 안에는 한 건도 없음을 확인했으므로 단순 치환이 안전하다
+#   · 괄호 없는 참조(Math.random 을 함수로 넘기는 형태)가 있으면 중단한다
+bare = len(re.findall(r'Math\.random(?!\s*\()', code))
+if bare:
+    sys.exit("중단: 괄호 없는 Math.random 참조 %d건. 수동 확인 필요." % bare)
+RNG_SITES = len(re.findall(r'Math\.random\(\)', code))
+code = code.replace("Math.random()", "RNG()")
+left = len(re.findall(r'Math\.random', code))
+if left:
+    sys.exit("중단: 치환 후에도 Math.random 이 %d건 남음." % left)
+
 srchash = hashlib.sha256(src.encode("utf-8")).hexdigest()[:12]
 hdr = (
     "/* ─────────────────────────────────────────────────────────────\n"
@@ -75,9 +88,11 @@ hdr = (
     "   원본: KM26 v2.0 (KleagueM2026/KM26v2.0) — 원저작자 허락 하에 사용\n"
     "   원본 해시: sha256:%s\n"
     "   추출 선언 %d개 / %d줄\n"
+    "   난수 시드화: Math.random() %d곳 → RNG()\n"
     "   ⚠ 전역 상태(G)·UI 함수는 src/engine/stubs.js 가 제공합니다.\n"
-    "   ───────────────────────────────────────────────────────────── */\n\n"
-) % (srchash, len(order), code.count("\n"))
+    "   ───────────────────────────────────────────────────────────── */\n"
+    'import { RNG } from "./rng.js";\n\n'
+) % (srchash, len(order), code.count("\n"), RNG_SITES)
 
 exports = ["MatchSim", "matchSkills", "TAC", "getPosFam", "initPosFam", "canonSlot",
            "computeFormationPositions", "computeRenderSlots", "FORMATION_SHAPE", "SLOT_FAM",

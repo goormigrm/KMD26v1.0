@@ -4,10 +4,12 @@
    원본: KM26 v2.0 (KleagueM2026/KM26v2.0) — 원저작자 허락 하에 사용
    원본 해시: sha256:d18fe0dfc09c
    추출 선언 347개 / 6103줄
+   난수 시드화: Math.random() 127곳 → RNG()
    ⚠ 전역 상태(G)·UI 함수는 src/engine/stubs.js 가 제공합니다.
    ───────────────────────────────────────────────────────────── */
+import { RNG } from "./rng.js";
 
-const R = (n)=>Math.floor(Math.random()*n);
+const R = (n)=>Math.floor(RNG()*n);
 
 const pick = (a)=>a[R(a.length)];
 
@@ -1077,7 +1079,7 @@ function refVars(M){
   catch(e){ return {r:"주심", v:"VAR", rt:""}; }
 }
 
-function banMatches(second){ return second ? 1 : (2 + (Math.random()<0.3?1:0)); }
+function banMatches(second){ return second ? 1 : (2 + (RNG()<0.3?1:0)); }
 
 function freezeLiveSlots(sd){
   const t=sd&&sd.team;
@@ -1187,9 +1189,9 @@ function aiSubs(M, minNow){
   for(const [sd,key,myG,opG] of [[M.h,"h",M.hg,M.ag],[M.a,"a",M.ag,M.hg]]){
     if(sd.team.isUser) continue;
     if(!sd.bench || !sd.bench.length) continue;
-    if(Math.random()<0.18) continue;          // 이번 창은 그냥 지켜본다
+    if(RNG()<0.18) continue;          // 이번 창은 그냥 지켜본다
     let made=0;
-    const cap = Math.random()<0.30 ? 2 : 1;    // 한 번에 둘을 바꾸는 건 가끔이다
+    const cap = RNG()<0.30 ? 2 : 1;    // 한 번에 둘을 바꾸는 건 가끔이다
     while(sd.subs<5 && made<cap && aiSubOnce(M, sd, key, myG-opG, m)) made++;
   }
 }
@@ -1389,7 +1391,7 @@ function chooseShotType(shooter, g, ball, gk, opt){
   // 이런 상황에서 매번 똑같이 정직하게 때리면 마무리가 단조로워진다.
   const TT=shooter.tr||{};
   if(o.clear && g.distM<20){
-    const r=Math.random();
+    const r=RNG();
     // 특성: 로빙 슛 선호 / 키퍼 제치기 / 휘어차기
     if(r < 0.22+fin*0.16+(TT.lob?0.34:0))            return SHOT_TYPE.CHIP;      // 키퍼 키를 넘긴다
     if(TT.round && r < 0.60)                          return SHOT_TYPE.PLACED;    // 제치고 밀어 넣는다
@@ -1400,14 +1402,14 @@ function chooseShotType(shooter, g, ball, gk, opt){
   // 키퍼가 골라인에서 많이 나와 있으면 넘겨 찬다
   if(gk){
     const off = Math.abs(gk.x-g.gx)*PITCH_AR;
-    if(off>GK_OFFLINE && g.distM>9 && g.distM<26 && Math.random()<0.30+fin*0.35)
+    if(off>GK_OFFLINE && g.distM>9 && g.distM<26 && RNG()<0.30+fin*0.35)
       return SHOT_TYPE.CHIP;
   }
   // 측면에서의 감아차기 — 박스 밖에서도 각을 세워 감아 올린다
   const wide=Math.abs(shooter.y-0.5)>0.10;
-  if(wide && g.distM<30 && Math.random()<0.24+fin*0.45) return SHOT_TYPE.FINESSE;
+  if(wide && g.distM<30 && RNG()<0.24+fin*0.45) return SHOT_TYPE.FINESSE;
   // 박스 밖 정면 — 감아 차거나, 힘으로 때린다
-  if(g.distM>17 && Math.random()<0.16+fin*0.30) return SHOT_TYPE.FINESSE;
+  if(g.distM>17 && RNG()<0.16+fin*0.30) return SHOT_TYPE.FINESSE;
   if(g.distM>19) return SHOT_TYPE.POWER;
   return SHOT_TYPE.PLACED;
 }
@@ -1984,8 +1986,8 @@ function evaluateCross(carrier, mates, opps, ctx){
   const inBoxMates=mates.filter(m=>m!==carrier && inBox(m,dir));
   if(!inBoxMates.length) return null;
   const deep = cx>0.84;
-  let type = deep ? (Math.random()<0.22 ? CROSS_TYPE.CUTBACK : CROSS_TYPE.BYLINE) : CROSS_TYPE.EARLY;
-  if(FX(carrier,"earlyCross")>0.3 && Math.random()<0.55) type=CROSS_TYPE.EARLY;   // 특성: 얼리 크로스
+  let type = deep ? (RNG()<0.22 ? CROSS_TYPE.CUTBACK : CROSS_TYPE.BYLINE) : CROSS_TYPE.EARLY;
+  if(FX(carrier,"earlyCross")>0.3 && RNG()<0.55) type=CROSS_TYPE.EARLY;   // 특성: 얼리 크로스
   let target=null;
   if(type===CROSS_TYPE.CUTBACK){
     // 컷백은 박스 정면·뒤쪽으로 빠져 들어오는 동료에게 낮게 빼준다
@@ -2146,7 +2148,7 @@ function findBestPass(carrier, mates, opps, ctx){
      긴 패스, 앵커·하프백의 짧고 안전한 패스)이 실제로 동작하도록 FX로 합쳐 읽는다. */
   const lpF=FX(carrier,"longPass"), spF=FX(carrier,"shortPass");
   const longGate = PASS_LONG_M*clamp(1 - lpF*0.38 + spF*0.45, 0.55, 1.85);
-  if(thru && Math.random() < thruP)                            type=PASS_TYPE.THROUGH;
+  if(thru && RNG() < thruP)                            type=PASS_TYPE.THROUGH;
   else if(distM > longGate || (opt.laneRisk||0) > 0.7)         type=PASS_TYPE.LONG;
   else                                                          type=PASS_TYPE.SHORT;
 
@@ -2166,9 +2168,9 @@ function findBestPass(carrier, mates, opps, ctx){
   // ── 능력치에 따른 오차. 낮을수록 방향이 틀어지고 세기 조절에도 실패한다.
   const errBase = type===PASS_TYPE.SHORT ? 0.011 : (type===PASS_TYPE.THROUGH ? 0.026 : 0.036);
   const err = errBase*Math.pow(1.42-skill, 1.45)*1.25;   // 능력치 차이를 비선형으로 벌린다
-  tx = clamp01(tx + (Math.random()-0.5)*err);
-  ty = clamp01(ty + (Math.random()-0.5)*err*1.4);
-  const misWeight = 1 + (Math.random()-0.5)*(0.42*(1.35-skill));   // 너무 길거나 짧게 찬다
+  tx = clamp01(tx + (RNG()-0.5)*err);
+  ty = clamp01(ty + (RNG()-0.5)*err*1.4);
+  const misWeight = 1 + (RNG()-0.5)*(0.42*(1.35-skill));   // 너무 길거나 짧게 찬다
 
   const dIso=Math.hypot((tx-carrier.x)*PITCH_AR, ty-carrier.y);
   const over = PASS_OVER + (type===PASS_TYPE.THROUGH?0.30:0) + (opt.recvPress||0)*0.18;
@@ -2188,7 +2190,7 @@ function decideCrossDelivery(carrier, cr, ctx){
   if(cr.type===CROSS_TYPE.CUTBACK) return {power:clamp(1.15+skill*0.25,0.9,1.7), floated:false};
   const head=(cr.to.headSkill||0.6);
   const press=pressureOn(cr.to, ctx.opps||[], 1);
-  const floated = head>0.62 && press<0.7 && Math.random()<0.45+head*0.3;
+  const floated = head>0.62 && press<0.7 && RNG()<0.45+head*0.3;
   const power = floated ? clamp(0.70+skill*0.18, 0.55, 1.0)      // 천천히 띄워 올린다
                         : clamp(1.10+skill*0.35+press*0.15, 0.9, 1.85); // 강하게 감아 올린다
   return {power, floated};
@@ -2634,7 +2636,7 @@ function assignDefRoles(mine, opps, carrier, pressers, t, dir){
     if(a._lastRole !== a.defRole){
       if(a._lastRole !== undefined){
         const dec=a.decSkill||0.6;
-        a._hesitateUntil = t + HESITATE_MAX*(1.15-dec)*(0.5+Math.random()*0.8);
+        a._hesitateUntil = t + HESITATE_MAX*(1.15-dec)*(0.5+RNG()*0.8);
         a._frozenRole = a._lastRole;
         a._frozenMark = a._lastMark;
       }
@@ -3192,13 +3194,13 @@ class MatchSim{
     if(!this.emitEvents) return;
     const cands=this.side(concededSide).filter(a=>a.slot!=="GK" && a.p && a.p.pers===3);
     if(!cands.length) return;
-    const f=cands[Math.floor(Math.random()*cands.length)];
+    const f=cands[Math.floor(RNG()*cands.length)];
     const already=(f.yellows||0)>=1;
     const chance=(already?0.09:0.045)*this.refCardK(concededSide);
-    if(Math.random()>=chance) return;
+    if(RNG()>=chance) return;
     const st=this.stats[f.side], nm=f.p?f.p.name:"선수";
     const rv=refVars(this.M);
-    if(already || Math.random()<0.25){
+    if(already || RNG()<0.25){
       /* 퇴장 — 누적이거나 도를 넘었다 */
       const second=already;
       if(f.p){ f.p.ban=Math.max(f.p.ban||0, banMatches(second)); f.p.banNew=1; }
@@ -3385,7 +3387,7 @@ class MatchSim{
       if(a.p) a.p.inj=Math.max(a.p.inj||0, wks);
       if(b.ownerId===a.id){                                // 공을 들고 쓰러졌다면 공은 흘러나간다
         b.ownerId=null;
-        this.launchLoose(b.x, b.y, Math.random()*Math.PI*2, 4+Math.random()*6, this.opp(a.side), false);
+        this.launchLoose(b.x, b.y, RNG()*Math.PI*2, 4+RNG()*6, this.opp(a.side), false);
       }
       this.agents=this.agents.filter(z=>z.id!==a.id);
       const nm=a.p?a.p.name:"선수";
@@ -3403,15 +3405,15 @@ class MatchSim{
   injuryCheck(){
     if(!this.emitEvents) return;
     if(this.ball.celebrate || this.ball.foulScene) return;
-    if(Math.random() > INJ_TICK_P*meTune("inj")) return;
+    if(RNG() > INJ_TICK_P*meTune("inj")) return;
     const pool=this.agents.filter(a=>a.slot!=="GK" && !a._injured);
     if(!pool.length) return;
-    const a=pool[Math.floor(Math.random()*pool.length)];
+    const a=pool[Math.floor(RNG()*pool.length)];
     const cond=(a.p&&a.p.cond!=null)?a.p.cond:90;
     const age=(a.p&&a.p.by)? (G.season-a.p.by) : 26;
     // 체력이 바닥일수록·노장일수록 위험
     const risk=(1.35-cond/100)*(0.75+clamp((age-24)/16,0,1)*0.7);
-    if(Math.random()<risk) this.hurt(a, false);
+    if(RNG()<risk) this.hurt(a, false);
   }
   buildSquads(){
     for(const [key, sd] of [["h",this.M.h],["a",this.M.a]]){
@@ -3520,7 +3522,7 @@ class MatchSim{
       const landOwn=own(b.tx);
       if(landOwn < (1-BOX_X)*1.05 && Math.abs(b.ty-0.5) < 0.26){
         // 박스 장악력이 높을수록 적극적으로 나온다
-        if(Math.random() < GK_CLAIM_P*(0.35+cmdSkill*1.10)){
+        if(RNG() < GK_CLAIM_P*(0.35+cmdSkill*1.10)){
           return {role:"CLAIM", x:clamp01(b.tx), y:clamp01(b.ty), spd:SPD.SPRINT};
         }
       }
@@ -3582,7 +3584,7 @@ class MatchSim{
     const r=Math.pow(atk/Math.max(0.05,def), TAKEON_POW);
     const pWin = clamp(r/(1+r), 0.06, 0.94);
     this.stats[a.side].takeOn=(this.stats[a.side].takeOn||0)+1;
-    if(Math.random() < pWin){
+    if(RNG() < pWin){
       this.stats[a.side].takeOnWon=(this.stats[a.side].takeOnWon||0)+1;
       // 제쳐진 뒤 다시 붙기까지 — 가속도가 좋은 수비수는 금방 따라붙는다
       target._beaten = this.t + TAKEON_STAGGER*clamp(1.30-(target.accelSkill||0.6)*0.85, 0.45, 1.30);
@@ -3596,9 +3598,9 @@ class MatchSim{
     // 이 대가가 없으면 실력이 낮은 팀이 무한정 제치기를 시도하며 볼을 끌고 있게 된다.
     this.stats[a.side].lost++;
     this.cap(a.side, COMM.lvTakeOnLose, {p:this.nm(a)});
-    if(Math.random() < TAKEON_FAIL_LOSS){
+    if(RNG() < TAKEON_FAIL_LOSS){
       this.stats[target.side].tackleWon++; this.stats[target.side].tackle++;
-      if(Math.random()<0.35) this.looseBall(a, 0.22);    // 서로 엉켜 흘러나간다
+      if(RNG()<0.35) this.looseBall(a, 0.22);    // 서로 엉켜 흘러나간다
       else this.giveTo(target);                          // 수비수가 그대로 뺏는다
       return true;
     }
@@ -3732,7 +3734,7 @@ class MatchSim{
               //    배정된 자리 자체를 공 반대 방향으로 한 번만 밀어내 고정 목표로 삼는다.
               if(!a._spFix || a._spFixFor!==b.setPiece.kind){
                 let fx=(sx2-b.x)*PITCH_AR, fy=sy2-b.y, fd=Math.hypot(fx,fy);
-                if(fd<1e-6){ fx=-a.dir; fy=(Math.random()-0.5)*0.4; fd=Math.hypot(fx,fy)||1; }
+                if(fd<1e-6){ fx=-a.dir; fy=(RNG()-0.5)*0.4; fd=Math.hypot(fx,fy)||1; }
                 a._spFix={x:clamp01(b.x+(fx/fd)*ko2*1.03/PITCH_AR), y:clamp01(b.y+(fy/fd)*ko2*1.03)};
                 a._spFixFor=b.setPiece.kind;
               }
@@ -3836,8 +3838,8 @@ class MatchSim{
             // 앞을 막은 수비수가 있으면 제치기를 시도한다 — 성공하면 그대로 뚫고 나간다
             // 특성(자주/드물게 드리블, 개인기 시도)이 드리블 빈도 자체를 바꾼다
             const dt = clamp(1 + FX(a,"dribble"), 0.25, 2.0);
-            if(this.recording && Math.random()<0.014) this.cap(a.side, COMM.lvDrib, {p:this.nm(a)});
-            if(Math.random() < TAKEON_TRY*dt/TEMPO) this.tryTakeOn(a, this.side(this.opp(key)));
+            if(this.recording && RNG()<0.014) this.cap(a.side, COMM.lvDrib, {p:this.nm(a)});
+            if(RNG() < TAKEON_TRY*dt/TEMPO) this.tryTakeOn(a, this.side(this.opp(key)));
             if((a.burstUntil||0)>this.t) spd=SPD.RUN;              // 제친 직후에는 속도가 붙는다
           }
         } else if(pressers.includes(a)){
@@ -3853,7 +3855,7 @@ class MatchSim{
           // 침투와 오버래핑은 전력질주 — 오버래핑은 거리가 멀어서 뛰지 않으면 소유가 끝나기 전에 못 간다
           spd = (a.offRole===OFF_ROLE.RUN || a.offRole===OFF_ROLE.OVERLAP || a.offRole===OFF_ROLE.INSIDE) ? SPD.SPRINT : SPD.RUN;
           // 라인 뒤로 파고드는 순간에는 잠깐 더 치고 나간다
-          if(a.offRole===OFF_ROLE.RUN && (a.burstReady||0)<=this.t && Math.random()<0.04/TEMPO) this.tryBurst(a);
+          if(a.offRole===OFF_ROLE.RUN && (a.burstReady||0)<=this.t && RNG()<0.04/TEMPO) this.tryBurst(a);
         } else {
           // 수비 — 역할별로 다르게 움직인다(길목 차단 / 대인마크 / 라인 유지 / 커버)
           a._now=this.t;
@@ -3871,8 +3873,8 @@ class MatchSim{
               const myGk=mine.find(x=>x.slot==="GK");
               const org=myGk ? clamp(myGk.gkOrganize||0.5, 0, 1.2) : 0.5;
               const e=POS_ERR_MAX*(1.05-(a.posSkill||0.6))*(1.22-org*0.44);
-              a._posEx=(Math.random()-0.5)*2*e;
-              a._posEy=(Math.random()-0.5)*2*e;
+              a._posEx=(RNG()-0.5)*2*e;
+              a._posEy=(RNG()-0.5)*2*e;
             }
             tx=clamp01(tx+(a._posEx||0)); ty=clamp01(ty+(a._posEy||0));
           }
@@ -3890,10 +3892,10 @@ class MatchSim{
           // 프라이잉 — 라인 위에서 재다가 타이밍이 나쁘면 패스보다 먼저 튀어나간다.
           // 오프사이드는 이 순간에서 나온다. 클램프만 걸어두면 영원히 0회가 된다.
           if(a._breakAt===undefined || this.t>a._breakAt){
-            a._breakAt=this.t + 2.0 + Math.random()*4.0;
+            a._breakAt=this.t + 2.0 + RNG()*4.0;
             const bl = 1 + FX(a,"breakLine")*2.2;     // 역할·특성: 라인 뒤로 파고든다
-            a._breakUntil = (Math.random() < EARLY_RUN_P*bl*(1.25-tm))
-                            ? this.t + 0.6 + Math.random()*0.9 : 0;
+            a._breakUntil = (RNG() < EARLY_RUN_P*bl*(1.25-tm))
+                            ? this.t + 0.6 + RNG()*0.9 : 0;
           }
           const slack = (a._breakUntil>this.t) ? EARLY_RUN_LEAD*(1.25-tm) : (1-tm)*0.012;
           const limit = a.dir>0 ? oLine+slack : oLine-slack;
@@ -4095,7 +4097,7 @@ class MatchSim{
     const sp=Math.hypot(vx*PITCH_AR, vy);
     // 공은 기본적으로 선수와 같은 속도로 함께 나아간다(vx,vy). 여기에 툭 찬 "여분의 속도"(ex,ey)가
     // 얹혀 공을 앞으로 밀어내고, 그 여분만 마찰로 줄어든다. 그래서 공은 늘 진행 방향 앞쪽에 있게 된다.
-    if(sp>1e-5 && this.t-b._touchAt >= DRIB_TOUCH*(0.75+Math.random()*0.5)){
+    if(sp>1e-5 && this.t-b._touchAt >= DRIB_TOUCH*(0.75+RNG()*0.5)){
       b._touchAt=this.t;
       const dx=(b.x-carrier.x)*PITCH_AR, dy=b.y-carrier.y;
       const cur=(dx*vx*PITCH_AR + dy*vy)/sp;                          // 지금 진행 방향으로 앞선 거리
@@ -4184,7 +4186,7 @@ class MatchSim{
         if((g.gx-carrier.x)*carrier.dir>0.01){
           this.stats[key].fkDirect++;
           // 벽을 넘겨 감는 슛이거나(FINESSE), 벽 위로 강하게 때리는 슛(POWER)
-          const type=(g.distM<26 && Math.random()<0.35+(carrier.fkSkill||0.5)*0.45)
+          const type=(g.distM<26 && RNG()<0.35+(carrier.fkSkill||0.5)*0.45)
                      ? SHOT_TYPE.FINESSE : SHOT_TYPE.POWER;
           this.resolveShot(carrier, g, type, {freeKick:true});
           return;
@@ -4213,7 +4215,7 @@ class MatchSim{
       if(this.ball.fromGoalKick){
         this.ball.fromGoalKick=false;
         const safe=opts.filter(o=>o.dist<0.20 && o.recvPress<0.35 && o.forward>-0.02);
-        if(safe.length && Math.random()<0.30+(carrier.passSkill||0.6)*0.20){ this.startPass(carrier, safe[0]); return; }
+        if(safe.length && RNG()<0.30+(carrier.passSkill||0.6)*0.20){ this.startPass(carrier, safe[0]); return; }
         this.launchGoalKick(carrier, mates);
         return;
       }
@@ -4221,7 +4223,7 @@ class MatchSim{
       const gkOwn = carrier.dir>0 ? carrier.x : 1-carrier.x;
       if(gkOwn > (1-BOX_X)){
         const safe=opts.filter(o=>o.dist<0.22 && o.recvPress<0.6);
-        if(safe.length && Math.random()<0.45+(carrier.passSkill||0.6)*0.35) this.startPass(carrier, safe[0]);
+        if(safe.length && RNG()<0.45+(carrier.passSkill||0.6)*0.35) this.startPass(carrier, safe[0]);
         else this.clearBall(carrier);
         return;
       }
@@ -4285,9 +4287,9 @@ class MatchSim{
         // 특성: 공을 차놓고 제치기 — 드리블이 아니라 순수 스피드로 뚫는다
         if(T2.knockPast) appetite *= 0.85 + (carrier.paceSkill||0.6)*0.60;
         if(FX(carrier,"shoot")<-0.2) appetite*=0.6;   // 득점보다 패스 성향
-        if(Math.random() < appetite){
+        if(RNG() < appetite){
           if(this.tryTakeOn(carrier, opps)) return;         // 제쳤으면 그대로 몰고 간다
-          this.ball.hold=(0.3+Math.random()*0.4)*TEMPO; return;
+          this.ball.hold=(0.3+RNG()*0.4)*TEMPO; return;
         }
       }
     }
@@ -4296,7 +4298,7 @@ class MatchSim{
     const oneOnOne = shot && shot.clear && shot.g.distM<18;
     // 특성: 공을 가지면 멈춤 / 공을 오래 소유 / 템포 조절 — 볼을 더 오래 쥔다
     const holdTr = 1 + FX(carrier,"hold");
-    if(!oneOnOne && (!best || (best.score<-0.45 && selfPress<0.4))){ this.ball.hold=(0.6+Math.random()*0.7)*TEMPO*holdTr*this.tempoK(key)*(this.counterOn(key)?0.55:1); return; } // 몰고 간다
+    if(!oneOnOne && (!best || (best.score<-0.45 && selfPress<0.4))){ this.ball.hold=(0.6+RNG()*0.7)*TEMPO*holdTr*this.tempoK(key)*(this.counterOn(key)?0.55:1); return; } // 몰고 간다
     // 압박이 극심하고 옵션도 나쁘면 걷어낸다(롱볼)
     // 역할: 안정형 수비수/안정형 풀백/인버티드 풀백은 애매하면 그냥 걷어낸다
     const cf=FX(carrier,"clearFirst");
@@ -4342,7 +4344,7 @@ class MatchSim{
     b._passer=carrier;
     if(pl.type===PASS_TYPE.THROUGH) this.startChase(opt.to, b.tx, b.ty);
     // 2대1 패스 성향 — 주자마자 앞 공간으로 뛰어 들어가 되받을 준비를 한다
-    if(FX(carrier,"oneTwo")>0 && (carrier.burstReady||0)<=this.t && Math.random()<0.45) this.tryBurst(carrier);
+    if(FX(carrier,"oneTwo")>0 && (carrier.burstReady||0)<=this.t && RNG()<0.45) this.tryBurst(carrier);
   }
   /* 공간으로 찔러준 공을 향해 달려간다.
      받을 선수는 전력질주로 낙하 지점을 향해 뛰고, 그 지점에 가장 가까운 상대도 함께 달려든다.
@@ -4367,7 +4369,7 @@ class MatchSim{
       // 이 0.2~0.5초가 라인 브레이킹이 성립하는 이유다. 판단력이 좋을수록 짧다.
       // 같은 선수라도 매번 똑같이 반응하지는 않는다 — ±25% 흔들어 준다
       const delay = (REACT_MIN + (REACT_MAX-REACT_MIN)*(1.15-(best.decSkill||0.6)))
-                    * (0.75+Math.random()*0.50);
+                    * (0.75+RNG()*0.50);
       best._chase={x:tx, y:ty, until, startAt:this.t+delay};
       // 지연이 끝난 뒤에 스퍼트가 붙도록 예약해 둔다
       best._burstAt = this.t + delay;
@@ -4410,13 +4412,13 @@ class MatchSim{
       }
       if(near && nd<CROSS_BLOCK_R){
         const pb=CROSS_BLOCK_P*(1-nd/CROSS_BLOCK_R)*(0.55+(near.tackleSkill||0.6)*0.75);
-        if(Math.random()<pb){
+        if(RNG()<pb){
           st.crossBlocked++; this.stats[near.side].block++;
           this.lastTouch=carrier.side;                          // 마지막 터치는 크로스를 올린 쪽
           b.state="SETTLED"; b.ownerId=null; b.isCross=false; b.aerial=false; b.offsideAt=null;
           // 바이라인 근처에서 막힌 크로스는 그대로 골라인을 넘는 일이 잦다 → 코너킥
           const adv=carrier.dir>0 ? carrier.x : 1-carrier.x;
-          if(adv>0.76 && Math.random()<CROSS_CORNER_P){
+          if(adv>0.76 && RNG()<CROSS_CORNER_P){
             this.lastTouch=near.side;
             this.cornerKick(carrier.side, carrier.dir>0?1:0, clamp01(carrier.y));
             return;
@@ -4447,8 +4449,8 @@ class MatchSim{
     if(cdl.floated) st.crossFloat++; else st.crossDriven++;
     st.powerSum+=cdl.power;
     const err = base + (1-(carrier.crossSkill||0.6))*0.13;
-    b.tx=clamp01(cr.to.x+(Math.random()-0.5)*err);
-    b.ty=clamp01(cr.to.y+(Math.random()-0.5)*err*1.6);
+    b.tx=clamp01(cr.to.x+(RNG()-0.5)*err);
+    b.ty=clamp01(cr.to.y+(RNG()-0.5)*err*1.6);
     b.flight=0; b.flightLen=cr.dist;
     b.flightT = cr.aerial
       ? clamp(1.05 + cr.dist*ISO_TO_M*0.030, 1.30, 2.30)   // 뜬 크로스 — 최고점 3~5m
@@ -4476,12 +4478,12 @@ class MatchSim{
     // 사람이 많을수록 주저한다 — 나갔다가 못 잡으면 빈 골문이 된다
     const crowd=this.agents.filter(o=>o.slot!=="GK" &&
       Math.hypot((o.x-b.x)*PITCH_AR, o.y-b.y)<0.055).length;
-    if(Math.random() > clamp(GK_CATCH_P*(0.45+aer*1.10)*(1-crowd*0.10), 0.02, 0.90)) return false;
+    if(RNG() > clamp(GK_CATCH_P*(0.45+aer*1.10)*(1-crowd*0.10), 0.02, 0.90)) return false;
     gk.x=b.x; gk.y=b.y; gk.spd=0;                     // 공을 향해 나왔다
     const st=this.stats[gk.side];
     // 잡을지 놓칠지 — 공중 장악력이 8할, 붙어 있는 사람 수가 나머지
-    if(Math.random() < clamp(0.32+aer*0.55-crowd*0.05, 0.15, 0.94)){
-      if(Math.random() < clamp((gk.gkPunch||0.5)*0.55, 0.05, 0.60)){
+    if(RNG() < clamp(0.32+aer*0.55-crowd*0.05, 0.15, 0.94)){
+      if(RNG() < clamp((gk.gkPunch||0.5)*0.55, 0.05, 0.60)){
         st.shotPunched=(st.shotPunched||0)+1;
         this.clearBall(gk);                            // 펀칭 — 멀리 걷어낸다
       } else {
@@ -4502,13 +4504,13 @@ class MatchSim{
     const cands=(mates||this.side(carrier.side)).filter(m=>m.slot!=="GK" && adv(m)>0.42 && adv(m)<0.80);
     let tgt=null, best=-1;
     for(const m of cands){
-      const v=(m.bravery||0.5)*0.5 + adv(m)*0.6 + Math.random()*0.30;
+      const v=(m.bravery||0.5)*0.5 + adv(m)*0.6 + RNG()*0.30;
       if(v>best){ best=v; tgt=m; }
     }
     const acc=clamp(0.14 - (carrier.gkKick||0.5)*0.10, 0.03, 0.14);   // 골킥 능력 → 낙하 오차
-    const tx = tgt ? clamp(tgt.x + carrier.dir*0.02 + (Math.random()-0.5)*acc, 0.08, 0.92)
-                   : clamp(carrier.x + carrier.dir*(0.52+Math.random()*0.10), 0.08, 0.92);
-    const ty = clamp01((tgt ? tgt.y : 0.28+Math.random()*0.44) + (Math.random()-0.5)*acc*2.2);
+    const tx = tgt ? clamp(tgt.x + carrier.dir*0.02 + (RNG()-0.5)*acc, 0.08, 0.92)
+                   : clamp(carrier.x + carrier.dir*(0.52+RNG()*0.10), 0.08, 0.92);
+    const ty = clamp01((tgt ? tgt.y : 0.28+RNG()*0.44) + (RNG()-0.5)*acc*2.2);
     b.state="PASS"; b.fromId=carrier.id; b.toId=null; b.ownerId=null;
     b.aerial=true; b.offsideAt=null; b.power=1.65;
     b.tx=tx; b.ty=ty;
@@ -4526,14 +4528,14 @@ class MatchSim{
     this.cap(carrier.side, COMM.lvClear, {p:this.nm(carrier)});
     b.aerial=true; b.offsideAt=null; b.power=1.7;   // 걷어내기는 항상 공중볼이고 세게 찬다
     const deep=(carrier.dir>0 ? carrier.x : 1-carrier.x) < 0.32;   // 자기 골문 앞 혼전
-    if(deep && Math.random()<0.50){
+    if(deep && RNG()<0.50){
       // 골문 앞에서 다급하게 걷어낸 공이 자기 골라인을 넘는다 → 상대 코너킥
       b.tx = carrier.x - carrier.dir*0.16;
-      b.ty = clamp01(carrier.y+(Math.random()-0.5)*0.34);
+      b.ty = clamp01(carrier.y+(RNG()-0.5)*0.34);
     } else {
       // 전방으로 걷어낸다 — 골라인 밖까지 날아가는 일은 드물다
       b.tx=clamp(carrier.x+carrier.dir*0.26, 0.04, 0.96);
-      b.ty=Math.random()<0.5 ? -0.015+Math.random()*0.22 : 0.80+Math.random()*0.215;
+      b.ty=RNG()<0.5 ? -0.015+RNG()*0.22 : 0.80+RNG()*0.215;
     }
     b.flight=0; b.flightLen=Math.hypot((b.tx-carrier.x)*PITCH_AR, b.ty-carrier.y);
     b.flightT=clamp(0.40 + b.flightLen*ISO_TO_M*0.030, 0.6, 2.2);  // 걷어낸 공은 높이 뜬다
@@ -4584,7 +4586,7 @@ class MatchSim{
         const off=b.offsideAt;
         // ── 깃발을 늦게 드는 경우 — 부심이 일단 플레이를 흘려보낸다.
         //    실제 경기에서 흔한 장면이다. 이 상태에서 골이 들어가면 그제서야 깃발이 올라가고 골이 취소된다.
-        if(Math.random()<OFFSIDE_LATE_P){
+        if(RNG()<OFFSIDE_LATE_P){
           this.pendingOff={by:off.by, x:off.x, y:off.y, until:this.t+OFFSIDE_LATE_WIN};
           const rcv0=this.byId(b.toId);
           if(rcv0){ this.giveTo(rcv0); return; }
@@ -4610,7 +4612,7 @@ class MatchSim{
           // 박스 안에서 뜬 공을 따낸 공격수는 잡지 않고 그대로 머리로 마무리한다
           if(w.side===b._passer.side && w.slot!=="GK"){
             const hg=shotGeom(w);
-            if(hg.distM<16 && (hg.gx-w.x)*w.dir>0.01 && Math.random()<0.74+(w.headSkill||0.6)*0.26){
+            if(hg.distM<16 && (hg.gx-w.x)*w.dir>0.01 && RNG()<0.74+(w.headSkill||0.6)*0.26){
               const gk2=this.side(this.opp(w.side)).find(o=>o.slot==="GK");
               this.resolveShot(w, hg, chooseShotType(w, hg, meetBall, gk2)); return;
             }
@@ -4625,7 +4627,7 @@ class MatchSim{
         // 경합 상대가 붙지 않은 크로스라도, 박스 안이라면 잡지 않고 그대로 머리로 마무리한다
         if(b.aerial && rc.side===b._passer.side && rc.slot!=="GK"){
           const hg=shotGeom(rc);
-          if(hg.distM<17 && (hg.gx-rc.x)*rc.dir>0.005 && Math.random()<0.68+(rc.headSkill||0.6)*0.20){
+          if(hg.distM<17 && (hg.gx-rc.x)*rc.dir>0.005 && RNG()<0.68+(rc.headSkill||0.6)*0.20){
             const gk2=this.side(this.opp(rc.side)).find(o=>o.slot==="GK");
             this.resolveShot(rc, hg, chooseShotType(rc, hg, meetBall, gk2)); return;
           }
@@ -4642,7 +4644,7 @@ class MatchSim{
           }
           if(near && nd<AERIAL_RANGE && near.side===b._passer.side){
             const hg=shotGeom(near);
-            if(hg.distM<17 && (hg.gx-near.x)*near.dir>0.005 && Math.random()<0.66+(near.headSkill||0.6)*0.22){
+            if(hg.distM<17 && (hg.gx-near.x)*near.dir>0.005 && RNG()<0.66+(near.headSkill||0.6)*0.22){
               this.stats[b._passer.side].passOk++;
               const gk2=this.side(this.opp(near.side)).find(o=>o.slot==="GK");
               this.resolveShot(near, hg, chooseShotType(near, hg, meetBall, gk2)); return;
@@ -4668,7 +4670,7 @@ class MatchSim{
           // 정확히 머리에 오지 않은 크로스라도, 박스 안에 떨어진 뜬 공에 먼저 닿은 공격수는 머리로 돌려놓는다
           if(b.aerial && best.side===b._passer.side && best.slot!=="GK"){
             const hg=shotGeom(best);
-            if(hg.distM<14 && (hg.gx-best.x)*best.dir>0.01 && Math.random()<0.52+(best.headSkill||0.6)*0.34){
+            if(hg.distM<14 && (hg.gx-best.x)*best.dir>0.01 && RNG()<0.52+(best.headSkill||0.6)*0.34){
               this.resolveShot(best, hg, SHOT_TYPE.HEADER); return;
             }
           }
@@ -4720,7 +4722,7 @@ class MatchSim{
     }
     this.lastTouch=a.side;                       // 마지막으로 볼에 손댄 팀
     b.ownerId=a.id; b.state="SETTLED"; b.x=a.x; b.y=a.y;
-    b.hold=(1.8+Math.random()*1.6)*TEMPO*this.tempoK(a.side)*(this.counterOn(a.side)?0.55:1);   // 볼 터치 후 다음 행동까지
+    b.hold=(1.8+RNG()*1.6)*TEMPO*this.tempoK(a.side)*(this.counterOn(a.side)?0.55:1);   // 볼 터치 후 다음 행동까지
     this.possSide=a.side;
   }
   /* 매 틱 경기 규칙을 점검하고 상태를 갱신한다.
@@ -4802,7 +4804,7 @@ class MatchSim{
     const f=this.byId(fs.foulerId);
     if(!f) return CARD.NONE;
     const st=this.stats[f.side];
-    const r=Math.random();
+    const r=RNG();
     let card;
     /* 성격 — 다혈질은 태클이 거칠어 카드 위험이 크고, 프로페셔널은 선을 안 넘는다.
        ⚠ 분 단위 엔진(hotHead)에는 있었는데 2D 엔진에는 빠져 있었다. */
@@ -5028,7 +5030,7 @@ class MatchSim{
       // 실제 경기 파울의 절반쯤은 이 "어쩔 수 없어서" 하는 파울이다.
       const behind = (carrier.dir>0 ? o.x<carrier.x : o.x>carrier.x);
       const booked = (o.yellows||0)>0 ? BOOKED_CAUTION : 1;   // 경고 받은 선수는 몸을 사린다
-      if(behind && d<TACKLE_RANGE*1.5 && Math.random()<SHIRT_FOUL_P*meTune("foul")*booked*boxCare*(0.6+T.tackle*0.4)/TEMPO){
+      if(behind && d<TACKLE_RANGE*1.5 && RNG()<SHIRT_FOUL_P*meTune("foul")*booked*boxCare*(0.6+T.tackle*0.4)/TEMPO){
         st.foul++; this.stats[carrier.side].freeKick++;
         this.startFoulScene(o, carrier, false, (o.dir>0?o.x:1-o.x)<0.34);
         return true;
@@ -5048,35 +5050,35 @@ class MatchSim{
       // 특성: 슬라이딩 태클 선호 / 하지 않음
       const slideP = clamp(0.35*(1+FX(o,"slide")+aggr*0.45), 0.05, 0.85);
       // 특성이 있으면 위험 지역이 아니어도 발을 뻗는다 (반대로 "하지 않음"이면 거의 안 한다)
-      const slide = !inStand || (T.tackle>=2 && danger && Math.random()<slideP*bookedS)
-                             || ((TD.slide||0)>0 && Math.random()<0.30*(TD.slide||0)*bookedS);
+      const slide = !inStand || (T.tackle>=2 && danger && RNG()<slideP*bookedS)
+                             || ((TD.slide||0)>0 && RNG()<0.30*(TD.slide||0)*bookedS);
       if(!inStand && !slide) continue;
       // 실제 축구는 경기당 태클이 30~40회다. 매 스텝 미세 경합을 전부 시도로 세면 수백 회가 되므로
       // 시도 자체를 드물게 만든다(붙어 있어도 대부분은 그냥 견제만 하는 상태).
-      if(Math.random() > (slide?0.006:0.009)*markEdge/(TEMPO*1.5)*(0.8+T.tackle*0.2)) continue;   // 틱당 확률이라 시간을 늘린 만큼 낮춘다
+      if(RNG() > (slide?0.006:0.009)*markEdge/(TEMPO*1.5)*(0.8+T.tackle*0.2)) continue;   // 틱당 확률이라 시간을 늘린 만큼 낮춘다
       const atk=o.tackleSkill*(0.75+T.tackle*0.18)*(slide?1.28:1.0);   // 슬라이딩이 성공률은 더 높다
       // 퍼스트 터치가 나쁘면 압박에서 볼이 발에서 튄다 — 태클을 버티는 힘도 떨어진다
       const keep=carrier.dribSkill*1.25*(0.72+(carrier.firstTouch||0.6)*0.46);
-      const won = atk*Math.random() > keep*Math.random();
+      const won = atk*RNG() > keep*RNG();
       st.tackle++; if(slide){ st.slide++; o._down=this.t+SLIDE_COMMIT*(won?0.55:1.0); }
       if(won){
         st.tackleWon++; if(slide) st.slideWon++;
         this.cap(o.side, slide?COMM.lvSlide:COMM.lvTackle, {p:this.nm(o)});
         this.stats[carrier.side].lost++;
         // 슬라이딩은 소유하기보다 걷어내는 경우가 많다
-        if(slide && Math.random()<0.40) this.looseBall(carrier);
+        if(slide && RNG()<0.40) this.looseBall(carrier);
         else this.giveTo(o);
         return true;
       }
       // 실패 — 파울 위험 (슬라이딩이 훨씬 높다)
       // 거칠게 달려든 만큼 파울도 는다 — 이득만 있고 대가가 없으면 손잡이가 아니다
-      if(Math.random() < (slide?0.52:0.30)*bookedS*boxCare*(0.7+T.tackle*0.3)*(1+aggr*0.22)){
+      if(RNG() < (slide?0.52:0.30)*bookedS*boxCare*(0.7+T.tackle*0.3)*(1+aggr*0.22)){
         st.foul++;
         this.stats[carrier.side].freeKick++;
         this.cap(o.side, COMM.lvFoulLive, {p:this.nm(o)});
         this.startFoulScene(o, carrier, slide, danger);
         // 거친 태클을 당하면 다칠 수 있다 — 슬라이딩이 훨씬 위험하다
-        if(Math.random() < INJ_TACKLE_P*(slide?1:0.35)) this.hurt(carrier, slide);   // 휘슬 → 심판이 다가온다 → 판정 → 프리킥
+        if(RNG() < INJ_TACKLE_P*(slide?1:0.35)) this.hurt(carrier, slide);   // 휘슬 → 심판이 다가온다 → 판정 → 프리킥
         return true;
       }
     }
@@ -5246,7 +5248,7 @@ class MatchSim{
     b.ownerId=best.id; this.possSide=side; this.lastTouch=side;
     // 코너는 원칙적으로 박스 안으로 띄워 올린다. 다만 실제 경기의 1할쯤은 짧게 빼서 다시 만든다.
     b.fkIndirect=false;
-    b.spPlan = Math.random()<CORNER_SHORT_P ? "short" : "corner";
+    b.spPlan = RNG()<CORNER_SHORT_P ? "short" : "corner";
     if(this.emitEvents) this.say(side, F_(COMM.corner,{t:this.rec(side).team.short}), "txt");
     this.cap(side, COMM.lvCornerLive, {t:this.rec(side).team.short});
     b.isThrow=false; this.beginSetPiece("corner", best, spot, out);
@@ -5336,7 +5338,7 @@ class MatchSim{
     // 짧게 — 언제나 가능한 안전한 선택. 멀수록·각이 죽을수록 비중이 커진다.
     let wShort = 0.18 + clamp((distM-26)/22, 0, 1)*0.75 + (1-crossZone)*0.35;
     const tot=wShot+wCross+wShort;
-    let r=Math.random()*tot;
+    let r=RNG()*tot;
     if((r-=wShot)<0)  return "shot";
     if((r-=wCross)<0) return "cross";
     return "short";
@@ -5403,9 +5405,9 @@ class MatchSim{
     let outcome=null, ex=g.gx, ey=0.5, actorId=null, deflected=false;
     // 슛의 코스를 먼저 정한다 — 골문 안 어디를 노렸는가. 마무리가 좋을수록 구석을 노린다.
     // 블록·선방 지점도 모두 이 직선 위에서 잡아야 공이 옆이나 뒤로 튀지 않는다.
-    const corner = Math.random() < 0.25+skill*0.45;
-    const aimOff = corner ? 0.72+Math.random()*0.26 : Math.random()*0.62;
-    let aimY = 0.5 + (Math.random()<0.5?-1:1)*GOAL_HALF*aimOff;
+    const corner = RNG() < 0.25+skill*0.45;
+    const aimOff = corner ? 0.72+RNG()*0.26 : RNG()*0.62;
+    let aimY = 0.5 + (RNG()<0.5?-1:1)*GOAL_HALF*aimOff;
     const span=(g.gx-shooter.x)||1e-6;
     // 슛 경로 위의 한 점 — 진행률 k(0=발끝, 1=골라인)
     const onLine=(k)=>({x:shooter.x+span*clamp(k,0,1), y:shooter.y+(aimY-shooter.y)*clamp(k,0,1)});
@@ -5415,14 +5417,14 @@ class MatchSim{
       if(bl.d>0.16) break;
       let pb = BLOCK_P*(1-bl.d/0.16)*(0.60+(bl.o.tackleSkill||0.6)*0.70);
       pb *= 1 - (bl.off/BLOCK_W)*0.50;
-      if(Math.random()<pb){
+      if(RNG()<pb){
         st.shotBlocked++; ost.block++; this.lastAssist=null;   // 수비 몸에 맞음 — 도움 무효 (규정)
         this.cap(oKey, COMM.lvBlock, {p:this.nm(bl.o)});
         // 골문 가까이에서 막힌 공은 상당수가 그대로 골라인을 넘어간다 → 코너킥
-        if(g.distM<20 && Math.random()<BLOCK_CORNER_P){
+        if(g.distM<20 && RNG()<BLOCK_CORNER_P){
           this.stats[shooter.side].shotBlockedOut=(this.stats[shooter.side].shotBlockedOut||0)+1;
           this.lastTouch=bl.o.side;
-          this.cornerKick(shooter.side, g.gx, clamp01(bl.o.y+(Math.random()-0.5)*0.10));
+          this.cornerKick(shooter.side, g.gx, clamp01(bl.o.y+(RNG()-0.5)*0.10));
           return;
         }
         outcome="BLOCK"; actorId=bl.o.id;
@@ -5433,7 +5435,7 @@ class MatchSim{
       }
     }
     // 2) 굴절 — 막지는 못했지만 발끝·정강이에 스쳐 궤도가 바뀐다
-    if(!outcome && blk.list.length && Math.random()<0.17){ deflected=true; ost.deflect++; }
+    if(!outcome && blk.list.length && RNG()<0.17){ deflected=true; ost.deflect++; }
 
     // 3) 유효슈팅 판정 — 각이 좁거나 멀수록, 앞이 막혀 급하게 찰수록 빗나간다
     if(!outcome){
@@ -5456,8 +5458,8 @@ class MatchSim{
         // 직접 프리킥 — 정지된 공을 준비해서 차므로 코스는 살지만, 벽이 통로를 막고 있다
         if(isFK) acc += 0.12 - Math.max(0, blk.list.length-1)*0.03;
       }
-      if(deflected) acc += (Math.random()-0.5)*0.35;      // 굴절되면 어디로 갈지 알 수 없다
-      if(Math.random() > clamp(acc, 0.06, isPen?0.97:0.92)){
+      if(deflected) acc += (RNG()-0.5)*0.35;      // 굴절되면 어디로 갈지 알 수 없다
+      if(RNG() > clamp(acc, 0.06, isPen?0.97:0.92)){
         st.shotOff++; this.lastAssist=null;   // 빗나간 슛 — 이후 혼전 득점에 도움 없음
         if(isPen) st.penMiss++;
         if(this.emitEvents){
@@ -5468,7 +5470,7 @@ class MatchSim{
         this.cap(side, COMM.lvMiss, {});
         if(g.distM<18) this.markHighlight("miss", side, HL_W.miss);
         outcome="MISS";                                   // 골포스트를 살짝 빗겨 골라인을 넘는다
-        aimY = 0.5 + (aimY<0.5?-1:1)*(GOAL_HALF+0.006+Math.random()*0.028);
+        aimY = 0.5 + (aimY<0.5?-1:1)*(GOAL_HALF+0.006+RNG()*0.028);
       }
     }
     // 4) 골키퍼 — 멀수록 반응할 시간이 있고, 각이 열려 있거나 굴절된 슛은 막기 어렵다
@@ -5499,7 +5501,7 @@ class MatchSim{
       if(type===SHOT_TYPE.CHIP && gk) save -= clamp(Math.abs(gk.x-g.gx)*PITCH_AR/GK_OFFLINE,0,2)*0.16;
       // 진짜 단독 1대1 — 수비 커버 없이 슈터가 코스를 고른다. 키퍼 혼자서 다 막아낼 수는 없다.
       if(this._soloShot) save -= 0.17;
-      if(Math.random() < clamp(save, isPen?0.03:0.06, 0.93)){
+      if(RNG() < clamp(save, isPen?0.03:0.06, 0.93)){
         st.shotSaved++; ost.save++; this.lastAssist=null;   // 키퍼 몸에 맞음 — 리바운드 득점에 도움 없음 (규정)
         if(isPen) st.penSaved++;
         if(this.emitEvents) this.say(side, F_(COMM.save,{p:shooter.p.name, g:gk&&gk.p?gk.p.name:"골키퍼"}), "txt");
@@ -5515,9 +5517,9 @@ class MatchSim{
         if(deflected) hold -= 0.20;
         if(type===SHOT_TYPE.POWER) hold += 0.12;
         if(type===SHOT_TYPE.CHIP) hold += 0.10;   // 느리게 떠오는 공은 잡기 쉽다
-        if(gk && Math.random() < clamp(hold, 0.04, 0.85)){ st.shotCaught++; outcome=SAVE_TYPE.CATCH; }
-        else if(nearPost>0.70 && Math.random()<0.58){ st.shotTipped++; outcome=SAVE_TYPE.TIP; }
-        else if(power>1.22 && Math.random()<0.24+(gk.gkPunch||0.5)*0.52){ st.shotPunched++; outcome=SAVE_TYPE.PUNCH; }
+        if(gk && RNG() < clamp(hold, 0.04, 0.85)){ st.shotCaught++; outcome=SAVE_TYPE.CATCH; }
+        else if(nearPost>0.70 && RNG()<0.58){ st.shotTipped++; outcome=SAVE_TYPE.TIP; }
+        else if(power>1.22 && RNG()<0.24+(gk.gkPunch||0.5)*0.52){ st.shotPunched++; outcome=SAVE_TYPE.PUNCH; }
         else { st.shotParried++; outcome=SAVE_TYPE.PARRY; }
         // 슈퍼세이브 — 막힐 리 없던 슛을 막아냈다
         if((g.distM<14 && g.angle>0.45) || (power>1.32 && nearPost>0.68)) st.superSave++;
@@ -5526,7 +5528,7 @@ class MatchSim{
         st.goal++; if(deflected) st.goalDeflected++;
         if(isPen) st.penGoal++; else if(isFK) st.fkGoal++;
         outcome="GOAL";
-        ey = 0.5 + (Math.random()-0.5)*2*GOAL_HALF*0.85;   // 골문 안쪽 어딘가
+        ey = 0.5 + (RNG()-0.5)*2*GOAL_HALF*0.85;   // 골문 안쪽 어딘가
       }
     }
 
@@ -5552,11 +5554,11 @@ class MatchSim{
     // 슛의 높이 — 대부분 낮게 깔지만 일부는 골문 위쪽을 노린다. 헤딩은 위에서 아래로 꽂는다.
     // 도착 높이 — 헤더는 아래로 찍고, 로빙은 키퍼 키를 넘겨 떨어뜨리고, 중거리는 낮게 깔린다
     let aimZ;
-    if(type===SHOT_TYPE.HEADER)      aimZ=CROSSBAR_Z*(0.05+Math.random()*0.20);
-    else if(type===SHOT_TYPE.CHIP)   aimZ=CROSSBAR_Z*(0.55+Math.random()*0.35);
-    else if(type===SHOT_TYPE.POWER)  aimZ=CROSSBAR_Z*Math.random()*0.35;
-    else if(type===SHOT_TYPE.VOLLEY) aimZ=CROSSBAR_Z*(0.15+Math.random()*0.55);
-    else aimZ=(Math.random()<0.30 ? CROSSBAR_Z*(0.40+Math.random()*0.50) : CROSSBAR_Z*Math.random()*0.30);
+    if(type===SHOT_TYPE.HEADER)      aimZ=CROSSBAR_Z*(0.05+RNG()*0.20);
+    else if(type===SHOT_TYPE.CHIP)   aimZ=CROSSBAR_Z*(0.55+RNG()*0.35);
+    else if(type===SHOT_TYPE.POWER)  aimZ=CROSSBAR_Z*RNG()*0.35;
+    else if(type===SHOT_TYPE.VOLLEY) aimZ=CROSSBAR_Z*(0.15+RNG()*0.55);
+    else aimZ=(RNG()<0.30 ? CROSSBAR_Z*(0.40+RNG()*0.50) : CROSSBAR_Z*RNG()*0.30);
     const spd  = SHOT_SPEED*power;
     const T    = Math.max(SIM_DT*SHOT_MIN_TICKS, b.flightLen/spd);
     b.vx=(b.tx-b.sx)*PITCH_AR/T; b.vy=(b.ty-b.sy)/T;
@@ -5568,7 +5570,7 @@ class MatchSim{
     // (매 틱 수직 가속도를 누적하는 것과 같은 모양이지만, 도착점이 어긋나지 않는다)
     b.curve = type===SHOT_TYPE.FINESSE
             ? (shooter.y<0.5?1:-1)*CURVE_MAX*(0.55+(shooter.finSkill||0.6)*0.7)
-            : (type===SHOT_TYPE.POWER ? (Math.random()-0.5)*CURVE_MAX*0.35 : 0);
+            : (type===SHOT_TYPE.POWER ? (RNG()-0.5)*CURVE_MAX*0.35 : 0);
     b.inNet=false; b.bounced=0;
     b.aimZ=aimZ; b.flightT=T;
     // distM·isPen·isFK 는 골 해설을 고르는 데 쓴다 (헤더골·발리골·중거리포·PK 골을 구분해서 말한다)
@@ -5637,15 +5639,15 @@ class MatchSim{
         if(!bl){ this.goalKick(oKey); return; }
         // 되돌아오는 방향 — 슛이 온 쪽으로 되튀되 좌우로 크게 흩어진다
         const backAng=Math.atan2(b.sy-b.y, (b.sx-b.x)*PITCH_AR);
-        const ang=backAng+(Math.random()-0.5)*2.2;
-        this.launchLoose(b.x, b.y, ang, 8+Math.random()*13, side, false);       // 몸에 맞고 8~21m 튄다
+        const ang=backAng+(RNG()-0.5)*2.2;
+        this.launchLoose(b.x, b.y, ang, 8+RNG()*13, side, false);       // 몸에 맞고 8~21m 튄다
         return;
       }
       case "MISS":  this.lastEvent={kind:"MISS", side, t:this.t};
                     this.goalKick(oKey); return;       // 골라인을 넘었다 → 상대 골킥
       case SAVE_TYPE.CATCH: {                          // 캐칭 — 품에 안았다. 그대로 소유권이 넘어간다.
         const gk=this.byId(actorId);
-        if(gk){ this.giveTo(gk); b.hold=(3.0+Math.random()*2.0)*TEMPO; } else this.goalKick(oKey);
+        if(gk){ this.giveTo(gk); b.hold=(3.0+RNG()*2.0)*TEMPO; } else this.goalKick(oKey);
         return;
       }
       case SAVE_TYPE.TIP: {                            // 손끝으로 밀어 골대 옆으로 넘겼다 → 코너킥
@@ -5656,15 +5658,15 @@ class MatchSim{
       case SAVE_TYPE.PUNCH: {                          // 펀칭 — 주먹으로 멀리, 박스 밖으로 걷어낸다
         const gk=this.byId(actorId); if(gk) gk._down=this.t+DIVE_HOLD*0.6;
         const away = gx>0.5 ? Math.PI : 0;              // 골문 반대 방향
-        const ang = away + (Math.random()-0.5)*1.5;
-        this.launchLoose(b.x, b.y, ang, 17+Math.random()*11, oKey, true);       // 주먹으로 17~28m (최종 정지 지점까지)
+        const ang = away + (RNG()-0.5)*1.5;
+        this.launchLoose(b.x, b.y, ang, 17+RNG()*11, oKey, true);       // 주먹으로 17~28m (최종 정지 지점까지)
         return;
       }
       case SAVE_TYPE.PARRY: {           // 쳐내기 — 앞으로 밀어낸 공이 박스 안에 흐른다
         const gk=this.byId(actorId); if(gk) gk._down=this.t+DIVE_HOLD;
         const away = gx>0.5 ? Math.PI : 0;
-        const ang = away + (Math.random()<0.5?-1:1)*(0.5+Math.random()*1.0);   // 옆으로 비스듬히
-        this.launchLoose(b.x, b.y, ang, 6+Math.random()*9, oKey, false);        // 앞으로 6~15m 흘린다
+        const ang = away + (RNG()<0.5?-1:1)*(0.5+RNG()*1.0);   // 옆으로 비스듬히
+        this.launchLoose(b.x, b.y, ang, 6+RNG()*9, oKey, false);        // 앞으로 6~15m 흘린다
         return;
       }
       default: {                                       // 골 — 공은 그물에 걸려 흔들리다 멈춘다
@@ -5675,7 +5677,7 @@ class MatchSim{
         }
         /* 📺 VAR 온필드 리뷰 — 실제 경기(emitEvents)에서만, 낮은 확률로.
            환호가 터진 직후 주심이 헤드셋에 손을 얹고, 몇 초 뒤 인정/취소가 갈린다. */
-        if(this.emitEvents && Math.random()<VAR_CHECK_P){
+        if(this.emitEvents && RNG()<VAR_CHECK_P){
           this.lastEvent={kind:"VAR", side, t:this.t};
           this.markHighlight("goal", side, HL_W.goal);
           b.inNet=true; b.vx*=0.55; b.vy*=0.55; b.vz*=0.35; b.ownerId=null;
@@ -5720,7 +5722,7 @@ class MatchSim{
       let okP=VAR_CONFIRM_P;
       try{ const sd=cel.side==="h"?this.M.h:this.M.a;
         if(sd&&sd.team&&sd.team.isUser) okP=clamp(okP+refBias()*0.06, 0.35, 0.85); }catch(e){}
-      if(Math.random()<okP){
+      if(RNG()<okP){
         cel.varCheck=false;                            // 인정 — 남은 세리머니를 이어 간다
         this.score[cel.side]++;
         this.lastEvent={kind:"GOAL", side:cel.side, t:this.t};
@@ -5734,7 +5736,7 @@ class MatchSim{
         st.goalDisallowed=(st.goalDisallowed||0)+1;
         if(this.emitEvents){
           this.syncClock();
-          this.say(cel.side, F_(Math.random()<0.5?COMM.varOverturnOffside:COMM.varOverturnFoul, Object.assign({p:nm}, refVars(this.M))), "bad", {kind:"var_overturn", side:cel.side});
+          this.say(cel.side, F_(RNG()<0.5?COMM.varOverturnOffside:COMM.varOverturnFoul, Object.assign({p:nm}, refVars(this.M))), "bad", {kind:"var_overturn", side:cel.side});
         }
         this.cap(cel.side, COMM.lvVarNo, {p:nm});
       }
@@ -5866,13 +5868,13 @@ class MatchSim{
     const b=this.ball;
     const deep=(near.dir>0 ? near.x : 1-near.x) < 0.32;   // 자기 골문 가까이
     let nx, ny;
-    if(deep && Math.random()<(outChance==null?0.55:outChance)){
+    if(deep && RNG()<(outChance==null?0.55:outChance)){
       // 급하게 걷어낸 공이 자기 골라인을 넘어간다 → 상대 코너킥
-      nx = near.x - near.dir*(0.10+Math.random()*0.18);
-      ny = clamp01(near.y+(Math.random()-0.5)*0.34);
+      nx = near.x - near.dir*(0.10+RNG()*0.18);
+      ny = clamp01(near.y+(RNG()-0.5)*0.34);
     } else {
-      nx = near.x+(Math.random()-0.5)*0.14;
-      ny = near.y+(Math.random()-0.5)*0.20;
+      nx = near.x+(RNG()-0.5)*0.14;
+      ny = near.y+(RNG()-0.5)*0.20;
     }
     // 순간이동시키지 않는다 — 그 방향으로 실제로 굴려 보낸다
     const ang=Math.atan2(ny-b.y, (nx-b.x)*PITCH_AR);
@@ -5889,19 +5891,19 @@ class MatchSim{
     let best=null, bs=-1;
     for(const a of near){
       // 대담성이 낮으면 50:50 공중볼에서 몸을 사린다 — 경합 자체를 덜 한다
-      if((a.bravery||0.6) < 0.45 && Math.random() > 0.35+(a.bravery||0.6)) continue;
-      const sc=a.headSkill*(0.55+(a.bravery||0.6)*0.25)*(0.6+Math.random()*0.8);
+      if((a.bravery||0.6) < 0.45 && RNG() > 0.35+(a.bravery||0.6)) continue;
+      const sc=a.headSkill*(0.55+(a.bravery||0.6)*0.25)*(0.6+RNG()*0.8);
       if(sc>bs){ bs=sc; best=a; }
     }
     if(!best) best=near[0];
     for(const a of near) this.stats[a.side].aerial++;
     if(best){ this.stats[best.side].aerialWon++; this.cap(best.side, COMM.lvAerial, {p:this.nm(best)}); }
     // 공중볼은 몸이 부딪히는 경합이라 파울이 잦다 — 진 쪽이 밀거나 팔을 쓴다
-    if(best && near.length>=2 && Math.random()<AERIAL_FOUL_P*meTune("foul")){
+    if(best && near.length>=2 && RNG()<AERIAL_FOUL_P*meTune("foul")){
       // 경고 받은 선수는 공중볼에서도 몸을 사린다 — 경고누적 퇴장이 쏟아지지 않게
-      const losers=near.filter(a=>a.side!==best.side && ((a.yellows||0)===0 || Math.random()<BOOKED_CAUTION));
+      const losers=near.filter(a=>a.side!==best.side && ((a.yellows||0)===0 || RNG()<BOOKED_CAUTION));
       if(losers.length){
-        const o=losers[Math.floor(Math.random()*losers.length)];
+        const o=losers[Math.floor(RNG()*losers.length)];
         this.stats[o.side].foul++; this.stats[best.side].freeKick++;
         this.startFoulScene(o, best, false, (o.dir>0?o.x:1-o.x)<0.34);
         return null;
@@ -5955,7 +5957,7 @@ class MatchSim{
         if(a) a._work=0;
         // 타고난 체력(nat)·지구력(sta)이 좋으면 덜 지친다
         const natK = x.p.attr ? clamp(1.24 - (attr20(x.p.attr.nat)-10)*0.026 - (attr20(x.p.attr.sta)-10)*0.014, 0.72, 1.26) : 1;
-        const drop = (STAM_PER_MIN*cf + Math.random()*0.14) * work * natK * mins;
+        const drop = (STAM_PER_MIN*cf + RNG()*0.14) * work * natK * mins;
         x.fit=Math.max(25, x.fit - drop);
       }
     }

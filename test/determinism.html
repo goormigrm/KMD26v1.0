@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMD26 · 단계 2 — 결정론 검증</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;--acc:#2ea8ff;--ok:#3fb950;--bad:#f85149;--gold:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.65 'Segoe UI','Malgun Gothic',sans-serif;padding:22px;max-width:960px;margin:0 auto}
+h1{font-size:19px;color:var(--gold);margin-bottom:4px}
+.sub{color:var(--sub);font-size:12.5px;margin-bottom:16px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+button{background:var(--acc);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
+button.alt{background:#30363d}
+button:disabled{background:#30363d;color:var(--sub);cursor:default}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:12.5px;max-height:300px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th{color:var(--sub);text-align:left;font-size:12px;padding:5px 8px;border-bottom:1px solid var(--line)}
+td{padding:5px 8px;border-bottom:1px solid #21262d}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+.big{font-size:22px;font-weight:800;text-align:center;padding:14px 0}
+.chk{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #21262d}
+code{background:#0b0f14;padding:1px 6px;border-radius:4px;color:var(--gold)}
+.bar{height:6px;background:#21262d;border-radius:3px;overflow:hidden;margin-top:10px}
+.bar>i{display:block;height:100%;background:var(--acc);width:0}
+</style>
+</head>
+<body>
+
+<h1>KMD26 · 단계 2 — 결정론 검증</h1>
+<div class="sub">
+  같은 시드로 여러 번 돌렸을 때 <b>경기가 완전히 동일한지</b> 확인합니다.
+  이 단계가 통과해야 "결과 링크"가 성립합니다 — 프로젝트에서 가장 중요한 관문입니다.
+</div>
+
+<div class="card">
+  <button id="run100">▶ 같은 시드 100회 검증</button>
+  <button id="runDiff" class="alt">▶ 다른 시드 10개 비교</button>
+  <button id="runLock" class="alt">🔒 Math.random 누출 검사</button>
+  <div class="bar"><i id="bar"></i></div>
+  <div id="hint" class="sub" style="margin-top:8px"></div>
+</div>
+
+<div class="card" id="res" style="display:none"></div>
+
+<div class="card" id="logcard" style="display:none">
+  <h3 style="font-size:15px;color:var(--gold);margin-bottom:8px">상세</h3>
+  <pre id="log"></pre>
+</div>
+
+<script type="module">
+import { runHeadless, deriveSeed } from "../src/engine/duel.js";
+import { lockMathRandom } from "../src/engine/rng.js";
+import { defaultPair } from "./fixture.js";
+
+const $ = s => document.querySelector(s);
+const SEED = 0x5EED1234;
+
+function once(seed) {
+  const [a, b] = defaultPair();          // 매번 새 팀 객체 (상태 오염 방지)
+  return runHeadless(a, b, { seed });
+}
+
+function chk(label, pass, detail) {
+  return `<div class="chk"><span>${label}</span>
+    <span class="${pass ? "ok" : "bad"}">${pass ? "통과" : "실패"} <span class="sub">${detail || ""}</span></span></div>`;
+}
+
+/* 무거운 루프가 화면을 막지 않도록 조각내어 돌린다 */
+function chunked(n, step, done) {
+  let i = 0;
+  const tick = () => {
+    const end = Math.min(n, i + 10);
+    for (; i < end; i++) step(i);
+    $("#bar").style.width = Math.round(i / n * 100) + "%";
+    if (i < n) setTimeout(tick, 0); else done();
+  };
+  setTimeout(tick, 0);
+}
+
+$("#run100").onclick = () => {
+  const N = 100;
+  $("#hint").textContent = "100회 재생 중…";
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
+  const fps = [], t0 = performance.now();
+  let base = null;
+  chunked(N, () => {
+    const r = once(SEED);
+    if (!base) base = r;
+    fps.push(r.fp);
+  }, () => {
+    const ms = Math.round(performance.now() - t0);
+    const uniq = [...new Set(fps)];
+    const pass = uniq.length === 1;
+    $("#res").style.display = "";
+    $("#res").innerHTML = `
+      <div class="big ${pass ? "ok" : "bad"}">${pass ? "✅ 결정론 확보" : "❌ 결과가 갈라집니다"}</div>
+      ${chk("100회 지문이 모두 동일한가", pass, `서로 다른 지문 ${uniq.length}종`)}
+      ${chk("경기가 정상 완주했는가", base.done, `${(base.clock / 60).toFixed(1)}분`)}
+      <table>
+        <tr><th>항목</th><th>값</th></tr>
+        <tr><td>시드</td><td><code>0x${SEED.toString(16)}</code></td></tr>
+        <tr><td>결과 지문</td><td><code>${uniq.join("</code> <code>")}</code></td></tr>
+        <tr><td>스코어</td><td>${base.home} ${base.hg} : ${base.ag} ${base.away}</td></tr>
+        <tr><td>주심</td><td>${base.referee || "-"}</td></tr>
+        <tr><td>이벤트</td><td>${base.events.length}건</td></tr>
+        <tr><td>소요</td><td>${ms}ms (판당 ${Math.round(ms / N)}ms)</td></tr>
+      </table>`;
+    $("#logcard").style.display = "";
+    $("#log").textContent = base.goalLine.length
+      ? "득점: " + base.goalLine.map(g => `${g.min}' ${g.n}`).join(" · ")
+      : "이 시드에서는 득점이 없었습니다.";
+    $("#hint").textContent = "";
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+  });
+};
+
+$("#runDiff").onclick = () => {
+  $("#hint").textContent = "시드 10개 비교 중…";
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
+  const rows = [];
+  chunked(10, (i) => {
+    const r = once(deriveSeed("코드A", "코드B" + i));
+    rows.push(r);
+  }, () => {
+    const uniq = new Set(rows.map(r => r.fp));
+    const pass = uniq.size === rows.length;
+    $("#res").style.display = "";
+    $("#res").innerHTML = `
+      <div class="big ${pass ? "ok" : "bad"}">${pass ? "✅ 시드가 다르면 경기도 다름" : "⚠️ 서로 다른 시드가 같은 경기를 만듦"}</div>
+      ${chk("10개 시드가 모두 다른 결과를 냈는가", pass, `서로 다른 지문 ${uniq.size}/10`)}
+      <table><tr><th>시드</th><th>스코어</th><th>지문</th><th>주심</th></tr>
+      ${rows.map(r => `<tr><td><code>${r.seed.toString(16)}</code></td>
+        <td>${r.hg} : ${r.ag}</td><td><code>${r.fp}</code></td><td>${r.referee || "-"}</td></tr>`).join("")}
+      </table>`;
+    $("#hint").textContent = "";
+    $("#logcard").style.display = "none";
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+  });
+};
+
+$("#runLock").onclick = () => {
+  lockMathRandom();
+  let err = null;
+  try { once(SEED); } catch (e) { err = e; }
+  const pass = !err;
+  $("#res").style.display = "";
+  $("#res").innerHTML = `
+    <div class="big ${pass ? "ok" : "bad"}">${pass ? "✅ 시드 밖 난수 없음" : "❌ 시드 밖에서 난수가 쓰였습니다"}</div>
+    ${chk("Math.random() 을 막고도 경기가 돌아가는가", pass, pass ? "누출 0건" : "아래 스택 참고")}
+    <div class="sub" style="margin-top:8px">
+      Math.random 을 예외로 덮어쓴 뒤 경기를 돌립니다. 치환이 빠진 곳이 있으면 즉시 터집니다.
+      <br>⚠ 검사 후에는 페이지를 새로 고쳐야 정상 상태로 돌아옵니다.
+    </div>`;
+  if (err) { $("#logcard").style.display = ""; $("#log").textContent = err.stack || String(err); }
+  else $("#logcard").style.display = "none";
+};
+</script>
+</body>
+</html>
