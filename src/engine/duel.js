@@ -63,14 +63,17 @@ export function runHeadless(home, away, opt = {}) {
   for (const [key, sd] of [["h", M.h], ["a", M.a]])
     for (const x of sd.list) if (x.goals) scorers.push({ side: key, name: x.p.name, goals: x.goals });
 
+  const poss = (sim.stats.h.poss || 0) + (sim.stats.a.poss || 0);
+
   return {
-    score: { h: M.hg, ag: M.ag, a: M.ag },
     home: home.short || home.name,
     away: away.short || away.name,
     hg: M.hg, ag: M.ag,
     stats: sim.stats,
+    possession: poss ? { h: Math.round(sim.stats.h.poss / poss * 100), a: Math.round(sim.stats.a.poss / poss * 100) } : { h: 50, a: 50 },
     events: M.events,
     scorers,
+    goalLine: M.sc || [],          // 득점 시각 (recordGoal 이 채운다)
     referee: sim.refCrew && sim.refCrew.main ? sim.refCrew.main.n : null,
     cards: {
       h: M.h.list.filter(x => x.y > 0).length,

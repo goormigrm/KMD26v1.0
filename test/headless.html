@@ -33,8 +33,11 @@ td{padding:5px 8px;border-bottom:1px solid #21262d}
 
 <div class="card">
   <button id="run">▶ 경기 1판 돌리기</button>
-  <button id="run10" class="alt">▶ 10판 연속</button>
   <span id="hint" class="sub"></span>
+  <div class="sub" style="margin-top:10px">
+    ⚠️ 아직 <b>결정론이 없어</b> 누를 때마다 결과가 달라집니다. 단계 2에서 시드를 붙이면
+    <b>같은 라인업 = 항상 같은 경기</b>가 됩니다.
+  </div>
 </div>
 
 <div class="card" id="checks" style="display:none">
@@ -74,20 +77,20 @@ function show(r) {
   $("#checks").style.display = "";
   $("#chklist").innerHTML = checks.map(c => row(c[0], c[1], c[2])).join("");
 
+  const S = (k) => `<tr><td>${k[0]}</td><td>${r.stats.h[k[1]] || 0}</td><td>${r.stats.a[k[1]] || 0}</td></tr>`;
   $("#out").style.display = "";
   $("#out").innerHTML = `
     <div class="score">${r.home} ${r.hg} : ${r.ag} ${r.away}</div>
     <table>
       <tr><th>항목</th><th>홈</th><th>원정</th></tr>
-      <tr><td>슈팅</td><td>${r.stats.h.shot || 0}</td><td>${r.stats.a.shot || 0}</td></tr>
-      <tr><td>유효슈팅</td><td>${r.stats.h.sog || 0}</td><td>${r.stats.a.sog || 0}</td></tr>
-      <tr><td>파울</td><td>${r.stats.h.foul || 0}</td><td>${r.stats.a.foul || 0}</td></tr>
-      <tr><td>경고 받은 선수</td><td>${r.cards.h}</td><td>${r.cards.a}</td></tr>
-      <tr><td>코너</td><td>${r.stats.h.corner || 0}</td><td>${r.stats.a.corner || 0}</td></tr>
+      <tr><td>점유율</td><td>${r.possession.h}%</td><td>${r.possession.a}%</td></tr>
+      ${[["슈팅","shot"],["유효슈팅","shotOn"],["선방에 막힘","shotSaved"],["블록됨","shotBlocked"],
+         ["골대 맞음","woodwork"],["패스 성공","passOk"],["태클 성공","tackleWon"],["파울","foul"],
+         ["경고","yellow"],["퇴장","red"],["코너","corner"],["오프사이드","offside"]].map(S).join("")}
     </table>
     <div class="sub" style="margin-top:10px">
-      주심 <b>${r.referee || "-"}</b> · 퇴장 ${r.cards.red}명 · 계산 시간 <b>${r.elapsedMs}ms</b>
-      ${r.scorers.length ? " · 득점 " + r.scorers.map(s => `${s.name}(${s.goals})`).join(", ") : ""}
+      주심 <b>${r.referee || "-"}</b> · 계산 시간 <b>${r.elapsedMs}ms</b>
+      ${r.goalLine.length ? "<br>⚽ " + r.goalLine.map(g => `${g.min}' ${g.n}`).join(" · ") : ""}
     </div>`;
 
   $("#logcard").style.display = "";
@@ -111,29 +114,6 @@ $("#run").onclick = () => {
   }, 10);
 };
 
-$("#run10").onclick = () => {
-  $("#hint").textContent = "10판 계산 중…";
-  setTimeout(() => {
-    const res = [], t0 = performance.now();
-    try {
-      for (let i = 0; i < 10; i++) {
-        const [a, b] = defaultPair();
-        res.push(runHeadless(a, b, { refSeed: i }));
-      }
-    } catch (err) {
-      $("#hint").innerHTML = `<span class="bad">예외 발생</span>`;
-      $("#logcard").style.display = "";
-      $("#log").textContent = err && err.stack ? err.stack : String(err);
-      return;
-    }
-    const ms = Math.round(performance.now() - t0);
-    const goals = res.reduce((s, r) => s + r.hg + r.ag, 0);
-    const done = res.filter(r => r.done).length;
-    show(res[res.length - 1]);
-    $("#hint").innerHTML =
-      `10판 완료 · 총 ${ms}ms (판당 ${Math.round(ms / 10)}ms) · 완주 ${done}/10 · 평균 총득점 ${(goals / 10).toFixed(1)}`;
-  }, 10);
-};
 </script>
 </body>
 </html>
