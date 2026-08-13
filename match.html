@@ -351,8 +351,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=3ee4653b96";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=3ee4653b96";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=5659e8d397";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=5659e8d397";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -715,6 +715,13 @@ function describe() {
   $("#homeCode").classList.remove("bad"); $("#awayCode").classList.remove("bad");
   const same = hp.id === ap.id;
   const note = [];
+  /* 옛 판에서 발급된 코드 — 명단이 그대로였음을 확인해 둔 판이라 그대로 읽는다.
+     다만 어디서 온 코드인지는 보여야 한다 (duelcode.js DATA_COMPAT 참고). */
+  const oldWhy = hp.oldData || ap.oldData;
+  if (oldWhy)
+    note.push(`<span style="color:var(--warn)">예전 판에서 발급된 코드입니다</span> —
+      라인업은 그대로 읽었습니다. 그 뒤로 바뀐 것은 ${esc(oldWhy)}뿐이라 같은 선수가 섭니다.
+      <span class="sub">새로 발급하면 지금 판 코드가 됩니다.</span>`);
   if (same) {
     note.push(planSig(hp) === planSig(ap)
       ? `<span style="color:var(--bad)">양 팀의 선수·전술이 완전히 같습니다 —
@@ -767,7 +774,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=3ee4653b96", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=5659e8d397", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {

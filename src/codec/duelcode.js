@@ -123,6 +123,24 @@ function hash16(dataHash) {
   return Number.isFinite(v) ? (v & 0xffff) : 0;
 }
 
+/* ── 옛 판 데이터와의 호환 ─────────────────────────────────────
+   코드에 박히는 데이터 해시는 data/*.json **전체**로 계산한다. 그래서 화면에 띄우는
+   표시값 하나만 고쳐도 값이 달라진다 — 정작 코드가 기대고 있는 것(구단별 선수 배열의
+   순서·id·능력치)이 그대로여도 마찬가지다. 실제로 선호 포지션 표시를 고쳤을 뿐인데
+   이미 나눠 가진 코드가 전부 막히는 일이 있었다.
+
+   아래는 "명단이 그대로였음을 확인한" 이전 판 해시다. 여기 적힌 판에서 발급된 코드는
+   지금 데이터로 읽어도 **같은 선수가 선다**.
+
+   ⚠ 새 항목을 적기 전에 반드시 확인할 것 — 구단별 선수 배열의 순서·id·ovr·attr 이
+     한 명이라도 다르면 절대 넣으면 안 된다. 조용히 다른 선수가 서는 것이 최악이다
+     (설계서 4-2). 해시는 16비트만 견주므로 목록이 길어질수록 엉뚱한 코드가 우연히
+     통과할 확률도 같이 오른다 — 명단이 진짜로 달라진 판은 여기 두지 말고 버릴 것. */
+export const DATA_COMPAT = [
+  { hash: "847b18feb1dd419b",
+    why: "좌·우 풀백이 센터백으로 잡히던 문제 수정 — 선호 포지션 표시만 바뀌고 명단은 그대로" },
+];
+
 /**
  * 라인업 한 벌 → 대전 코드
  * @param {object} plan {id, xiMap, bench, tac, roles, cond?}
@@ -235,7 +253,10 @@ export function decodePlan(code, ctx) {
     throw new Error(`상대와 버전이 다릅니다 — 코드는 v${vBits}, 이 화면은 v${CODE_VER} 입니다`);
   }
   const dh = r.get(16);
-  if (dh !== hash16(ctx.dataHash)) {
+  // 지금 판이 아니면 호환 목록을 본다 (명단이 그대로였음을 확인해 둔 옛 판)
+  const oldData = dh === hash16(ctx.dataHash) ? null
+    : DATA_COMPAT.find(c => hash16(c.hash) === dh) || null;
+  if (dh !== hash16(ctx.dataHash) && !oldData) {
     throw new Error("선수 명단이 서로 다릅니다 — 같은 판의 데이터로 맞춰야 경기가 성립합니다");
   }
   const teams = teamList(ctx), forms = formationList(ctx);
@@ -277,7 +298,10 @@ export function decodePlan(code, ctx) {
   const cond = [];
   for (let k = 0; k < COND_SLOTS; k++) cond.push(r.get(8));
 
-  return { id, formation, xiMap, xi: Object.values(xiMap), bench, tac, roles, cond };
+  /* oldData — 옛 판에서 발급된 코드를 읽었다는 표시. 화면이 그렇다고 알려 줄 수 있게
+     남긴다(라인업은 그대로지만 어디서 온 코드인지는 보여야 한다). 지금 판이면 null. */
+  return { id, formation, xiMap, xi: Object.values(xiMap), bench, tac, roles, cond,
+           oldData: oldData && oldData.why };
 }
 
 /** 초대 링크 — 코드를 붙여 넣기 어려운 폰을 위해 링크를 기본으로 둔다 (설계서 4-2) */
