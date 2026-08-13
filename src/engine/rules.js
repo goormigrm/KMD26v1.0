@@ -47,7 +47,24 @@ export function redStaminaK(reds) {
   return 1 + RED_STAMINA_PENALTY * Math.max(0, reds | 0);
 }
 
-/* ── 설치 ─────────────────────────────────────────────────── */
+/* ── 3. 전술 자동 변경 차단 (결정 D-7) ────────────────────────
+   원본 엔진에는 벤치가 스스로 움직이는 로직이 있습니다(aiTacticCheck) —
+   55분이 넘고 점수가 벌어지면 성향·라인·압박을 알아서 바꿉니다.
+   시즌 모드에서는 좋은 기능입니다. AI 팀 감독이 가만히 있으면 이상하니까요.
+
+   ⚠ 지금은 **호출되지 않습니다.** 원본에서 이 함수를 부르는 곳이 UI 계층이라
+     커널 추출 범위 밖입니다. 그래서 아래 래퍼는 오늘 아무것도 바꾸지 않습니다.
+
+   그럼 왜 두는가 — 연습 모드(단계 A)에서 이걸 되살릴 것이기 때문입니다.
+   되살리는 순간 원본 기준(isUser 인 팀만 건너뜀)이 그대로 적용되는데,
+   듀얼은 양 팀 다 isUser=false 라 **두 사람이 짠 전술이 후반에 덮어써집니다.**
+   나중에 호출부를 붙이는 사람이 이걸 모르고 지나가지 않도록 미리 막아 둡니다.
+
+     team.autoTactic === true  → 엔진이 알아서 바꾼다 (연습 모드의 AI 팀)
+     그 외                     → 감독이 지시한 그대로 (대전 양 팀 · 기본값)
+
+   대전에서의 경기 중 대응은 단계 8 "조건부 지시"로, 감독이 미리 적어 두는 형태로 갑니다.
+   ───────────────────────────────────────────────────────────── */
 
 let installed = false;
 
@@ -88,6 +105,19 @@ export function installDuelRules() {
         x.fit = Math.max(25, b0 - (b0 - x.fit) * k);
       }
     }
+  };
+
+  /* 3. 전술 자동 변경 차단
+     원본은 "감독이 직접 지시하는 팀"을 isUser 로 가려냅니다. 그 판단 기준만
+     잠깐 듀얼 기준으로 바꿔치기했다가 되돌립니다 — 원본 로직은 그대로 두고,
+     누구에게 적용할지만 고쳐 쓰는 셈입니다. (동기 호출이라 사이에 낄 코드가 없습니다) */
+  const _aiTacticCheck = MatchSim.prototype.aiTacticCheck;
+  MatchSim.prototype.aiTacticCheck = function () {
+    const teams = [this.M && this.M.h && this.M.h.team, this.M && this.M.a && this.M.a.team];
+    const saved = teams.map(t => t && t.isUser);
+    teams.forEach(t => { if (t) t.isUser = !t.autoTactic; });
+    try { _aiTacticCheck.call(this); }
+    finally { teams.forEach((t, i) => { if (t) t.isUser = saved[i]; }); }
   };
 }
 
