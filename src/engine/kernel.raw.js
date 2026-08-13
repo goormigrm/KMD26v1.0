@@ -8,7 +8,7 @@
    ⚠ 전역 상태(G)·UI 함수는 src/engine/stubs.js 가 제공합니다.
    ⚠ 이건 원본 그대로입니다. 듀얼 버그 수정은 tools/patch_kernel.py 가 붙입니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "./rng.js?v=cef98bc935";
+import { RNG } from "./rng.js?v=3ee4653b96";
 
 const R = (n)=>Math.floor(RNG()*n);
 

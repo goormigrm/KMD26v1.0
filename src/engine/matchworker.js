@@ -10,11 +10,11 @@
      먼저 다 돌린 뒤 재생하면 1·2·4배속도 되감기도 공짜입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { runHeadless, deriveSeed } from "./duel.js?v=cef98bc935";
-import { checkLineup, planSig, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=cef98bc935";
-import { makeReactions } from "./reactions.js?v=cef98bc935";
-import { slotRating } from "./kernel.js?v=cef98bc935";
-import { installEngineContext } from "./stubs.js?v=cef98bc935";
+import { runHeadless, deriveSeed } from "./duel.js?v=3ee4653b96";
+import { checkLineup, planSig, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=3ee4653b96";
+import { makeReactions } from "./reactions.js?v=3ee4653b96";
+import { slotRating } from "./kernel.js?v=3ee4653b96";
+import { installEngineContext } from "./stubs.js?v=3ee4653b96";
 
 /* 연습 모드의 상대를 여기서 짠다 — 화면이 아니라 일꾼에서.
    "어려움"이 쓰는 slotRating 은 커널 함수라 화면에 올릴 수 없다(6천 줄). */
@@ -93,14 +93,17 @@ self.onmessage = (e) => {
       ({ min: e.min, t: e.t, txt: e.txt, type: e.type, noTime: e.noTime,
          col: e.col, hg: e.hg, ag: e.ag }));
 
-    self.postMessage({
+    const msg = {
       ok: true,
       seed, fp: r.fp,
       home: { id: H.id, name: H.name, short: H.short, col: H.col, goals: r.hg },
       away: { id: A.id, name: A.name, short: A.short, col: A.col, goals: r.ag },
       events, goalLine: r.goalLine, stats: r.stats,
       clips: r.clips || [], roster: r.roster || {},
-      // 장면이 없는 동안 화면에 세워 둘 킥오프 한 장 (0:0 경기에서도 필드가 보이게)
+      /* 장면과 장면 사이를 채우는 관전 트랙 — 평평한 Float32Array (replay.js 머리말 참고).
+         예전에는 이 사이가 정지 화면이었다. */
+      watch: r.watch || null,
+      // 관전 트랙이 아직 비어 있는 첫 순간에 세워 둘 킥오프 한 장
       form0: r.form0 || null,
       /* 팬 반응 — 양쪽 시선 모두. 경기가 끝난 뒤에 뽑으므로 결과에 영향이 없다.
          구단 id 도 넘긴다 — 이름이 붙은 더비(슈퍼매치 등)를 가리는 데 쓴다. */
@@ -112,7 +115,10 @@ self.onmessage = (e) => {
       practice, ai: awayPlan.aiInfo || null,
       possession: r.possession, referee: r.referee,
       clock: r.clock, elapsedMs: r.elapsedMs, nameOf,
-    });
+    };
+    /* 관전 트랙은 500KB 남짓이라 복사하면 아깝다 — 소유권을 넘긴다(transfer).
+       넘긴 뒤에는 일꾼 쪽 버퍼가 비므로, 이 아래에서 다시 읽지 말 것. */
+    self.postMessage(msg, msg.watch ? [msg.watch.buffer] : []);
   } catch (err) {
     self.postMessage({ ok: false, error: String((err && err.message) || err) });
   }

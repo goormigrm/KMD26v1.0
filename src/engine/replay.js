@@ -1,30 +1,51 @@
 /* ─────────────────────────────────────────────────────────────
-   2D 하이라이트 — 결정적 장면의 좌표를 모은다
+   2D 화면에 넘길 좌표 — 관전 트랙 + 결정적 장면
 
-   왜 90분 전체가 아닌가
-   ---------------------
+   두 벌을 만드는 이유
+   -------------------
    엔진은 0.2초마다 22명의 좌표를 남깁니다(recordFrame). 90분이면 13,500장,
-   선수 좌표만 60만 개입니다. 그런데 해설 재생은 90분을 1분 12초에 흘려보내므로
-   1분당 150장을 그려야 합니다 — 사람이 볼 수 있는 속도가 아닙니다.
+   선수 좌표만 60만 개입니다. 그대로 넘기면 전송량이 감당이 안 됩니다.
 
-   실제로 보고 싶은 건 "골이 어떻게 들어갔나"입니다. 원본 엔진도 그래서
-   링버퍼(260장 ≈ 52초)에 최근 장면만 들고 다니고, markHighlight() 로
-   "지금이 결정적 장면"이라고 표시해 둡니다. 그 표시를 따라가며 앞뒤를 잘라 냅니다.
+   그렇다고 결정적 장면만 잘라 두면 **그 사이가 정지 화면**이 됩니다.
+   KM26 은 하이라이트가 없는 동안 시뮬을 계속 돌리며 화면을 어둡게 덮어
+   "빨리 감는 중"을 보여 줍니다(`drawSimWatch` + 55% 검은 덮개).
+   듀얼은 경기를 먼저 다 돌려 놓으므로 그 방식을 그대로 쓸 수 없습니다.
+   대신 **띄엄띄엄(8장에 한 장) 좌표를 모은 관전 트랙**을 함께 넘기고,
+   화면이 경기 시계에 맞춰 그 사이를 보간해 흘립니다.
+
+   | 트랙 | 촘촘함 | 쓰임 |
+   |---|---|---|
+   | 관전(watch) | 1.6초에 한 장 | 장면과 장면 사이 — 어둡게, 계속 움직인다 |
+   | 장면(clip)  | 0.2초에 한 장 | 골·선방·PK·퇴장 — 밝게, 시계를 멈추고 본다 |
 
    ⚠ 난수를 쓰지 않습니다. 경기 결과에 영향을 주면 안 됩니다.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim } from "./kernel.js?v=cef98bc935";
+import { MatchSim } from "./kernel.js?v=3ee4653b96";
 
-// 프레임 단위(0.2초). 경기 시계는 두 배로 흐르므로 화면에서는 두 배로 보인다.
-export const CLIP_PRE = 40;    // 장면 앞 — 8초(경기 시계 16초). 어떻게 만들어졌는지 보인다
-export const CLIP_POST = 25;   // 장면 뒤 — 5초(경기 시계 10초). 공이 들어가고 나서까지
-export const CLIP_MAX = 24;    // 한 경기에 담을 클립 수 상한 (전송량 때문)
+/* ── 장면(clip) 규격 — KM26 의 HL_* 상수를 프레임 수로 옮긴 것 ──────────
+   한 프레임이 엔진 0.2초다. 경기 시계는 두 배로 흐르므로 화면에서는 두 배로 보인다. */
+export const CLIP_PRE = 55;      // 앞 — 11초 (KM26 HL_LEAD 11.0). 어떻게 만들어졌는지 보인다
+export const CLIP_MAX = 24;      // 한 경기에 담을 클립 수 상한 (전송량 때문)
 
-/* 골 리플레이 구간 — KM26 의 HL_REPLAY_PRE/POST 를 프레임 수로 옮긴 것.
-   한 프레임이 엔진 0.2초이므로 6.0초 = 30장, 2.5초 = 13장이다. */
+/* 뒷부분은 길이를 고정하지 않는다. 공이 잠잠해질 때까지 본다 —
+   5장 고정이던 예전에는 슛이 튀어나온 뒤가 잘려 "무슨 일이 있었는지" 가 안 보였다. */
+export const TAIL_MIN = 13;      // 최소 2.6초는 무조건 본다 (KM26 HL_TAIL_MIN 2.5)
+export const TAIL_MAX = 50;      // 최대 10초. KM26 은 16초지만 재생 시간이 너무 늘어난다
+export const TAIL_SETTLE = 11;   // 공이 2.2초 죽어 있으면 끊는다 (KM26 HL_SETTLE)
+export const TAIL_CELEB = 45;    // 골은 세리머니 9초까지 본다 (KM26 HL_CELEB)
+
+/* 골 리플레이 구간 — KM26 의 HL_REPLAY_PRE/POST. 6.0초 = 30장, 2.5초 = 13장 */
 export const REPLAY_PRE = 30;
 export const REPLAY_POST = 13;
+
+/* ── 관전(watch) 트랙 규격 ────────────────────────────────────────
+   1분(경기 시계)은 엔진 150장이다. 8장에 한 장이면 1분에 19장 —
+   화면이 1분을 800ms 에 흘리므로 42ms 에 한 장이고, 사이를 보간하면 부드럽다.
+   90분이면 1,688장 × 73칸 × 4바이트 ≈ 490KB 로, 장면 클립과 비슷한 무게다. */
+export const WATCH_EVERY = 8;
+export const WATCH_SLOTS = 22;                        // 한 장에 담는 선수 자리 수
+export const WATCH_STRIDE = 7 + WATCH_SLOTS * 3;      // clock,bx,by,bz,owner,rx,ry + 22×(id,x,y)
 
 const r3 = v => Math.round(v * 1000) / 1000;
 
@@ -43,10 +64,19 @@ function pack(f) {
   };
 }
 
+/** 관전 트랙 한 줄 — 평평한 숫자 열에 그대로 밀어 넣는다 (뒤에서 Float32Array 로 굳힌다) */
+function pushWatch(w, f) {
+  w.push(f.clock, f.bx, f.by, f.bz || 0, f.oi || 0, f.rx, f.ry);
+  const n = Math.min(f.a.length, WATCH_SLOTS);
+  for (let i = 0; i < n; i++) { const g = f.a[i]; w.push(g.id, g.x, g.y); }
+  // 퇴장으로 22명이 안 되면 빈 자리를 0 으로 채운다 — 줄 길이가 일정해야 자리를 셀 수 있다
+  for (let i = n; i < WATCH_SLOTS; i++) w.push(0, 0, 0);
+}
+
 let installed = false;
 
 /**
- * 커널에 얹어 하이라이트 앞뒤를 잘라 모은다.
+ * 커널에 얹어 관전 트랙과 하이라이트 앞뒤를 모은다.
  *
  * ⚠ sim.hl 을 쫓아가면 안 된다. markHighlight 는 "한 하프에 가장 중요한 장면" 하나만
  *   들고 있어서, 같은 무게의 두 번째 골은 아예 기록되지 않는다
@@ -58,7 +88,7 @@ export function installReplay() {
   installed = true;
 
   const init = (sim) => {
-    if (!sim._clips) { sim._clips = []; sim._pend = null; }
+    if (!sim._clips) { sim._clips = []; sim._pend = null; sim._watch = []; sim._wn = 0; }
   };
 
   /* 1) 장면이 잡히는 순간 — 앞부분을 링버퍼에서 떠 온다 */
@@ -77,7 +107,7 @@ export function installReplay() {
         // 리플레이는 "골이 들어간 순간"을 가운데 두고 잘라야 한다 — 승격된 지점으로 옮긴다
         this._pend.trig = this._pend.frames.length;
       }
-      this._pend.left = CLIP_POST;      // 뒷부분을 다시 늘려 준다
+      this._pend.n = 0; this._pend.calm = 0;   // 뒷부분을 처음부터 다시 본다
       return;
     }
     const pre = this.buf.slice(Math.max(0, this.buf.length - CLIP_PRE));
@@ -87,7 +117,8 @@ export function installReplay() {
       min: Math.max(0, Math.floor(this.clock / 60)),
       frames,
       trig: frames.length,             // 장면이 잡힌 지점 (리플레이 구간의 중심)
-      left: CLIP_POST,
+      n: 0,                            // 장면이 잡힌 뒤 지나간 장 수
+      calm: 0,                         // 공이 죽어 있는 장이 몇 개 이어졌나
     };
     this._clips.push(this._pend);
   };
@@ -110,7 +141,7 @@ export function installReplay() {
     } catch (e) { /* 이름표가 없어도 경기는 그대로 간다 */ }
   };
 
-  /* 3) 매 틱 — 잡고 있는 장면의 뒷부분을 채운다 */
+  /* 3) 매 틱 — 관전 트랙을 채우고, 잡고 있는 장면의 뒷부분을 이어 간다 */
   const _record = MatchSim.prototype.recordFrame;
   MatchSim.prototype.recordFrame = function () {
     _record.call(this);
@@ -119,12 +150,27 @@ export function installReplay() {
     if (!this.recording || !this._wantClips) return;
     const last = this.buf[this.buf.length - 1];
     if (!last) return;                       // 하프타임에 버퍼를 비운 직후
-    /* 킥오프 한 장은 따로 챙겨 둔다 — 장면이 하나도 없는 경기(0:0)에서도
-       화면이 빈 캔버스가 아니라 "정지된 포메이션"을 보여줄 수 있어야 한다. */
+    init(this);
+    /* 킥오프 한 장은 따로 챙겨 둔다 — 관전 트랙이 아직 비어 있는 첫 순간에 세워 둘 화면 */
     if (!this._frame0) this._frame0 = pack(last);
-    if (!this._pend) return;
-    this._pend.frames.push(pack(last));
-    if (--this._pend.left <= 0) this._pend = null;
+
+    // 관전 트랙 — 띄엄띄엄 남긴다. 장면 클립과 달리 경기 내내 끊기지 않는다
+    if (++this._wn % WATCH_EVERY === 0) pushWatch(this._watch, last);
+
+    const p = this._pend;
+    if (!p) return;
+    p.frames.push(pack(last));
+    if (++p.n < TAIL_MIN) return;                       // 최소한 이만큼은 본다
+    /* 골 세리머니는 조금 더 본다 — 공이 들어간 순간 끊으면 얼싸안는 데가 잘린다.
+       cg(celebrate) 는 커널이 프레임에 새겨 둔 세리머니 상태다. */
+    if (last.cg) {
+      p.calm = 0;
+      if (p.n < TAIL_CELEB) return;
+      this._pend = null; return;
+    }
+    // 공이 살아 있으면 계속 보고, 죽어 있으면(세트피스·정지) 잠잠한 장을 센다
+    p.calm = last.st === "PLAYING" ? 0 : p.calm + 1;
+    if (p.calm >= TAIL_SETTLE || p.n >= TAIL_MAX) this._pend = null;
   };
 }
 
@@ -134,11 +180,22 @@ export function takeClips(sim) {
   all.sort((a, b) => (b.weight - a.weight) || (a.min - b.min));
   const keep = all.slice(0, CLIP_MAX);
   keep.sort((a, b) => a.min - b.min);
-  for (const c of keep) { delete c.left; delete c.startT; }
+  for (const c of keep) { delete c.startT; delete c.n; delete c.calm; }
   return keep;
 }
 
-/** 킥오프 한 장 — 장면이 없는 동안 화면에 세워 둘 정지 화면 */
+/**
+ * 관전 트랙을 하나의 Float32Array 로 굳힌다.
+ * 평평한 숫자 열이라 일꾼에서 화면으로 **복사 없이** 넘길 수 있다(transfer).
+ * 선수 id 는 최대 여섯 자리라 Float32 로도 정확히 담긴다(2^24 까지 정수 오차 없음).
+ */
+export function takeWatch(sim) {
+  const w = sim._watch;
+  if (!w || !w.length) return null;
+  return Float32Array.from(w);
+}
+
+/** 킥오프 한 장 — 관전 트랙이 아직 비어 있는 첫 순간에 세워 둘 화면 */
 export function frameZero(sim) {
   return sim._frame0 || null;
 }

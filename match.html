@@ -74,9 +74,11 @@ button:disabled{opacity:.45;cursor:default}
 .hl .badge.rep{border-color:var(--gold);color:var(--gold)}
 .hl .skip{position:absolute;top:8px;right:10px;display:flex;gap:5px}
 .hl .skip button{padding:3px 9px;font-size:11.5px;border-radius:6px}
-/* 장면이 없는 동안 — 정지된 포메이션이라는 걸 알려 준다 */
-.hl.idle canvas{filter:saturate(.75) brightness(.82)}
-.hl.idle #hlSkip{display:none}     /* 정지 중에는 건너뛸 것이 없다 — 다시 보기만 남는다 */
+/* 결정적 장면이 아닌 동안 — 경기는 계속 흐르지만 눈여겨볼 대목은 아니라는 뜻.
+   KM26 이 하이라이트 밖에서 캔버스를 어둡게 덮는 것과 같은 표시다(#pitch2d.dim). */
+.hl.idle canvas{filter:saturate(.62) brightness(.72)}
+.hl.idle .badge{color:#9fb0c0;font-weight:700}
+.hl.idle #hlSkip{display:none}     /* 관전 중에는 건너뛸 것이 없다 — 다시 보기만 남는다 */
 
 /* ── 득점자 패널 (KM26 방식) ─────────────────────────────────
    골이 들어간 순간 GOAL · 득점자 · 도움을 화면 한가운데 큼직하게 띄운다. */
@@ -349,8 +351,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=cef98bc935";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=cef98bc935";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=3ee4653b96";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=3ee4653b96";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -587,8 +589,8 @@ function drawMyCode() {
               setTimeout(() => { const b = $("#myCodeCopy"); if (b) b.textContent = "복사"; }, 1600); },
       () => { $("#myCodeCopy").textContent = "Ctrl+C"; });
   };
-}
-
+}
+
 /** 그 구단으로 쓸 수 있는 라인업 목록 */
 function planSources(teamId, side) {
   const out = [{ v: "auto", t: "자동 라인업" }];
@@ -765,7 +767,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=cef98bc935", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=3ee4653b96", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -776,8 +778,8 @@ function start() {
     paintTeams(R.home, R.away);
     minute = 0; idx = 0;
     logSet("");
-    // 킥오프 포메이션을 세워 둔다 — 장면이 나오기 전에도, 0:0 경기에서도 필드가 보인다
-    showIdle(R.form0, "킥오프");
+    // 킥오프부터 관전 화면을 흘린다 — 장면이 하나도 없는 0:0 경기에서도 필드가 움직인다
+    watchSec = 0; backToWatch();
     resume();
   };
   w.onerror = ev => {
@@ -812,11 +814,19 @@ function pause() {
   $("#play").textContent = "▶ 재생";
   clearInterval(timer); timer = null;
 }
-function stop() { pause(); R = null; }
+function stop() { pause(); stopWatch(); R = null; }
 
 function tick() {
   if (!R) return pause();
   minute++;
+  // 관전 화면이 뒤처졌으면(장면을 보느라 멈춰 있었다) 이 분으로 따라붙는다
+  if (watchSec < minute * 60) watchSec = minute * 60;
+  /* 백그라운드 탭 안전망 — 숨은 탭에서는 requestAnimationFrame 이 **아예** 멈춘다.
+     KM26 도 같은 자리에 안전망을 둔다(stepLiveSim — 400ms 넘게 갱신이 없으면 밀어 준다).
+     없으면 탭을 다시 열었을 때 한참 전 장면이 그대로 남아 있다. */
+  if (!cur && (!watchLast || performance.now() - watchLast > 400)) {
+    drawnSec = -1; drawWatchAt(watchSec);
+  }
   // "90+3" 같은 추가시간 표기는 90 이후로 몰아서 푼다
   const minOf = e => (typeof e.min === "number" ? e.min : 90 + (parseInt(String(e.min).split("+")[1], 10) || 0));
   let shown = false, big = null;
@@ -837,7 +847,7 @@ function tick() {
     c._seen = true;
     pause();                         // 장면을 보는 동안 시계는 멈춘다
     playClip(c, big && big.txt ? big.txt : `${c.min}' ${kindLabel(c)}`,
-             () => { freezeField(c); resume(); });
+             () => { backToWatch(); resume(); });
     return;
   }
   if (idx >= R.events.length && minute >= 90) finish();
@@ -869,12 +879,13 @@ function skipToEnd() {
   while (idx < R.events.length) push(R.events[idx++]);
   minute = 90;
   $("#log").scrollTop = 0;
-  freezeField(lastClip);
+  watchToEnd();
   finish();
 }
 
 function finish() {
   pause();
+  watchToEnd();               // 관전 화면은 마지막 장에서 멈추고 배지를 "경기 종료"로
   $("#clock").textContent = "경기 종료";
   $("#prog").style.width = "100%";
   $("#score").textContent = `${R.home.goals} : ${R.away.goals}`;
@@ -916,7 +927,7 @@ function finish() {
 
   $("#result").querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
     const c = R.clips[+b.dataset.c];
-    playClip(c, `${c.min}' ${kindLabel(c)}`, () => freezeField(c));
+    playClip(c, `${c.min}' ${kindLabel(c)}`, resumeWatch);
     $("#hl").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
   const cr = $("#copyRes");
@@ -931,10 +942,15 @@ function finish() {
 
 const pct = (ok, n) => (n ? Math.round(ok / n * 100) + "%" : "-");
 
-/* ── 2D 하이라이트 ────────────────────────────────────────────
-   90분 전체를 그리지 않는 이유: 해설 재생이 90분을 1분 12초에 흘려보내므로
-   1분에 150장을 그려야 합니다. 사람이 볼 수 있는 속도가 아닙니다.
-   엔진이 markHighlight() 로 짚어 둔 결정적 장면만 앞뒤로 잘라 보여 줍니다. */
+/* ── 2D 화면 ──────────────────────────────────────────────────
+   두 벌로 나뉩니다 (일꾼이 둘 다 보내 줍니다 — src/engine/replay.js 머리말 참고).
+
+   · 관전  — 1.6초에 한 장. 경기 내내 끊기지 않고, 어둡게 흐릅니다
+   · 장면  — 0.2초에 한 장. 엔진이 markHighlight() 로 짚어 둔 대목만
+             앞 11초부터 공이 잠잠해질 때까지. 이때는 시계를 멈추고 밝게 봅니다
+
+   0.2초짜리를 90분 내내 담지 않는 이유는 전송량입니다 — 13,500장이면
+   선수 좌표만 60만 개입니다. 관전 트랙은 그 8분의 1만 담고 사이를 보간합니다. */
 const KIND_N = { goal: "골", miss: "결정적 기회", save: "선방", pen: "페널티킥", red: "퇴장" };
 let clipTimer = null, onClipEnd = null, lastClip = null;
 
@@ -1025,25 +1041,104 @@ function isLight(hex) {
   return (((n >> 16 & 255) * 299 + (n >> 8 & 255) * 587 + (n & 255) * 114) / 1000) > 150;
 }
 
-/* ── 장면 재생 ─────────────────────────────────────────────────
-   장면이 없는 동안에도 필드는 그대로 서 있습니다. 0:0 경기에서 빈 화면만
-   보이던 것을 고친 것이고, 시간이 흐르는 동안은 마지막 장면에서 정지합니다. */
-function showIdle(frame, label) {
-  $("#hl").style.display = "";
-  $("#hl").classList.add("idle");
-  $("#hlBadge").textContent = label || "";
-  $("#hlBadge").classList.remove("rep");
-  $("#hlCap").textContent = "";
-  // 본 장면이 있으면 손으로 다시 볼 수 있다
-  $("#hlReplay").style.display = lastClip ? "" : "none";
-  drawFrame(frame || null);
+/* ── 관전 화면 ─────────────────────────────────────────────────
+   결정적 장면이 아닌 동안에도 경기는 계속 움직입니다.
+
+   예전에는 이 사이가 **정지 화면**이었습니다 — 90분 중 결정적 장면은 3~4분어치뿐이라
+   화면이 멈춰 있는 시간이 훨씬 길었습니다. KM26 은 이 구간에 시뮬을 그대로 돌리며
+   캔버스를 어둡게 덮어 "빨리 감는 중"을 보여 줍니다. 듀얼은 경기를 먼저 다 돌려 놓으므로
+   대신 일꾼이 함께 보내 준 **관전 트랙**(1.6초에 한 장)을 경기 시계에 맞춰 흘립니다.
+   장 사이는 보간하므로 42ms 에 한 장이어도 끊겨 보이지 않습니다.
+
+   ⚠ 화면이 시계를 앞지르면 안 됩니다 — 해설보다 먼저 골이 보이면 결과가 새어 나갑니다.
+     그래서 관전 헤드는 언제나 `(지금 분 + 1) × 60초` 를 넘지 않습니다. */
+const WATCH_STRIDE = 73;               // replay.js 의 WATCH_STRIDE 와 같아야 한다
+let watchSec = 0, watchLast = 0, rafId = null, drawnSec = -1;
+
+const watchCount = () => (R && R.watch ? (R.watch.length / WATCH_STRIDE) | 0 : 0);
+
+/** 경기 시계(초) → 관전 트랙의 자리 (소수부는 두 장 사이의 어디쯤인지) */
+function watchIndexAt(sec) {
+  const W = R.watch, n = watchCount();
+  if (!n) return -1;
+  if (sec <= W[0]) return 0;
+  if (sec >= W[(n - 1) * WATCH_STRIDE]) return n - 1;
+  let lo = 0, hi = n - 1;                       // clock 은 늘 증가하므로 이분 탐색
+  while (lo + 1 < hi) {
+    const mid = (lo + hi) >> 1;
+    if (W[mid * WATCH_STRIDE] <= sec) lo = mid; else hi = mid;
+  }
+  const a = W[lo * WATCH_STRIDE], b = W[hi * WATCH_STRIDE];
+  return b > a ? lo + (sec - a) / (b - a) : lo;
 }
 
-/** 장면이 끝났다 — 마지막 프레임을 그대로 세워 둔다 */
-function freezeField(c) {
-  lastClip = c || lastClip;
-  const f = lastClip && lastClip.frames.length ? lastClip.frames[lastClip.frames.length - 1] : null;
-  showIdle(f, lastClip ? `${lastClip.min}' ${kindLabel(lastClip)} — 정지` : "");
+/**
+ * 두 장 사이를 보간해 drawFrame 이 쓰는 모양으로 만든다.
+ * ⚠ 자리 번호로 짝을 맞추면 안 된다 — 교체·퇴장으로 명단이 밀리면 두 선수가
+ *   서로에게 미끄러져 들어간다. **선수 id 로** 맞춘다.
+ */
+function watchFrameObj(i, j, k) {
+  const W = R.watch, A = i * WATCH_STRIDE, B = j * WATCH_STRIDE;
+  const L = o => W[A + o] + (W[B + o] - W[A + o]) * k;
+  const at = {};
+  for (let q = 7; q < WATCH_STRIDE; q += 3) { const id = W[B + q]; if (id) at[id] = q; }
+  const a = [];
+  for (let q = 7; q < WATCH_STRIDE; q += 3) {
+    const id = W[A + q];
+    if (!id) continue;                          // 퇴장으로 빈 자리
+    const o = at[id];
+    a.push(id,
+      o ? W[A + q + 1] + (W[B + o + 1] - W[A + q + 1]) * k : W[A + q + 1],
+      o ? W[A + q + 2] + (W[B + o + 2] - W[A + q + 2]) * k : W[A + q + 2]);
+  }
+  return { c: W[A], b: [L(1), L(2), L(3)], o: W[A + 4] | 0, r: [L(5), L(6)], a };
+}
+
+function drawWatchAt(sec) {
+  const fi = watchIndexAt(sec);
+  if (fi < 0) return drawFrame((R && R.form0) || null);
+  const i = Math.floor(fi);
+  drawFrame(watchFrameObj(i, Math.min(i + 1, watchCount() - 1), fi - i));
+}
+
+/** 관전 화면으로 (돌아)간다 — 장면이 끝났거나 경기가 막 시작했을 때 */
+function backToWatch(label) {
+  const hl = $("#hl");
+  hl.style.display = ""; hl.classList.add("idle");
+  $("#hlBadge").textContent = label || (R && R.watch ? "○ 경기 진행 중" : "킥오프");
+  $("#hlBadge").classList.remove("rep");
+  $("#hlCap").textContent = "";
+  $("#hlReplay").style.display = lastClip ? "" : "none";   // 본 장면이 있으면 다시 볼 수 있다
+  drawnSec = -1;
+  if (!rafId) { watchLast = 0; rafId = requestAnimationFrame(watchLoop); }
+  else drawWatchAt(watchSec);
+}
+
+/** 경기가 끝났다 — 관전 트랙 마지막 장에서 멈춘다 */
+function watchToEnd() { watchSec = 1e9; backToWatch("🏁 경기 종료"); }
+
+/** 장면을 다 봤다 — 경기가 끝났으면 마지막 장으로, 아니면 그 자리에서 계속 흐른다 */
+const resumeWatch = () => (R && minute >= 90 ? watchToEnd() : backToWatch());
+
+function stopWatch() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null; watchSec = 0; drawnSec = -1;
+}
+
+function watchLoop(now) {
+  rafId = requestAnimationFrame(watchLoop);
+  if (!R || !R.watch) return;
+  if (cur) return;                     // 결정적 장면 재생 중 — 그건 클립 타이머가 그린다
+  const dt = watchLast ? Math.min(250, now - watchLast) : 0;   // 탭이 잠들었다 깨도 안 튀게
+  watchLast = now;
+  if (playing) {
+    watchSec += dt / (MS_PER_MIN / speed) * 60;
+    const cap = (minute + 1) * 60;     // 해설(분)을 앞지르지 않는다
+    if (watchSec > cap) watchSec = cap;
+  }
+  if (Math.abs(watchSec - drawnSec) < 0.05) return;   // 멈춰 있으면 다시 그리지 않는다
+  drawnSec = watchSec;
+  drawWatchAt(watchSec);
 }
 
 /**
@@ -1154,11 +1249,11 @@ function stopClip() {
   hideGoalPanel();
 }
 
-// 건너뛰기 — 보고 있던 장면을 접고 시계를 다시 흘린다 (필드는 그대로 둔다)
+// 건너뛰기 — 보고 있던 장면을 접고 관전 화면으로 돌아간다
 $("#hlSkip").onclick = () => {
   const f = onClipEnd;
   stopClip(); onClipEnd = null;
-  freezeField(lastClip);
+  resumeWatch();
   if (f) f();
 };
 // 손으로 다시 보기 — 골이면 리플레이 구간, 아니면 장면 전체를 다시 돌린다
@@ -1167,7 +1262,7 @@ $("#hlReplay").onclick = () => {
   const wasPlaying = playing;
   pause();
   const rf = lastClip.kind === "goal" ? replayFrames(lastClip) : null;
-  playClip(lastClip, "🎬 다시 보겠습니다.", () => { freezeField(lastClip); if (wasPlaying) resume(); },
+  playClip(lastClip, "🎬 다시 보겠습니다.", () => { resumeWatch(); if (wasPlaying) resume(); },
            { replay: true, frames: rf || lastClip.frames });
 };
 
