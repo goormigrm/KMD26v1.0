@@ -17,7 +17,7 @@ export const DUEL_FIXED = {
   season: 2026,
 };
 
-let installed = false;
+let ctxInstalled = false;
 
 /**
  * 엔진이 참조하는 전역 문맥을 설치한다.
@@ -47,10 +47,10 @@ export function installEngineContext(teams, refSeed = 0) {
   globalThis.addNews     = () => {};
   globalThis.adjustTrust = () => {};
 
-  installed = true;
+  ctxInstalled = true;
 }
 
-export function isInstalled() { return installed; }
+export function isContextInstalled() { return ctxInstalled; }
 
 /** 팀 객체에 듀얼 고정치를 입힌다 (조직력·사기·컨디션) */
 export function normalizeTeam(t) {

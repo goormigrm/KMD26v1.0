@@ -10,9 +10,12 @@
 
    ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────
    원본(kernel.raw.js) 해시: sha256:6cb75bb1f842
-   · PK-01  kickoff() 이 b.isPenalty 를 지우지 않아, PK 다음 킥오프가 센터서클에서 '페널티킥'이 된다
-   · PK-02  PK 득점이 VAR 로 취소된다. PK 는 오프사이드도 빌드업 반칙도 있을 수 없다 (분 단위 엔진에는 isPen 가드가 있다)
-   · PK-03  90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다
+   · [전술] PASS-01 2D 엔진이 팀 전술 '패스 길이'를 읽지 않는다 — 패스 목표 선택에 연결
+   · [전술] PASS-02 같은 슬라이더를 패스 실행(길게 띄우는 문턱)에도 연결 — 목표만 바꾸면 걷어차는 모양이 안 따라온다
+   · [전술] PASS-03 '몇 m부터 길게 차는가' 문턱도 팀 전술을 따르게 — 원본은 선수 특성만 읽는다
+   · [버그] PK-01   kickoff() 이 b.isPenalty 를 지우지 않아, PK 다음 킥오프가 센터서클에서 '페널티킥'이 된다
+   · [버그] PK-02   PK 득점이 VAR 로 취소된다. PK 는 오프사이드도 빌드업 반칙도 있을 수 없다 (분 단위 엔진에는 isPen 가드가 있다)
+   · [버그] PK-03   90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다
    ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.
    ───────────────────────────────────────────────────────────── */
 import { RNG } from "./rng.js";
@@ -2155,7 +2158,10 @@ function findBestPass(carrier, mates, opps, ctx){
      조건이 완전히 같아 아무 일도 하지 않는 죽은 줄이었다. 역할(딥라잉 플레이메이커의
      긴 패스, 앵커·하프백의 짧고 안전한 패스)이 실제로 동작하도록 FX로 합쳐 읽는다. */
   const lpF=FX(carrier,"longPass"), spF=FX(carrier,"shortPass");
-  const longGate = PASS_LONG_M*clamp(1 - lpF*0.38 + spF*0.45, 0.55, 1.85);
+  /* [KMD26 PASS-03] 원본은 여기서 선수 특성(lpF/spF)만 봤다. 팀 지시도 같이 읽는다 —
+     짧게 가는 팀은 문턱이 올라가 웬만하면 붙여 주고, 길게 가는 팀은 내려가 띄워 보낸다. */
+  const _pdT = ((carrier && carrier.team) ? TAC(carrier.team).pass : 1) - 1;
+  const longGate = PASS_LONG_M*clamp(1 - lpF*0.38 + spF*0.45 - _pdT*0.30, 0.55, 1.85);
   if(thru && RNG() < thruP)                            type=PASS_TYPE.THROUGH;
   else if(distM > longGate || (opt.laneRisk||0) > 0.7)         type=PASS_TYPE.LONG;
   else                                                          type=PASS_TYPE.SHORT;
@@ -2324,6 +2330,12 @@ function laneBlocked(from, to, opponents){
 
 function evaluatePassOptions(carrier, mates, opps, ctx){
   const dir=ctx.dir, out=[];
+  /* [KMD26 PASS-01] 팀 전술 '패스 길이'. tacVal 로 0~2 스케일이므로 가운데가 1이다.
+     짧게(-1) 이면 거리 부담을 키우고 전진 이득을 깎아 가까운 연결을 고르게 하고,
+     길게(+1) 이면 반대로 해서 앞으로 길게 붙이게 한다.
+     ⚠ 난수를 쓰지 않는다 — 결정론에 영향이 없어야 한다. */
+  const _pd = ((carrier && carrier.team) ? TAC(carrier.team).pass : 1) - 1;
+  const _progK = 1 + _pd*0.45, _distK = 1 - _pd*0.30;
   for(const m of mates){
     if(m.id===carrier.id) continue;
     const dx=(m.x-carrier.x)*PITCH_AR, dy=m.y-carrier.y;
@@ -2339,7 +2351,7 @@ function evaluatePassOptions(carrier, mates, opps, ctx){
     const recvAdv = dir>0 ? m.x : 1-m.x;                  // 0=자기 골문, 1=상대 골문
     const recvOwn = 1-(dir>0?m.x:1-m.x);                  // 0=상대 골문 쪽, 1=우리 골문 쪽
     // 우리 골문에 가까운 선수일수록, 그가 압박받고 있으면 패스 리스크가 급격히 커진다
-    let score = prog*1.35 - distPen - recvPress*(0.55+recvOwn*2.4) - blocked*1.2
+    let score = prog*1.35*_progK - distPen*_distK - recvPress*(0.55+recvOwn*2.4) - blocked*1.2
               + Math.max(0, recvAdv-0.52)*1.0;            // 상대 진영으로 연결할수록 가점
     if(m.slot==="GK") score-=0.55+recvPress*3.0;               // 압박받는 키퍼에게 주는 건 자살행위
     // 명백한 오프사이드 위치의 동료에게는 주지 않는다. 다만 라인과의 차이가 아슬아슬하면

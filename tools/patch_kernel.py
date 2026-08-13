@@ -24,8 +24,10 @@ SRC = sys.argv[1] if len(sys.argv) > 1 else "src/engine/kernel.raw.js"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "src/engine/kernel.js"
 
 # ─────────────────────────────────────────────────────────────
-# 패치 목록 — 전부 KM26 원본 버그. 듀얼 고유 규칙은 여기 넣지 않는다.
+# 패치 목록 — "함수 한복판이라 밖에서 감쌀 수 없는 것"만 여기 온다.
+# 메서드 경계에서 표현되는 건 전부 src/engine/rules.js 로 간다.
 #   id     : 로그·헤더에 찍히는 식별자
+#   kind   : 버그 = KM26 원본 결함 / 전술 = 듀얼에 필요한데 원본에 없는 연결
 #   why    : 무엇이 잘못됐는지 (한 줄)
 #   find   : 원본에서 찾을 문자열 (정규식 아님 — 문자 그대로)
 #   repl   : 바꿔 넣을 문자열
@@ -33,8 +35,64 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "src/engine/kernel.js"
 # ─────────────────────────────────────────────────────────────
 PATCHES = [
 
+  # ── 전술 ────────────────────────────────────────────────────
+  # 단계 3 측정에서 "패스 길이" 슬라이더가 **미반영**으로 잡혔다.
+  # 같은 시드로 짧게(0)와 길게(4)를 돌렸는데 결과 지문이 한 글자도 안 달랐다.
+  #
+  # 확인해 보니 2D 엔진은 T.pass 를 한 번도 읽지 않는다. 커널 안의 유일한 참조는
+  # tacticSig()(전술이 바뀌었는지 감지하는 서명 문자열)뿐이고, 경기 계산에는 안 쓰인다.
+  # 원본에서 T.pass 를 읽는 곳은 분 단위 엔진(tacticAtkBonus)과 AI 역할 배정(aiRoleTacFit)인데,
+  # 둘 다 듀얼의 2D 경기 경로가 아니다.
+  #
+  # 화면에 슬라이더를 띄워 놓고 아무 일도 안 일어나면 그건 거짓말이다. 연결해 준다.
+  dict(
+    id="PASS-01",
+    kind="전술",
+    why="2D 엔진이 팀 전술 '패스 길이'를 읽지 않는다 — 패스 목표 선택에 연결",
+    count=1,
+    find=(
+      "function evaluatePassOptions(carrier, mates, opps, ctx){\n"
+      "  const dir=ctx.dir, out=[];\n"
+    ),
+    repl=(
+      "function evaluatePassOptions(carrier, mates, opps, ctx){\n"
+      "  const dir=ctx.dir, out=[];\n"
+      "  /* [KMD26 PASS-01] 팀 전술 '패스 길이'. tacVal 로 0~2 스케일이므로 가운데가 1이다.\n"
+      "     짧게(-1) 이면 거리 부담을 키우고 전진 이득을 깎아 가까운 연결을 고르게 하고,\n"
+      "     길게(+1) 이면 반대로 해서 앞으로 길게 붙이게 한다.\n"
+      "     ⚠ 난수를 쓰지 않는다 — 결정론에 영향이 없어야 한다. */\n"
+      "  const _pd = ((carrier && carrier.team) ? TAC(carrier.team).pass : 1) - 1;\n"
+      "  const _progK = 1 + _pd*0.45, _distK = 1 - _pd*0.30;\n"
+    ),
+  ),
+
+  dict(
+    id="PASS-02",
+    kind="전술",
+    why="같은 슬라이더를 패스 실행(길게 띄우는 문턱)에도 연결 — 목표만 바꾸면 걷어차는 모양이 안 따라온다",
+    count=1,
+    find="    let score = prog*1.35 - distPen - recvPress*(0.55+recvOwn*2.4) - blocked*1.2\n",
+    repl="    let score = prog*1.35*_progK - distPen*_distK - recvPress*(0.55+recvOwn*2.4) - blocked*1.2\n",
+  ),
+
+  dict(
+    id="PASS-03",
+    kind="전술",
+    why="'몇 m부터 길게 차는가' 문턱도 팀 전술을 따르게 — 원본은 선수 특성만 읽는다",
+    count=1,
+    find="  const longGate = PASS_LONG_M*clamp(1 - lpF*0.38 + spF*0.45, 0.55, 1.85);\n",
+    repl=(
+      "  /* [KMD26 PASS-03] 원본은 여기서 선수 특성(lpF/spF)만 봤다. 팀 지시도 같이 읽는다 —\n"
+      "     짧게 가는 팀은 문턱이 올라가 웬만하면 붙여 주고, 길게 가는 팀은 내려가 띄워 보낸다. */\n"
+      "  const _pdT = ((carrier && carrier.team) ? TAC(carrier.team).pass : 1) - 1;\n"
+      "  const longGate = PASS_LONG_M*clamp(1 - lpF*0.38 + spF*0.45 - _pdT*0.30, 0.55, 1.85);\n"
+    ),
+  ),
+
+  # ── 버그 ────────────────────────────────────────────────────
   dict(
     id="PK-01",
+    kind="버그",
     why="kickoff() 이 b.isPenalty 를 지우지 않아, PK 다음 킥오프가 센터서클에서 '페널티킥'이 된다",
     count=1,
     find=(
@@ -48,6 +106,7 @@ PATCHES = [
 
   dict(
     id="PK-02",
+    kind="버그",
     why="PK 득점이 VAR 로 취소된다. PK 는 오프사이드도 빌드업 반칙도 있을 수 없다 (분 단위 엔진에는 isPen 가드가 있다)",
     count=1,
     find="        if(this.emitEvents && RNG()<VAR_CHECK_P){\n",
@@ -56,6 +115,7 @@ PATCHES = [
 
   dict(
     id="PK-03",
+    kind="버그",
     why="90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다",
     count=1,
     find=(
@@ -103,7 +163,7 @@ if i < 0:
 note = (
     "\n   ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────\n"
     "   원본(kernel.raw.js) 해시: sha256:%s\n" % rawhash
-    + "".join("   · %s  %s\n" % (p["id"], p["why"]) for p in applied)
+    + "".join("   · [%s] %-7s %s\n" % (p["kind"], p["id"], p["why"]) for p in applied)
     + "   ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.\n"
 )
 code = code[:i] + note + code[i:]
@@ -111,4 +171,4 @@ code = code[:i] + note + code[i:]
 io.open(OUT, "w", encoding="utf-8").write(code)
 print("OK %d patches applied -> %s" % (len(applied), OUT))
 for p in applied:
-    print("   %s  %s" % (p["id"], p["why"]))
+    print("   [%s] %s  %s" % (p["kind"], p["id"], p["why"]))

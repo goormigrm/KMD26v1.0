@@ -66,15 +66,15 @@ export function redStaminaK(reds) {
    대전에서의 경기 중 대응은 단계 8 "조건부 지시"로, 감독이 미리 적어 두는 형태로 갑니다.
    ───────────────────────────────────────────────────────────── */
 
-let installed = false;
+let rulesInstalled = false;
 
 /**
  * 커널 프로토타입에 듀얼 규칙을 입힌다.
  * 여러 번 불러도 한 번만 적용된다 (두 번 감싸면 배수가 제곱된다).
  */
 export function installDuelRules() {
-  if (installed) return;
-  installed = true;
+  if (rulesInstalled) return;
+  rulesInstalled = true;
 
   /* 1. 누적 파울 → 카드 계수 */
   const _refCardK = MatchSim.prototype.refCardK;
@@ -121,4 +121,4 @@ export function installDuelRules() {
   };
 }
 
-export function isInstalled() { return installed; }
+export function areRulesInstalled() { return rulesInstalled; }
