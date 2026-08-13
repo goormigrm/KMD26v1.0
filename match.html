@@ -351,8 +351,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=5659e8d397";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=5659e8d397";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=c7b2adac8f";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=c7b2adac8f";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -720,7 +720,8 @@ function describe() {
   const oldWhy = hp.oldData || ap.oldData;
   if (oldWhy)
     note.push(`<span style="color:var(--warn)">예전 판에서 발급된 코드입니다</span> —
-      라인업은 그대로 읽었습니다. 그 뒤로 바뀐 것은 ${esc(oldWhy)}뿐이라 같은 선수가 섭니다.
+      라인업은 그대로 읽었습니다. 그 뒤 바뀐 것은 <b>${esc(oldWhy)}</b> 뿐이고
+      명단은 그대로라, 코드가 가리키는 선수가 그대로 섭니다.
       <span class="sub">새로 발급하면 지금 판 코드가 됩니다.</span>`);
   if (same) {
     note.push(planSig(hp) === planSig(ap)
@@ -774,7 +775,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=5659e8d397", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=c7b2adac8f", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
