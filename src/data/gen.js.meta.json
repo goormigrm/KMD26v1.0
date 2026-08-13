@@ -1,7 +1,7 @@
 {
  "srcHash": "d18fe0dfc09c",
- "declCount": 63,
- "lineCount": 1101,
+ "declCount": 69,
+ "lineCount": 1143,
  "rngSites": 18,
  "exports": [
   "mkTeam",
@@ -10,7 +10,15 @@
   "ROSTER26",
   "PLAYER_TWEAK",
   "PREF_POS_OVERRIDE",
-  "CUR_YEAR"
+  "CUR_YEAR",
+  "ATTR_LABEL_FM",
+  "FAM_LABEL",
+  "FAM_POS",
+  "TRAITS",
+  "TECH_ORDER",
+  "MENT_ORDER",
+  "PHYS_ORDER",
+  "GK_ORDER"
  ],
  "patches": [
   {
@@ -66,6 +74,26 @@
   {
    "name": "GKT_ATTRS",
    "srcLine": 1361
+  },
+  {
+   "name": "ATTR_LABEL_FM",
+   "srcLine": 1362
+  },
+  {
+   "name": "TECH_ORDER",
+   "srcLine": 1382
+  },
+  {
+   "name": "MENT_ORDER",
+   "srcLine": 1383
+  },
+  {
+   "name": "PHYS_ORDER",
+   "srcLine": 1384
+  },
+  {
+   "name": "GK_ORDER",
+   "srcLine": 1385
   },
   {
    "name": "LEGACY_FROM",
@@ -214,6 +242,10 @@
   {
    "name": "FAM_POS",
    "srcLine": 2551
+  },
+  {
+   "name": "FAM_LABEL",
+   "srcLine": 2552
   },
   {
    "name": "SLOT_FAM",

@@ -33,7 +33,10 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "src/data/gen.js"
 
 # 뿌리 — 여기서 시작해 필요한 것만 따라간다.
 # 표 세 개는 함수가 인자로 받으므로 참조 그래프에 안 걸린다. 직접 넣어 준다.
-ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", "CUR_YEAR"]
+ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", "CUR_YEAR",
+         # 화면에 쓸 이름표도 원본에서 가져온다 — 한글 라벨을 UI 에 베껴 두면 원본과 어긋난다
+         "ATTR_LABEL_FM", "FAM_LABEL", "FAM_POS", "TRAITS",
+         "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER"]
 
 # 탐색을 멈출 지점 — 시즌 상태·UI·저장. 선수를 만드는 데는 필요 없다.
 STUB = set("""G userTeam saveGame addNews notify flash gameAlert showConfirm show refreshTactics
@@ -90,7 +93,9 @@ hdr = (
     'import { RNG } from "../engine/rng.js";\n\n'
 )
 
-exports = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", "CUR_YEAR"]
+exports = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", "CUR_YEAR",
+           "ATTR_LABEL_FM", "FAM_LABEL", "FAM_POS", "TRAITS",
+           "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER"]
 exports = [e for e in exports if e in seen]
 tail = "\n\nexport {\n  " + ",\n  ".join(exports) + "\n};\n"
 

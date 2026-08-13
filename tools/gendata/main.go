@@ -87,15 +87,23 @@ func main() {
     seedRNG(%d);
     JSON.stringify({
       k1: D1.map(function(d){ return mkTeam(d, 1); }),
-      k2: D2.map(function(d){ return mkTeam(d, 2); })
+      k2: D2.map(function(d){ return mkTeam(d, 2); }),
+      // 화면이 쓸 이름표 — 한글 라벨을 UI 에 베껴 두면 원본이 바뀔 때 어긋난다
+      labels: {
+        attr: ATTR_LABEL_FM, fam: FAM_LABEL, famOrder: FAM_POS,
+        tech: TECH_ORDER, ment: MENT_ORDER, phys: PHYS_ORDER, gk: GK_ORDER,
+        // 특성은 선수 항목에 키만 저장된다("looksForPass"). 읽을 이름은 여기서 온다.
+        trait: TRAITS.reduce(function(o, t){ o[t.k] = t.n; return o; }, {})
+      }
     });
   `, *seed)
 	v, err := vm.RunString(driver)
 	check(err, "구단 생성 중 오류")
 
 	var built struct {
-		K1 []map[string]any `json:"k1"`
-		K2 []map[string]any `json:"k2"`
+		K1     []map[string]any `json:"k1"`
+		K2     []map[string]any `json:"k2"`
+		Labels map[string]any   `json:"labels"`
 	}
 	check(json.Unmarshal([]byte(v.String()), &built), "생성 결과를 읽지 못했습니다")
 
@@ -135,7 +143,8 @@ func main() {
 	verify(players, total)
 
 	check(os.MkdirAll(outDir, 0o755), "data 폴더를 만들지 못했습니다")
-	teamsB := writeJSON(filepath.Join(outDir, "teams.json"), map[string]any{"order": order, "teams": teams})
+	teamsB := writeJSON(filepath.Join(outDir, "teams.json"),
+		map[string]any{"order": order, "teams": teams, "labels": built.Labels})
 	playersB := writeJSON(filepath.Join(outDir, "players.json"), players)
 
 	// 데이터 해시 — 단계 5 에서 대전 코드에 박아, 서로 다른 명단으로 재생하는 사고를 막는다.

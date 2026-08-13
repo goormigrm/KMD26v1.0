@@ -3,7 +3,7 @@
    생성: tools/extract_data.py
    원본: KM26 v2.0 (KleagueM2026/KM26v2.0) — 원저작자 허락 하에 사용
    원본 해시: sha256:d18fe0dfc09c
-   추출 선언 63개 / 1101줄
+   추출 선언 69개 / 1143줄
    난수 시드화: Math.random() 18곳 → RNG()
 
    ── 듀얼 패치 ─────────────────────────────────────────────
@@ -173,6 +173,41 @@ const MENT_ATTRS=["agg","ant","bra","cmp","cnt","dec","det","fla","ldr","otb","p
 const PHYS_ATTRS=["acc","agi","bal","jum","nat","pac","sta","str"];
 
 const GKT_ATTRS =["aer","cmd","com","ecc","han","kic","one","ref","tro","pun","tro2"];
+
+const ATTR_LABEL_FM={
+  // 기술
+  cor:"코너킥", crs:"크로스", dri:"드리블", fin:"골 결정력", fir:"퍼스트 터치",
+  fre:"프리킥", hea:"헤더", lon:"중거리 슛", thr:"장거리 스로인", mar:"일대일마크",
+  pas:"패스", pen:"페널티킥", tck:"태클", tec:"개인기",
+  // 정신
+  agg:"적극성", ant:"예측력", bra:"대담성", cmp:"침착성", cnt:"집중력",
+  // otb/pos 는 원래 FM 표기(오프 더 볼 / 위치 선정)였는데, 둘 다 "자리를 잡는 능력"이라
+  // 이름만 보고는 무엇이 다른지 알 수 없었다. 공격/수비를 이름에 박아 구분한다.
+  dec:"판단력", det:"승부욕", fla:"천재성", ldr:"리더십", otb:"공격시 위치 선정",
+  pos:"수비시 위치 선정", tea:"팀워크", vis:"시야", wor:"활동량",
+  // 신체
+  acc:"가속도", agi:"민첩성", bal:"균형 감각", jum:"점프 거리", nat:"타고난 체력",
+  pac:"주력", sta:"지구력", str:"몸싸움",
+  // 골키퍼
+  aer:"공중 장악력", cmd:"패널티박스 장악력", com:"수비 조율", ecc:"기행",
+  han:"볼 핸들링", kic:"골킥", one:"일대일 방어", ref:"반사신경",
+  tro:"돌진 빈도", pun:"펀칭 빈도", tro2:"공던지기"
+};
+/* 화면에 보여주는 순서 — 이미지의 3열 배치 그대로 */
+
+const TECH_ORDER=["tec","fin","dri","mar","thr","lon","cor","crs","tck","pas","fir","pen","fre","hea"];
+
+const MENT_ORDER=["bra","ldr","det","vis","ant","otb","pos","agg","cnt","fla","cmp","tea","dec","wor"];
+
+const PHYS_ORDER=["acc","bal","str","agi","jum","pac","sta","nat"];
+
+const GK_ORDER  =["aer","cmd","com","ecc","han","kic","one","ref","tro","pun","tro2"];
+
+/* 구 키 → 신 키 파생 규칙. 구 키는 엔진 곳곳에서 쓰이므로 항상 채워 둔다. */
+/* ⚠ 예전에는 여기에 dri:["tec"] 가 있었다. 그런데 dri 는 구 호환용 이름이 아니라
+   FM 능력치 "드리블" 그 자체다. 그래서 sync 를 돌 때마다 드리블이 개인기 값으로
+   덮어써져, 리그 전체에서 드리블 == 개인기 가 되어 있었다(측정으로 확인).
+   드리블은 특성 조건·역할 적합도·돌파 판정에 쓰이는 실제 축이므로 매핑에서 뺀다. */
 
 const LEGACY_FROM={
   fin:["fin"], lng:["lon"], hea:["hea"], pass:["pas"],
@@ -947,6 +982,13 @@ function assignPrefPos(p, teamId){
 
 const FAM_POS=["GK","SW","DC","DL","DR","WBL","WBR","DM","MC","ML","MR","AMC","AML","AMR","LW","RW","ST"];
 
+const FAM_LABEL={GK:"GK",SW:"스위퍼",DC:"중앙 수비",DL:"왼쪽 수비",DR:"오른쪽 수비",WBL:"왼쪽 윙백",WBR:"오른쪽 윙백",
+  DM:"수비형 미드필더",MC:"중앙 미드필더",ML:"왼쪽 미드필더",MR:"오른쪽 미드필더",
+  AMC:"공격형 미드필더",AML:"왼쪽 공격형",AMR:"오른쪽 공격형",
+  LW:"왼쪽 윙어",RW:"오른쪽 윙어",ST:"스트라이커"};
+/* LW/RW는 AML/AMR과 다른 자리다 — 공격형 미드필더는 한 칸 내려와 경기를 조립하고,
+   윙어는 최전방 라인에서 폭을 잡고 배후를 노린다. 그래서 능숙도도 따로 쌓인다. */
+
 const SLOT_FAM={GK:"GK", SW:"SW", LCB:"DC",CB:"DC",RCB:"DC", LB:"DL",RB:"DR", LWB:"WBL",RWB:"WBR",
   LDM:"DM",DM:"DM",RDM:"DM", LCM:"MC",CM:"MC",RCM:"MC", LM:"ML",RM:"MR",
   LAM:"AML",CAM:"AMC",RAM:"AMR", LW:"LW",RW:"RW", LS:"ST",ST:"ST",RS:"ST"};
@@ -1122,5 +1164,13 @@ export {
   ROSTER26,
   PLAYER_TWEAK,
   PREF_POS_OVERRIDE,
-  CUR_YEAR
+  CUR_YEAR,
+  ATTR_LABEL_FM,
+  FAM_LABEL,
+  FAM_POS,
+  TRAITS,
+  TECH_ORDER,
+  MENT_ORDER,
+  PHYS_ORDER,
+  GK_ORDER
 };

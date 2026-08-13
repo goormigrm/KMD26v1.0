@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMD26 · 선수단</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#0b0f14;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;
+      --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.6 'Segoe UI','Malgun Gothic',sans-serif;
+     padding:18px 14px 60px;max-width:1080px;margin:0 auto}
+a{color:var(--acc);text-decoration:none}
+h1{font-size:19px;color:var(--gold)}
+.sub{color:var(--sub);font-size:12.5px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+
+/* ── 팀 고르기 ─────────────────────────────── */
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{background:var(--bg2);border:1px solid var(--line);color:var(--sub);border-radius:8px;
+     padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:7px;margin-bottom:16px}
+.team{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);
+      border-radius:9px;padding:9px 10px;cursor:pointer;font-size:13px;font-weight:700;text-align:left}
+.team:hover{border-color:var(--acc)}
+.team.on{border-color:var(--acc);background:#12283d}
+.chip{width:5px;height:22px;border-radius:3px;flex:none}
+
+/* ── 선수 목록 ─────────────────────────────── */
+.hd{display:flex;align-items:center;gap:11px;margin:16px 0 8px}
+.hd .bar{width:7px;height:30px;border-radius:4px}
+.hd h2{font-size:17px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--sub);text-align:left;font-size:12px;padding:7px 8px;border-bottom:1px solid var(--line);
+   white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--txt)}
+td{padding:7px 8px;border-bottom:1px solid #21262d;white-space:nowrap}
+tr.p{cursor:pointer}
+tr.p:hover{background:#161b22}
+tr.p.on{background:#12283d}
+.no{color:var(--sub);width:34px;text-align:right;font-variant-numeric:tabular-nums}
+.nm{font-weight:700}
+.frn{color:var(--gold);font-size:11px;margin-left:4px}
+.pos{font-size:11.5px;color:var(--sub)}
+.pp{background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:1px 7px;font-size:11.5px}
+.ovr{font-weight:800;font-variant-numeric:tabular-nums;text-align:right;width:44px}
+.meter{width:74px;height:5px;background:#21262d;border-radius:3px;overflow:hidden}
+.meter>i{display:block;height:100%;border-radius:3px}
+
+/* ── 선수 상세 ─────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:15px 16px;margin-top:14px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-top:12px}
+.pgrid h4{font-size:12.5px;color:var(--gold);margin-bottom:5px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.at{display:flex;justify-content:space-between;gap:8px;padding:2.5px 0;font-size:12.5px}
+.at b{font-variant-numeric:tabular-nums;font-weight:700}
+.fam{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:5px;margin-top:9px}
+.fm{background:var(--bg3);border:1px solid var(--line);border-radius:7px;padding:5px 7px;font-size:11.5px}
+.fm .v{float:right;font-weight:800}
+.fm.z{opacity:.3}
+.bio{color:var(--sub);font-size:12.5px;margin-top:3px}
+.tag{display:inline-block;background:var(--bg3);border:1px solid var(--line);border-radius:6px;
+     padding:2px 8px;font-size:11.5px;margin:3px 4px 0 0}
+.empty{color:var(--sub);text-align:center;padding:36px 0}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div>
+    <h1>선수단</h1>
+    <div class="sub" id="meta">불러오는 중…</div>
+  </div>
+  <div class="sub"><a href="index.html">← 첫 페이지</a></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" data-lg="k1">K리그1</button>
+  <button class="tab" data-lg="k2">K리그2</button>
+</div>
+<div class="teams" id="teams"></div>
+
+<div id="squad"></div>
+<div id="detail"></div>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const el = (h) => { const d = document.createElement("div"); d.innerHTML = h.trim(); return d.firstChild; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let DB = null, curTeam = null, curPlayer = null, sortKey = "pos";
+
+/* 능력치 색 — 낮으면 붉고 높을수록 초록. FM 을 보던 눈에 익숙한 방식이다. */
+function tone(v) {
+  if (v >= 85) return "#3fb950";
+  if (v >= 72) return "#7cc35a";
+  if (v >= 60) return "#d29922";
+  if (v >= 48) return "#d2762a";
+  return "#f85149";
+}
+
+/* 포지션 정렬 순서 — 골키퍼부터 최전방까지, 실제 라인업 순서대로 */
+const POS_ORD = { GK: 0, DF: 1, MF: 2, FW: 3 };
+const SORTS = {
+  pos:  (a, b) => (POS_ORD[a.pos] - POS_ORD[b.pos]) || (b.ovr - a.ovr),
+  ovr:  (a, b) => b.ovr - a.ovr,
+  no:   (a, b) => (a.no || 999) - (b.no || 999),
+  age:  (a, b) => a.by - b.by,
+  name: (a, b) => a.name.localeCompare(b.name, "ko"),
+};
+
+async function boot() {
+  try {
+    const [t, p, m] = await Promise.all([
+      fetch("data/teams.json").then(r => r.json()),
+      fetch("data/players.json").then(r => r.json()),
+      fetch("data/meta.json").then(r => r.json()),
+    ]);
+    DB = { teams: t.teams, order: t.order, L: t.labels, players: p, meta: m };
+  } catch (e) {
+    $("#meta").innerHTML = `<span style="color:var(--bad)">데이터를 불러오지 못했습니다 — ${esc(e.message)}</span>`;
+    return;
+  }
+  $("#meta").textContent =
+    `${DB.meta.teamCount}개 구단 · ${DB.meta.playerCount}명 · 데이터 ${DB.meta.dataHash}`;
+  drawTeams("k1");
+  document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === b));
+    drawTeams(b.dataset.lg);
+  });
+}
+
+function drawTeams(lg) {
+  const box = $("#teams");
+  box.innerHTML = "";
+  for (const id of DB.order[lg]) {
+    const t = DB.teams[id];
+    const b = el(`<button class="team" data-id="${id}">
+        <span class="chip" style="background:${esc(t.col)}"></span>${esc(t.short)}</button>`);
+    b.onclick = () => showTeam(id);
+    box.appendChild(b);
+  }
+}
+
+function showTeam(id) {
+  curTeam = id; curPlayer = null;
+  document.querySelectorAll(".team").forEach(b => b.classList.toggle("on", b.dataset.id === id));
+  drawSquad();
+  $("#detail").innerHTML = "";
+}
+
+function drawSquad() {
+  const t = DB.teams[curTeam];
+  const list = DB.players[curTeam].slice().sort(SORTS[sortKey]);
+  const avg = list.slice().sort((a, b) => b.ovr - a.ovr).slice(0, 11)
+                  .reduce((s, p) => s + p.ovr, 0) / 11;
+
+  const head = [["no", "번호"], ["name", "이름"], ["pos", "포지션"], ["age", "나이"], ["ovr", "능력"]];
+  $("#squad").innerHTML = `
+    <div class="hd">
+      <span class="bar" style="background:${esc(t.col)}"></span>
+      <div><h2>${esc(t.name)}</h2>
+        <div class="sub">${list.length}명 · 상위 11명 평균 ${avg.toFixed(1)}</div></div>
+    </div>
+    <table><thead><tr>
+      ${head.map(([k, n]) => `<th data-k="${k}">${n}${sortKey === k ? " ▾" : ""}</th>`).join("")}
+      <th>선호 자리</th><th>키</th>
+    </tr></thead><tbody>
+      ${list.map(p => `<tr class="p" data-id="${p.id}">
+        <td class="no">${p.no ?? "-"}</td>
+        <td class="nm">${esc(p.name)}${p.frn ? '<span class="frn">외</span>' : ""}</td>
+        <td class="pos">${p.pos}</td>
+        <td class="pos">${DB.meta.season ? DB.meta.season - p.by : 2026 - p.by}</td>
+        <td class="ovr" style="color:${tone(p.ovr)}">${p.ovr}</td>
+        <td><span class="pp">${esc(p.prefPos)}</span></td>
+        <td class="pos">${p.h}cm</td>
+      </tr>`).join("")}
+    </tbody></table>`;
+
+  $("#squad").querySelectorAll("th").forEach(th => th.onclick = () => {
+    sortKey = th.dataset.k; drawSquad();
+    if (curPlayer != null) markRow();
+  });
+  $("#squad").querySelectorAll("tr.p").forEach(tr =>
+    tr.onclick = () => showPlayer(+tr.dataset.id));
+  markRow();
+}
+
+function markRow() {
+  document.querySelectorAll("tr.p").forEach(tr =>
+    tr.classList.toggle("on", +tr.dataset.id === curPlayer));
+}
+
+function showPlayer(id) {
+  curPlayer = id; markRow();
+  const p = DB.players[curTeam].find(q => q.id === id);
+  if (!p) return;
+  const L = DB.L;
+
+  const col = (title, keys, bag) => `
+    <div><h4>${title}</h4>
+      ${keys.filter(k => bag && typeof bag[k] === "number").map(k => `
+        <div class="at"><span>${esc(L.attr[k] || k)}</span>
+          <b style="color:${tone(bag[k])}">${bag[k]}</b></div>`).join("")}
+    </div>`;
+
+  const fam = L.famOrder.map(f => {
+    const v = p.posFam?.[f] || 0;
+    return `<div class="fm ${v ? "" : "z"}">${esc(L.fam[f] || f)}
+       <span class="v" style="color:${v ? tone(v) : "var(--sub)"}">${v}</span></div>`;
+  }).join("");
+
+  $("#detail").innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:17px;font-weight:800">${esc(p.name)}
+            ${p.frn ? '<span class="frn">외국인</span>' : ""}</div>
+          <div class="bio">${p.pos} · 선호 ${esc(p.prefPos)} · ${2026 - p.by}세
+            · ${p.h}cm ${p.w}kg · 등번호 ${p.no ?? "-"}</div>
+        </div>
+        <div style="font-size:26px;font-weight:800;color:${tone(p.ovr)}">${p.ovr}</div>
+      </div>
+      ${(p.traits || []).length
+        ? `<div style="margin-top:8px">${p.traits.map(t =>
+            `<span class="tag">${esc(L.trait[t] || t)}</span>`).join("")}</div>` : ""}
+
+      <div class="pgrid">
+        ${col("기술", L.tech, p.attr)}
+        ${col("정신", L.ment, p.attr)}
+        ${col("신체", L.phys, p.attr)}
+        ${p.gkA ? col("골키퍼", L.gk, p.gkA) : ""}
+      </div>
+
+      <h4 style="font-size:12.5px;color:var(--gold);margin:16px 0 0;border-bottom:1px solid var(--line);padding-bottom:4px">
+        포지션 능숙도</h4>
+      <div class="fam">${fam}</div>
+      <div class="sub" style="margin-top:9px">
+        능숙도는 그 자리에서 제 기량이 나오는 정도입니다. 낮은 자리에 세우면
+        판단·위치선정처럼 자리 이해가 필요한 쪽이 크게 깎입니다.
+      </div>
+    </div>`;
+  $("#detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+boot();
+</script>
+</body>
+</html>
