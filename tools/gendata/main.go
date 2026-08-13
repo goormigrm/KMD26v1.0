@@ -121,7 +121,14 @@ func main() {
         slotFam: SLOT_FAM,           // 자리 → 능숙도 항목
         famLv: FAM_LV,               // 능숙도 → 이름·색
         tacDef: TAC_DEF,             // 전술 기본값
-        tacKeys: TAC_KEYS            // 슬라이더 8종의 순서
+        tacKeys: TAC_KEYS,           // 슬라이더 8종의 순서
+        // KM26 전술판은 자유 배치가 아니라 "한 줄 5칸"의 고정 격자다.
+        // 이미 KM26 을 하던 사람들이 오므로 그 형태를 그대로 쓴다.
+        rowSlots: ROW_SLOTS,         // 줄 → 5칸 (없는 자리는 null)
+        roleGrp: ROLE_GRP,           // 자리 → 역할 묶음
+        roleDef: ROLE_DEFAULT,       // 역할 묶음 → [역할키, 임무]
+        dutyN: DUTY_N,               // 임무 키 → 이름
+        roleN: ROLES.reduce(function(o, r){ o[r.k] = r.n; return o; }, {})
       }
     });
   `, *seed)

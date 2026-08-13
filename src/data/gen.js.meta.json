@@ -1,7 +1,7 @@
 {
  "srcHash": "d18fe0dfc09c",
- "declCount": 88,
- "lineCount": 1282,
+ "declCount": 93,
+ "lineCount": 1477,
  "rngSites": 18,
  "exports": [
   "mkTeam",
@@ -28,7 +28,12 @@
   "FAM_LV",
   "TAC_DEF",
   "TAC_KEYS",
-  "SLOT_FAM"
+  "SLOT_FAM",
+  "ROW_SLOTS",
+  "ROLE_GRP",
+  "ROLE_DEFAULT",
+  "DUTY_N",
+  "ROLES"
  ],
  "patches": [
   {
@@ -210,6 +215,22 @@
    "srcLine": 1667
   },
   {
+   "name": "ROLE_GRP",
+   "srcLine": 1687
+  },
+  {
+   "name": "ROLES",
+   "srcLine": 1693
+  },
+  {
+   "name": "DUTY_N",
+   "srcLine": 1865
+  },
+  {
+   "name": "ROLE_DEFAULT",
+   "srcLine": 1872
+  },
+  {
    "name": "TRAITS",
    "srcLine": 1929
   },
@@ -312,6 +333,10 @@
   {
    "name": "TAC_DEF",
    "srcLine": 3351
+  },
+  {
+   "name": "ROW_SLOTS",
+   "srcLine": 3425
   },
   {
    "name": "SLOT_XY",

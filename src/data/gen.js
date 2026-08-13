@@ -3,7 +3,7 @@
    생성: tools/extract_data.py
    원본: KM26 v2.0 (KleagueM2026/KM26v2.0) — 원저작자 허락 하에 사용
    원본 해시: sha256:d18fe0dfc09c
-   추출 선언 88개 / 1282줄
+   추출 선언 93개 / 1477줄
    난수 시드화: Math.random() 18곳 → RNG()
 
    ── 듀얼 패치 ─────────────────────────────────────────────
@@ -487,6 +487,190 @@ function genBody(pos, a){
      fx(d) : 임무별 엔진 효과. 아래 키들은 매치엔진이 직접 읽는다.
              fwd(전진 성향) wide(측면 치우침) roam(자리 이탈 허용) pm(패스 우선순위)
              press(압박 적극성) 그리고 특성과 공유하는 dribble/killer/shoot/hold/earlyCross/tightMark/slide */
+
+const ROLE_GRP={ GK:"GK", SW:"SW", LCB:"CB", RCB:"CB", CB:"CB",
+                 LB:"FB", RB:"FB", LWB:"WB", RWB:"WB",
+                 LDM:"CM", DM:"CM", RDM:"CM",
+                 LCM:"CM", RCM:"CM", CM:"CM", LM:"WIDE", RM:"WIDE",
+                 LAM:"AM", CAM:"AM", RAM:"AM",
+                 LW:"WIDE", RW:"WIDE", LS:"ST", RS:"ST", ST:"ST" };
+
+const ROLES=[
+ // ── 골키퍼
+ {k:"G",  n:"골키퍼", e:"Goalkeeper", grp:["GK"], duty:["D"],
+  key:["ref","one","han","cmd","pos","cnt","dec","agi"],
+  fx:()=>({sweep:-0.35})},
+ {k:"SK", n:"스위퍼 키퍼", e:"Sweeper Keeper", grp:["GK"], duty:["D","S","A"],
+  key:["ref","one","cmd","kic","pas","fir","vis","cmp","acc"],
+  fx:d=>({sweep: d==="A"?0.85 : d==="S"?0.50 : 0.22, killer: d==="A"?0.35:0.15})},
+ // ── 스위퍼 (최후방 단독)
+ {k:"SWP", n:"스위퍼", e:"Sweeper", grp:["SW"], duty:["D","S"],
+  key:["pos","ant","cnt","dec","mar","tck","cmp","pac","acc"],
+  fx:d=>({fwd: d==="S"?0.25:-0.20, roam: d==="S"?0.35:0.15,
+          sweepBack:1, tightMark:-1, killer: d==="S"?0.30:0.05, press:-0.25})},
+ {k:"LSW",n:"리베로", e:"Libero", grp:["SW"], duty:["D","S","A"],
+  key:["pos","ant","dec","pas","fir","tec","cmp","dri","tck"],
+  fx:d=>({fwd: d==="A"?0.75 : d==="S"?0.45:0.10, roam: d==="A"?0.85:0.55,
+          sweepBack:1, pm:0.55, dribble:0.35, killer:0.40, press:-0.15})},
+ {k:"BPS",n:"볼 플레잉 스위퍼", e:"Ball Playing Sweeper", grp:["SW"], duty:["D","S"],
+  key:["pos","ant","pas","fir","vis","tec","cmp","dec"],
+  fx:d=>({fwd: d==="S"?0.25:-0.10, sweepBack:1, pm:0.65, killer:0.55, longPass:1, press:-0.2})},
+ {k:"NSW",n:"안정형 스위퍼", e:"No-Nonsense Sweeper", grp:["SW"], duty:["D"],
+  key:["pos","ant","mar","tck","hea","str","cnt","bra"],
+  fx:()=>({fwd:-0.30, sweepBack:1, killer:-0.8, clearFirst:1, press:-0.1})},
+ // ── 중앙 수비
+ {k:"CD", n:"중앙 수비수", e:"Central Defender", grp:["CB"], duty:["D","St","Cv"],
+  key:["mar","tck","hea","pos","str","jum","cnt","bra"],
+  fx:d=>({fwd: d==="St"?0.18 : d==="Cv"?-0.18 : 0, press: d==="St"?0.35:0, tightMark:d==="St"?1:0})},
+ {k:"BPD",n:"공격형 수비수", e:"Ball Playing Defender", grp:["CB"], duty:["D","St","Cv"],
+  key:["mar","tck","hea","pos","pas","fir","vis","tec"],
+  fx:d=>({fwd: d==="St"?0.15 : d==="Cv"?-0.15 : 0, killer:0.45, pm:0.5})},
+ {k:"NCB",n:"안정형 수비수", e:"No-Nonsense Centre-Back", grp:["CB"], duty:["D","St","Cv"],
+  key:["mar","tck","hea","pos","str","jum","bra"],
+  fx:d=>({fwd: d==="St"?0.15:0, killer:-0.9, shortPass:1, clearFirst:1})},
+ {k:"L",  n:"리베로", e:"Libero", grp:["CB"], duty:["D","S"],
+  key:["mar","tck","pos","pas","fir","tec","vis","cmp","dri"],
+  fx:d=>({fwd: d==="S"?0.55:0.30, roam:0.6, dribble:0.35, pm:0.4})},
+ {k:"WCB",n:"와이드 센터백", e:"Wide Centre-Back", grp:["CB"], duty:["D","S","A"],
+  key:["mar","tck","hea","pos","crs","dri","sta","pac"],
+  fx:d=>({fwd: d==="A"?0.55 : d==="S"?0.30 : 0.05, wide:0.55, cross:0.4})},
+ // ── 측면 수비
+ {k:"FB", n:"풀백", e:"Full-Back", grp:["FB"], duty:["D","S","A"],
+  key:["mar","tck","pos","crs","pac","sta","wor","tea"],
+  fx:d=>({fwd: d==="A"?0.55 : d==="S"?0.25 : -0.05, wide:0.35, cross: d==="A"?0.35:0.15})},
+ {k:"WB", n:"윙백", e:"Wing-Back", grp:["WB"], duty:["D","S","A"],
+  key:["crs","dri","pac","sta","wor","tck","otb","tec"],
+  fx:d=>({fwd: d==="A"?0.85 : d==="S"?0.55 : 0.20, wide:0.60, cross:0.45, dribble:0.25})},
+ {k:"NFB",n:"안정형 풀백", e:"No-Nonsense Full-Back", grp:["FB"], duty:["D"],
+  key:["mar","tck","pos","str","cnt","bra"],
+  fx:()=>({fwd:-0.25, killer:-0.8, clearFirst:1, tightMark:1})},
+ {k:"CWB",n:"완성형 윙백", e:"Complete Wing-Back", grp:["WB"], duty:["S","A"],
+  key:["crs","dri","tec","pac","sta","wor","otb","fla"],
+  fx:d=>({fwd: d==="A"?1.0:0.70, wide:0.65, cross:0.55, dribble:0.5, roam:0.35})},
+ {k:"IWB",n:"인버티드 윙백", e:"Inverted Wing-Back", grp:["FB","WB"], duty:["D","S","A"],
+  key:["pas","fir","tec","tck","pos","dec","vis"],
+  fx:d=>({fwd: d==="A"?0.55 : d==="S"?0.30:0.05, wide:-0.55, pm:0.35, killer:0.2})},
+ {k:"IFB",n:"인버티드 풀백", e:"Inverted Full-Back", grp:["FB"], duty:["D"],
+  key:["mar","tck","pos","hea","str","cnt","dec"],
+  fx:()=>({fwd:-0.20, wide:-0.70, killer:-0.4, tightMark:1, clearFirst:1})},
+ // ── 중앙 미드필드
+ {k:"DM", n:"수비형 미드필더", e:"Defensive Midfielder", grp:["CM"], duty:["D","S"],
+  key:["tck","mar","pos","ant","cnt","tea","wor","str"],
+  fx:d=>({fwd: d==="S"?0.10:-0.35, press:0.35, tightMark:1})},
+ {k:"DLP",n:"딥라잉 플레이메이커", e:"Deep Lying Playmaker", grp:["CM"], duty:["D","S"],
+  key:["pas","fir","vis","dec","tea","cmp","ant","tec"],
+  fx:d=>({fwd: d==="S"?0.05:-0.30, pm:1.0, killer:0.45, longPass:1, deep:1})},
+ {k:"BWM",n:"볼 위닝 미드필더", e:"Ball Winning Midfielder", grp:["CM"], duty:["D","S"],
+  key:["tck","mar","agg","bra","wor","sta","tea","str"],
+  fx:d=>({fwd: d==="S"?0.15:-0.20, press:0.85, slide:0.45, tightMark:1, killer:-0.3})},
+ {k:"A",  n:"앵커", e:"Anchor Man", grp:["CM"], duty:["D"],
+  key:["pos","ant","cnt","tck","mar","dec","tea","hea"],
+  fx:()=>({fwd:-0.50, roam:-0.6, press:-0.25, shortPass:1, killer:-0.6})},
+ {k:"HB", n:"하프백", e:"Half Back", grp:["CM"], duty:["D"],
+  key:["pos","ant","tck","mar","pas","fir","cmp","tea"],
+  fx:()=>({fwd:-0.70, roam:-0.4, pm:0.4, shortPass:1})},
+ {k:"RGA",n:"레지스타", e:"Regista", grp:["CM"], duty:["S"],
+  key:["pas","vis","fla","tec","dec","fir","wor","sta"],
+  fx:()=>({fwd:0.10, roam:0.85, pm:1.0, killer:0.7, hold:0.4, press:-0.2})},
+ {k:"RPM",n:"로밍 플레이메이커", e:"Roaming Playmaker", grp:["CM"], duty:["S"],
+  key:["pas","dri","tec","vis","wor","sta","otb","dec"],
+  fx:()=>({fwd:0.35, roam:1.0, pm:0.9, dribble:0.55, killer:0.35})},
+ {k:"VOL",n:"세군도 볼란테", e:"Segundo Volante", grp:["CM"], duty:["S","A"],
+  key:["tck","wor","sta","pac","lon","otb","str"],
+  fx:d=>({fwd: d==="A"?0.60:0.25, roam:0.35, dribble:0.25, longShot:0.35})},
+ {k:"CM", n:"중앙 미드필더", e:"Central Midfielder", grp:["CM"], duty:["D","S","A"],
+  key:["pas","fir","tec","dec","tea","wor","sta","tck"],
+  fx:d=>({fwd: d==="A"?0.45 : d==="S"?0.10 : -0.25, press: d==="D"?0.25:0})},
+ {k:"BBM",n:"박스 투 박스 미드필더", e:"Box To Box Midfielder", grp:["CM"], duty:["S"],
+  key:["wor","sta","pac","tck","pas","lon","otb","tea"],
+  fx:()=>({fwd:0.45, roam:0.55, lateRun:1, longShot:0.4, press:0.3})},
+ {k:"AP", n:"전진형 플레이메이커", e:"Advanced Playmaker", grp:["CM","WIDE","ST","AM"], duty:["S","A"],
+  key:["pas","fir","tec","vis","dec","otb","cmp","fla"],
+  fx:d=>({fwd: d==="A"?0.65:0.40, pm:1.0, killer:0.65, oneTwo:1})},
+ {k:"MEZ",n:"메짤라", e:"Mezzala", grp:["CM","AM"], duty:["S","A"],
+  key:["dri","pas","tec","otb","fla","wor","acc"],
+  fx:d=>({fwd: d==="A"?0.60:0.35, wide:0.40, roam:0.5, dribble:0.4, killer:0.3})},
+ {k:"CAR",n:"카릴레로", e:"Carrilero", grp:["CM"], duty:["S"],
+  key:["tea","wor","sta","pas","pos","tck","dec"],
+  fx:()=>({fwd:0.05, wide:0.35, roam:-0.3, press:0.25})},
+ // ── 측면
+ {k:"WM", n:"측면 미드필더", e:"Wide Midfielder", grp:["WIDE"], duty:["D","S","A"],
+  key:["crs","pas","tec","wor","sta","tea","tck"],
+  // 측면 미드필더도 임무로 크로스가 갈려야 한다 — 예전에는 cross 0.35로 셋 다 같았다
+  fx:d=>({fwd: d==="A"?0.45 : d==="S"?0.15 : -0.15, wide:0.45,
+          cross: d==="A"?0.55 : d==="S"?0.30 : 0.15})},
+ {k:"W",  n:"윙", e:"Winger", grp:["WIDE","AM"], duty:["S","A"],
+  key:["crs","dri","tec","pac","acc","agi","otb"],
+  /* 임무로 크로스가 갈린다. 예전에는 두 임무의 cross 가 0.65로 같아서 측정해 보면
+     지원·공격 모두 크로스 비율 33.3%로 완전히 똑같았다. earlyCross 는 "크로스를 올릴지"가
+     아니라 "어떤 크로스를 올릴지"만 바꾸므로 임무 차이를 만들지 못했다.
+     지원은 뒤에서 일찍 올리고, 공격은 엔드라인까지 파고들어 더 자주 올린다. */
+  fx:d=>({fwd: d==="A"?0.60:0.35, wide:0.75, cross: d==="A"?0.95:0.35,
+          dribble: d==="A"?0.60:0.50, earlyCross: d==="A"?0:0.70})},
+ {k:"DW", n:"수비형 윙", e:"Defensive Winger", grp:["WIDE","WB"], duty:["D","S"],
+  key:["wor","sta","tck","tea","crs","pos","agg"],
+  /* 이름은 "수비형 윙"인데 측정해 보니 자기 진영 체류 40.5%로 평범한 윙(40.3%)과 같았고,
+     임무 수비·지원이 fwd 하나(-0.25 / 0.10)만 달라 수비 지표에서 구분이 되지 않았다.
+     수비 임무는 확실히 내려앉아 풀백과 두 겹으로 서고(밀착 마크),
+     지원 임무는 앞에서 물어뜯는다(압박)로 성격을 갈라 놓는다. */
+  fx:d=>({fwd: d==="S"?0.20:-0.75, wide:0.40,
+          press: d==="S"?1.05:0.55, cross: d==="S"?0.30:0.15,
+          tightMark: d==="S"?0.30:0.85})},
+ {k:"WP", n:"와이드 플레이메이커", e:"Wide Playmaker", grp:["WIDE"], duty:["S","A"],
+  key:["pas","fir","tec","vis","dri","dec","fla"],
+  fx:d=>({fwd: d==="A"?0.45:0.25, wide:0.25, pm:1.0, killer:0.55, dribble:0.3})},
+ {k:"IW", n:"인버티드 윙어", e:"Inverted Winger", grp:["WIDE","AM"], duty:["S","A"],
+  key:["crs","dri","pas","tec","otb","agi","fla"],
+  fx:d=>({fwd: d==="A"?0.55:0.30, wide:-0.35, cutIn:1, dribble:0.45, cross:0.35, curl:1})},
+ {k:"IF", n:"인사이드 포워드", e:"Inside Forward", grp:["WIDE","AM"], duty:["S","A"],
+  key:["fin","dri","tec","otb","acc","pac","agi","fla"],
+  fx:d=>({fwd: d==="A"?0.75:0.50, wide:-0.55, cutIn:1, dribble:0.55, shoot:0.35, curl:1})},
+ {k:"WT", n:"와이드 타깃 포워드", e:"Wide Target Forward", grp:["WIDE"], duty:["S","A"],
+  key:["hea","str","jum","bal","tea","fir"],
+  fx:d=>({fwd: d==="A"?0.55:0.30, wide:0.60, hold:0.7, aerialTarget:1})},
+ {k:"RMD",n:"라움도이터", e:"Raumdeuter", grp:["WIDE","AM"], duty:["A"],
+  key:["otb","ant","fin","cnt","dec","acc"],
+  fx:()=>({fwd:0.85, wide:0.25, roam:0.8, boxPlayer:1, breakLine:1, press:-0.4})},
+ // ── 중앙 공격
+ {k:"AM", n:"공격형 미드필더", e:"Attacking Midfielder", grp:["ST","CM","AM"], duty:["S","A"],
+  key:["pas","fir","tec","otb","fin","vis","fla"],
+  fx:d=>({fwd: d==="A"?0.75:0.50, killer:0.4, shoot:0.2})},
+ {k:"T",  n:"트레콰르티스타", e:"Trequartista", grp:["ST","CM","AM"], duty:["A"],
+  key:["fin","fir","tec","vis","fla","dri","cmp"],
+  fx:()=>({fwd:0.70, roam:1.0, pm:0.9, killer:0.6, press:-0.7, dribble:0.4})},
+ {k:"EG", n:"엔간체", e:"Enganche", grp:["ST","CM","AM"], duty:["S"],
+  key:["pas","vis","tec","fir","dec","cmp","fla"],
+  fx:()=>({fwd:0.45, roam:-0.7, pm:1.0, killer:0.7, hold:0.6, press:-0.6})},
+ {k:"SS", n:"쉐도우 스트라이커", e:"Shadow Striker", grp:["ST","AM"], duty:["A"],
+  key:["fin","otb","ant","dri","acc","cmp","fir"],
+  fx:()=>({fwd:0.90, shoot:0.45, breakLine:1, oneTwo:1, press:0.3})},
+ {k:"DLF",n:"딥라잉 포워드", e:"Deep Lying Forward", grp:["ST"], duty:["S","A"],
+  key:["fir","pas","tec","cmp","tea","str","otb"],
+  fx:d=>({fwd: d==="A"?0.55:0.25, deep:1, hold:0.7, pm:0.6, killer:0.35})},
+ {k:"AF", n:"전진형 포워드", e:"Advanced Forward", grp:["ST"], duty:["A"],
+  key:["fin","dri","fir","otb","acc","pac","cmp"],
+  fx:()=>({fwd:0.95, shoot:0.4, dribble:0.35, breakLine:1})},
+ {k:"TF", n:"타깃 포워드", e:"Target Forward", grp:["ST"], duty:["S","A"],
+  key:["hea","str","jum","bra","bal","fin","fir"],
+  fx:d=>({fwd: d==="A"?0.70:0.40, hold:0.8, aerialTarget:1, boxPlayer: d==="A"?1:0})},
+ {k:"P",  n:"포처", e:"Poacher", grp:["ST"], duty:["A"],
+  key:["fin","otb","ant","cmp","acc"],
+  fx:()=>({fwd:1.0, boxPlayer:1, shoot:0.5, press:-0.7, killer:-0.6, roam:-0.4})},
+ {k:"CF", n:"완성형 포워드", e:"Complete Forward", grp:["ST"], duty:["S","A"],
+  key:["fin","dri","fir","tec","hea","str","otb","pas"],
+  fx:d=>({fwd: d==="A"?0.85:0.55, shoot:0.3, dribble:0.35, killer:0.3, hold:0.35, roam:0.4})},
+ {k:"PF", n:"압박형 포워드", e:"Pressing Forward", grp:["ST"], duty:["D","S","A"],
+  key:["wor","sta","agg","bra","tea","acc","fin"],
+  fx:d=>({fwd: d==="A"?0.70 : d==="S"?0.45:0.25, press:1.0, aggPress:1})},
+ {k:"F9", n:"폴스 나인", e:"False Nine", grp:["ST"], duty:["S"],
+  key:["pas","fir","tec","vis","otb","dri","cmp"],
+  fx:()=>({fwd:0.25, deep:1, roam:0.8, pm:0.9, killer:0.6, dribble:0.35})}
+];
+
+const DUTY_N={D:"수비", S:"지원", A:"공격", St:"스토퍼", Cv:"커버"};
+/* 슬롯에서 고를 수 있는 역할 목록 */
+
+const ROLE_DEFAULT={GK:["G","D"], SW:["SWP","D"], CB:["CD","D"], FB:["FB","S"], WB:["WB","S"], CM:["CM","S"], WIDE:["W","S"], AM:["AM","S"], ST:["AF","A"]};
 
 const TRAITS=[
 // ── 온 더 볼
@@ -1162,6 +1346,17 @@ const TAC_KEYS=["pass","tempo","press","line","width","mentality","tackle","long
 
 const TAC_DEF={pass:2,tempo:2,press:2,line:2,width:2,counter:false,mentality:2,tackle:2,longShot:2};
 
+const ROW_SLOTS={
+  SW:[null,null,"SW",null,null],
+  DF:["LB","LCB","CB","RCB","RB"],
+  WB:["LWB",null,null,null,"RWB"],
+  DM:[null,"LDM","DM","RDM",null],
+  MF:["LM","LCM","CM","RCM","RM"],
+  AM:[null,"LAM","CAM","RAM",null],
+  FW:["LW","LS","ST","RS","RW"]
+};
+/* 자리 → 라인 역인덱스 (자동 배치가 어느 줄에 속하는지 판단할 때 쓴다) */
+
 const SLOT_XY={
   GK:{x:0.04,y:0.5},
   LB:{x:0.20,y:0.10}, LCB:{x:0.16,y:0.32}, CB:{x:0.14,y:0.5}, RCB:{x:0.16,y:0.68}, RB:{x:0.20,y:0.90},
@@ -1321,5 +1516,10 @@ export {
   FAM_LV,
   TAC_DEF,
   TAC_KEYS,
-  SLOT_FAM
+  SLOT_FAM,
+  ROW_SLOTS,
+  ROLE_GRP,
+  ROLE_DEFAULT,
+  DUTY_N,
+  ROLES
 };

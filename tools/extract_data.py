@@ -42,7 +42,10 @@ ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", 
          "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN",
          # 전술판이 쓸 표 — 포메이션 · 자리 좌표 · 능숙도 눈금 · 전술 기본값.
          # 화면에 베껴 두면 원본이 바뀔 때 어긋난다.
-         "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS"]
+         "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS",
+         # 전술판 격자 — KM26 은 자유 배치가 아니라 "한 줄 5칸"의 고정 격자다.
+         # 이미 KM26 을 하던 사람들이 오므로 그 형태를 그대로 써야 한다.
+         "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES"]
 
 # 탐색을 멈출 지점 — 시즌 상태·UI·저장. 선수를 만드는 데는 필요 없다.
 STUB = set("""G userTeam saveGame addNews notify flash gameAlert showConfirm show refreshTactics
@@ -103,7 +106,8 @@ exports = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE"
            "ATTR_LABEL_FM", "FAM_LABEL", "FAM_POS", "TRAITS",
            "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER",
            "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN",
-           "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS", "SLOT_FAM"]
+           "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS", "SLOT_FAM",
+           "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES"]
 exports = [e for e in exports if e in seen]
 tail = "\n\nexport {\n  " + ",\n  ".join(exports) + "\n};\n"
 
