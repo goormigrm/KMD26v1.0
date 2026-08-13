@@ -125,6 +125,22 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
       border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
 .warn{color:var(--warn)}
+/* ── 진행 버튼 · 화면 이동 ─────────────────────────────────────
+   KM26 의 .bigbtn 과 같은 초록 큰 버튼입니다. "다음으로 간다"는 어느 화면에서든
+   이 색·이 크기 하나뿐이라, 무엇을 누르면 경기가 시작되는지 헷갈리지 않습니다. */
+.go{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    padding:15px 16px;background:var(--ok);color:#04260e;border:none;border-radius:9px;
+    font-size:16.5px;font-weight:800;cursor:pointer;text-decoration:none;
+    font-family:inherit;line-height:1.3;text-align:center;flex-wrap:wrap}
+.go:hover:not(:disabled){filter:brightness(1.08);border-color:transparent}
+.go:disabled{opacity:.45;cursor:default;filter:none}
+.go .s{font-size:12.5px;font-weight:700;opacity:.75}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.nav a{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--line);
+    border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700;color:var(--txt);text-decoration:none}
+.nav a:hover{border-color:var(--ok);color:var(--ok)}
+.nav .sp{flex:1}
+
 /* ── 조건부 지시 ─────────────────────────────── */
 .ord{display:flex;align-items:center;gap:7px;padding:4px 0;flex-wrap:wrap}
 .ord .on{width:20px;height:20px;flex:none;border-radius:50%;background:var(--bg3);
@@ -177,8 +193,10 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <button id="expJson">📥 파일로 내보내기</button>
     <button id="impBtn">📤 파일에서 불러오기</button>
     <input type="file" id="impJson" accept=".json,application/json" style="display:none">
-    <span class="sub">슬롯은 이 브라우저에만 남습니다. 다른 기기로 옮기거나 남에게 주려면 파일로 내보내세요.</span>
+      <span class="sub">슬롯은 이 브라우저에만 남습니다. 다른 기기로 옮기거나 남에게 주려면 파일로 내보내세요.</span>
   </div>
+  <!-- 추천 라인업 — 저장소에 넣어 둔 파일을 그대로 불러온다 -->
+  <div class="row" style="margin-top:8px" id="presets"></div>
   <!-- 슬롯은 누르면 바로 적용하지 않는다 — 여기서 한 번 묻는다 -->
   <div class="note" id="slotAsk" style="display:none"></div>
   <!-- 구단을 고르기 전에는 아래 안내문(#hint)이 없으므로, 슬롯 관련 알림은 여기에 띄운다 -->
@@ -220,7 +238,6 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
           <select id="formation"></select>
           <button id="auto">자동 배치</button>
           <button id="clear">비우기</button>
-          <button id="go" class="on">▶ 이 라인업으로 경기</button>
           <button id="mkCode">🔗 대전 코드</button>
         </div>
         <div class="sub" id="count"></div>
@@ -242,6 +259,9 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
         <div class="pgrid" id="pgrid"></div>
       </div>
       <div class="note" id="hint"></div>
+      <!-- 이 화면에서 다음으로 가는 길은 이 버튼 하나다 -->
+      <button id="go" class="go" style="margin-top:11px">▶ 이 라인업으로 경기
+        <span class="s">전술·역할·조건부 지시가 그대로 엔진에 들어갑니다</span></button>
     </div>
 
     <div>
@@ -270,6 +290,13 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
       </div>
     </div>
   </div>
+</div>
+
+<div class="nav">
+  <a href="index.html">← 첫 페이지</a>
+  <a href="squad.html">🔍 선수단</a>
+  <span class="sp"></span>
+  <a href="match.html">경기 화면 →</a>
 </div>
 
 <!-- 선수 프로필 — 페이지를 옮기지 않고 이 자리에서 능력치를 본다 -->
@@ -367,7 +394,7 @@ async function boot() {
     tac = Object.assign({}, PRESETS[b.dataset.p]); drawTac();
   });
 
-  drawTeams("k1"); drawTac(); drawOrders(); drawSlots();
+  drawTeams("k1"); drawTac(); drawOrders(); drawSlots(); drawPresetBtns();
   $("#expJson").onclick = exportFile;
   $("#impBtn").onclick = () => $("#impJson").click();
   $("#impJson").onchange = e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ""; };
@@ -1026,6 +1053,43 @@ function applyPlan(p, where) {
   drawTac(); drawOrders(); draw();
   if (lost) { flash(where + "에서 " + lost + "명을 찾지 못했습니다 — 선수 명단이 바뀌었을 수 있습니다."); drawHint(); }
   return true;
+}
+
+/* ── 추천 라인업 ───────────────────────────────────────────────
+   저장소의 presets/*.json 을 그대로 불러옵니다. 파일 내보내기와 같은 형식이라
+   내려받아서 남에게 줄 수도 있습니다. */
+const PRESETS_FILE = [
+  { f: "presets/anyang-recommended.json", n: "🇦 안양 추천 라인업" },
+];
+
+function drawPresetBtns() {
+  $("#presets").innerHTML = PRESETS_FILE.map((p, i) =>
+    `<button data-pre="${i}">${esc(p.n)}</button>`).join("")
+    + `<span class="sub">측정해서 고른 라인업입니다 — 불러온 뒤 마음대로 고쳐 쓰세요.</span>`;
+  $("#presets").querySelectorAll("[data-pre]").forEach(b => b.onclick = () => {
+    const P = PRESETS_FILE[+b.dataset.pre];
+    const box = $("#slotAsk");
+    box.style.display = "";
+    box.innerHTML = `<b>${esc(P.n)}</b> 을 불러옵니다.
+      ${team ? "지금 편집 중인 배치·전술은 사라집니다." : ""}
+      <div class="row" style="margin-top:8px">
+        <button id="askOk" class="on">✔ 불러오기</button>
+        <button id="askNo">취소</button>
+      </div>`;
+    $("#askNo").onclick = closeAsk;
+    $("#askOk").onclick = async () => {
+      closeAsk();
+      try {
+        const p = await fetch(P.f + "?v=" + (DB.meta.dataHash || "")).then(r => {
+          if (!r.ok) throw new Error("파일을 찾지 못했습니다");
+          return r.json();
+        });
+        applyPlan(p, P.n);
+      } catch (e) {
+        flash("추천 라인업을 불러오지 못했습니다 — " + e.message); drawHint();
+      }
+    };
+  });
 }
 
 function drawSlots() {

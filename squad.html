@@ -73,6 +73,22 @@ tr.p.on{background:#12283d}
 .empty{color:var(--sub);text-align:center;padding:36px 0}
 .legend{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--gold);
         border-radius:7px;padding:9px 12px;font-size:12.5px;color:var(--sub);margin:2px 0 10px}
+
+/* ── 진행 버튼 · 화면 이동 ─────────────────────────────────────
+   KM26 의 .bigbtn 과 같은 초록 큰 버튼입니다. "다음으로 간다"는 어느 화면에서든
+   이 색·이 크기 하나뿐이라, 무엇을 누르면 경기가 시작되는지 헷갈리지 않습니다. */
+.go{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    padding:15px 16px;background:var(--ok);color:#04260e;border:none;border-radius:9px;
+    font-size:16.5px;font-weight:800;cursor:pointer;text-decoration:none;
+    font-family:inherit;line-height:1.3;text-align:center;flex-wrap:wrap}
+.go:hover:not(:disabled){filter:brightness(1.08);border-color:transparent}
+.go:disabled{opacity:.45;cursor:default;filter:none}
+.go .s{font-size:12.5px;font-weight:700;opacity:.75}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.nav a{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--line);
+    border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700;color:var(--txt);text-decoration:none}
+.nav a:hover{border-color:var(--ok);color:var(--ok)}
+.nav .sp{flex:1}
 </style>
 </head>
 <body>
@@ -294,5 +310,12 @@ function showPlayer(id) {
 
 boot();
 </script>
+<div class="nav">
+  <a href="index.html">← 첫 페이지</a>
+  <span class="sp"></span>
+  <a href="match.html">경기 화면</a>
+  <a href="lineup.html">라인업 짜기 →</a>
+</div>
+
 </body>
 </html>

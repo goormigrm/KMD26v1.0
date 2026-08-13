@@ -39,6 +39,20 @@ var (
 )
 
 const driver = `
+/* -tac / -atac 로 넣은 전술을 그 팀에 얹는다 (없으면 기본값) */
+function tacOf(id) {
+  var raw = (id === HOMEID) ? HTAC : (id === AWAYID ? ATAC : "");
+  var out = {};
+  if (!raw) return out;
+  raw.split(",").forEach(function(kv){
+    var p = kv.split("=");
+    if (p.length !== 2) return;
+    var k = p[0].trim(), v = p[1].trim();
+    out[k] = (k === "counter") ? (v === "1" || v === "true") : (+v);
+  });
+  return out;
+}
+
 /* 경기 화면(match.html)이 일꾼에게 넘기는 것과 **같은 모양**으로 라인업을 만든다.
    여기서 모양이 어긋나면 이 도구의 측정값이 실제 경기와 달라진다. */
 function mkPlan(id, form) {
@@ -49,7 +63,7 @@ function mkPlan(id, form) {
   return {
     id: id, xiMap: lu.xi,
     xi: Object.keys(lu.xi).map(function(s){ return lu.xi[s]; }),
-    bench: lu.bench, tac: {formation: form}, roles: rl
+    bench: lu.bench, tac: Object.assign({formation: form}, tacOf(id)), roles: rl
   };
 }
 
@@ -127,6 +141,10 @@ func main() {
 	record := flag.Bool("record", false, "2D 하이라이트 클립도 모은다")
 	form := flag.String("form", "4-3-3", "포메이션")
 	awayForm := flag.String("awayform", "", "원정 포메이션 — 비우면 -form 과 같게. 같은 구단끼리 붙일 때 필요하다")
+	hTac := flag.String("tac", "", "홈 전술 (press=4,line=3,counter=1 …)")
+	aTac := flag.String("atac", "", "원정 전술")
+	series := flag.String("series", "", "이 구단을 여러 상대와 홈·원정으로 붙인다 (-tac 을 이 구단에 적용)")
+	oppo := flag.String("oppo", "", "상대 목록 (쉼표) — 비우면 K리그1 앞 여섯 팀")
 	flag.Parse()
 
 	var sb strings.Builder
@@ -161,6 +179,10 @@ func main() {
 	vm.Set("RECORD", *record)
 	vm.Set("FORM", *form)
 	vm.Set("AWAYFORM", *awayForm)
+	vm.Set("HTAC", *hTac)
+	vm.Set("ATAC", *aTac)
+	vm.Set("HOMEID", *home)
+	vm.Set("AWAYID", *away)
 	var react map[string]any
 	if b, err := os.ReadFile(filepath.Join(*root, "data", "reactions.json")); err == nil {
 		_ = json.Unmarshal(b, &react)
@@ -170,6 +192,59 @@ func main() {
 	play, ok := goja.AssertFunction(vm.Get("playReal"))
 	if !ok {
 		fail("playReal 을 찾지 못했습니다")
+	}
+
+	/* ── 한 구단을 여러 상대와 붙여 성적을 낸다 ──────────────────
+	   "이 전술이 나은가"를 보려면 한 판으로는 알 수 없다. 홈·원정 양쪽으로 돌려
+	   승·무·패와 득실을 센다. -tac 을 그 구단에 얹는다. */
+	if *series != "" {
+		opps := []string{"ulsan", "jeonbuk", "daejeon", "gimcheon", "gangwon", "gwangju"}
+		if *oppo != "" {
+			opps = strings.Split(*oppo, ",")
+		}
+		w, d, l, gf, ga := 0, 0, 0, 0.0, 0.0
+		fmt.Printf("%s · 전술 [%s]\n\n", *series, *hTac)
+		for _, o := range opps {
+			for side := 0; side < 2; side++ {
+				h, a := *series, o
+				if side == 1 {
+					h, a = o, *series
+				}
+				// -tac 은 언제나 이 구단(series)에 붙는다
+				vm.Set("HOMEID", *series)
+				vm.Set("AWAYID", *series)
+				v, err := play(goja.Undefined(), vm.ToValue(h), vm.ToValue(a))
+				if err != nil {
+					fail("경기 중 오류(" + h + " vs " + a + "): " + err.Error())
+				}
+				r := v.Export().(map[string]any)
+				mine, theirs := num(r["hg"]), num(r["ag"])
+				if side == 1 {
+					mine, theirs = theirs, mine
+				}
+				gf += mine
+				ga += theirs
+				res := "무"
+				if mine > theirs {
+					w++
+					res = "승"
+				} else if mine < theirs {
+					l++
+					res = "패"
+				} else {
+					d++
+				}
+				where := "홈 "
+				if side == 1 {
+					where = "원정"
+				}
+				fmt.Printf("  %s %-9s %.0f:%-3.0f %s\n", where, o, mine, theirs, res)
+			}
+		}
+		n := float64(w + d + l)
+		fmt.Printf("\n%d경기 — %d승 %d무 %d패 (승점 %d · 승률 %.0f%%)  득실 %.1f:%.1f\n",
+			int(n), w, d, l, w*3+d, float64(w)/n*100, gf/n, ga/n)
+		return
 	}
 
 	if *all {

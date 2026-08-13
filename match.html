@@ -130,10 +130,6 @@ button:disabled{opacity:.45;cursor:default}
 .rmsg.riv{background:#10131c;border-color:#2b2440}
 .rmsg.troll{background:#1b1113;border-color:#5a2b2b}
 .rmsg.troll .nick{color:var(--bad)}
-/* 차짬 — 이 게임 만든 사람. 안양 팬이다 */
-.rmsg .tag.dev{color:var(--gold);border-color:#6b5520}
-.rmsg.dev{background:#191509;border-color:#5c4a1c}
-.rmsg.dev .nick{color:var(--gold)}
 .rside{padding:5px 12px;font-size:12.5px}
 
 /* ── 통계 ─────────────────────────────────── */
@@ -145,6 +141,22 @@ td.a{text-align:left;font-weight:700;font-variant-numeric:tabular-nums}
 .note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
       border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
 code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);font-size:12px}
+/* ── 진행 버튼 · 화면 이동 ─────────────────────────────────────
+   KM26 의 .bigbtn 과 같은 초록 큰 버튼입니다. "다음으로 간다"는 어느 화면에서든
+   이 색·이 크기 하나뿐이라, 무엇을 누르면 경기가 시작되는지 헷갈리지 않습니다. */
+.go{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    padding:15px 16px;background:var(--ok);color:#04260e;border:none;border-radius:9px;
+    font-size:16.5px;font-weight:800;cursor:pointer;text-decoration:none;
+    font-family:inherit;line-height:1.3;text-align:center;flex-wrap:wrap}
+.go:hover:not(:disabled){filter:brightness(1.08);border-color:transparent}
+.go:disabled{opacity:.45;cursor:default;filter:none}
+.go .s{font-size:12.5px;font-weight:700;opacity:.75}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.nav a{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--line);
+    border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700;color:var(--txt);text-decoration:none}
+.nav a:hover{border-color:var(--ok);color:var(--ok)}
+.nav .sp{flex:1}
+
 </style>
 </head>
 <body>
@@ -168,8 +180,16 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <input id="homeCode" class="cin" placeholder="홈 코드 (KM26D1-…)" style="display:none">
     <input id="awayCode" class="cin" placeholder="원정 코드 (KM26D1-…)" style="display:none">
   </div>
-  <div class="row" style="margin-top:9px"><button id="start" class="pri">▶ 경기 시작</button></div>
+  <button id="start" class="go" style="margin-top:11px">▶ 경기 시작
+    <span class="s">90분을 먼저 다 치른 뒤 해설로 재생합니다 (준비 8초)</span></button>
   <div class="note" id="setupNote"></div>
+</div>
+
+<div class="nav" id="setupNav">
+  <a href="index.html">← 첫 페이지</a>
+  <a href="squad.html">🔍 선수단</a>
+  <span class="sp"></span>
+  <a href="lineup.html">라인업 짜기 →</a>
 </div>
 
 <div id="game" style="display:none">
@@ -197,8 +217,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <div class="row" style="justify-content:space-between;margin-bottom:9px">
       <div class="row">
         <button id="play" class="pri">⏸ 일시정지</button>
-        <button class="spd" data-s="1">1배속</button>
-        <button class="spd on" data-s="2">2배속</button>
+        <button class="spd on" data-s="1">1배속</button>
+        <button class="spd" data-s="2">2배속</button>
         <button class="spd" data-s="4">4배속</button>
         <button id="skip">⏭ 끝까지</button>
       </div>
@@ -224,7 +244,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 let DB = null, T = null, R = null;      // R = 경기 결과
-let minute = 0, idx = 0, timer = null, speed = 2, playing = false;
+let minute = 0, idx = 0, timer = null, speed = 1, playing = false;   // 기본은 1배속
 
 /* 어디까지 장면을 보여 줄지. 클립에는 엔진이 매긴 무게가 붙어 있다
    (결정적 기회 1 · 선방 2 · 퇴장 3 · PK 4 · 골 5 — 커널 HL_W 와 같다). */
@@ -233,9 +253,10 @@ let sceneMode = "all";
 let lastPlans = null;
 const SCENE_MIN = { all: 1, goal: 5, off: 99 };
 
-/* 1분을 몇 밀리초에 흘려보낼지. 1배속이면 90분 경기가 1분쯤 걸린다.
-   경기를 먼저 다 돌려 놓고 재생만 하므로, 배속은 엔진 속도와 아무 상관이 없다. */
-const MS_PER_MIN = 640;
+/* 1분을 몇 밀리초에 흘려보낼지. 1배속이면 90분 경기가 1분 12초쯤 걸린다.
+   경기를 먼저 다 돌려 놓고 재생만 하므로, 배속은 엔진 속도와 아무 상관이 없다.
+   ⚠ 예전 640ms 는 눈으로 따라가기에 빨랐다 — 0.8배로 늦춰 800ms 로 둔다. */
+const MS_PER_MIN = 800;
 
 async function boot() {
   try {
@@ -714,7 +735,7 @@ let clipTimer = null, onClipEnd = null, lastClip = null;
 
 /* 리플레이 — KM26 과 같은 규격입니다 (index.html 의 HL_REPLAY_*).
    골 순간 앞 6초·뒤 2.5초를 0.62배속으로. 느려야 무슨 일이 있었는지 눈이 따라갑니다. */
-const FRAME_MS = 40;                 // 엔진 한 장(0.2초)을 뿌리는 간격
+const FRAME_MS = 50;                 // 엔진 한 장(0.2초)을 뿌리는 간격 (0.8배로 늦춘 값)
 const REPLAY_PRE = 30, REPLAY_POST = 13, REPLAY_RATE = 0.62;
 
 /* ── 필드 그리기 ───────────────────────────────────────────────
@@ -1020,11 +1041,10 @@ function reactHTML() {
         ${x.rival ? `<span class="tag riv">${esc(them)} 팬</span>` : ""}</div>
       <div class="tx">${esc(x.txt)}</div></div>`;
 
-  const brd = x => `<div class="rmsg ${tone(x.tone)}${x.rival ? " riv" : ""}${x.troll ? " troll" : ""}${x.dev ? " dev" : ""}">
+  const brd = x => `<div class="rmsg ${tone(x.tone)}${x.rival ? " riv" : ""}${x.troll ? " troll" : ""}">
       <div class="who"><b class="nick">${esc(x.emoji || "")}${esc(x.nick || "")}</b>
         ${x.rival ? `<span class="tag riv">타팬</span>` : ""}
         ${x.troll ? `<span class="tag troll">상주</span>` : ""}
-        ${x.dev ? `<span class="tag dev">만든 사람</span>` : ""}
         <span class="vote">👍 ${nOf(x.up || 0)} · 👎 ${nOf(x.dn || 0)}
           <span class="sub">· 조회 ${nOf(x.views || 0)}</span></span></div>
       <div class="tx">${esc(x.txt)}</div></div>`;
