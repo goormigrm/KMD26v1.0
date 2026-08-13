@@ -232,13 +232,22 @@ async function boot() {
   });
 }
 
-/* 구단 전력 — 별이 높은 열한 명의 평균(0.5 단위).
-   구단 목록과 스쿼드 머리말이 반드시 같은 값을 써야 눌러 보기 전과 후가 어긋나지 않는다. */
+/* ── 구단 전력 별점 ────────────────────────────────────────────
+   선수 눈금(별 하나로 1,024명을 줄 세운 것)을 열한 명 평균에 그대로 쓰면 안 된다.
+   평균을 내면 값이 위로 몰려서 K리그1 이 전부 4.5~5★ 로 붙어 버린다 — 우승 후보와
+   중위권이 같은 별로 보인다. 그래서 구단은 구단끼리 비교하는 별도 눈금을 쓴다.
+   KM26 과 같은 구간이다: 주전 평균 능력치 60 이 0.5★, 77.5 가 5★.
+   (실제 29개 구단은 63.5~75.3 에 깔려 1.5★~4.5★ 로 퍼진다.)
+   ⚠ 구단 목록과 스쿼드 머리말은 반드시 이 함수 하나를 같이 써야 한다 —
+      눌러 보기 전과 후에 다른 별이 뜨면 안 된다. */
+const TEAM_STAR_LO = 60, TEAM_STAR_HI = 77.5;
 function teamStar(id) {
   const list = DB.players[id] || [];
-  const best11 = list.slice().sort((a, b) => rank(b) - rank(a)).slice(0, 11);
+  const best11 = list.slice().sort((a, b) => (b.ovr || 0) - (a.ovr || 0)).slice(0, 11);
   if (!best11.length) return 0;
-  return Math.round(best11.reduce((s, p) => s + rank(p), 0) / best11.length * 2) / 2;
+  const o = best11.reduce((s, p) => s + (p.ovr || 0), 0) / best11.length;
+  const v = 0.5 + (o - TEAM_STAR_LO) / (TEAM_STAR_HI - TEAM_STAR_LO) * 4.5;
+  return Math.max(0.5, Math.min(5, Math.round(v * 2) / 2));
 }
 
 function drawTeams(lg) {
@@ -246,7 +255,8 @@ function drawTeams(lg) {
   box.innerHTML = "";
   for (const id of DB.order[lg]) {
     const t = DB.teams[id], v = teamStar(id);
-    const b = el(`<button class="team" data-id="${id}">
+    const b = el(`<button class="team" data-id="${id}"
+        title="${esc(t.name)} · 구단 전력 ${v.toFixed(1)}★">
         <span class="chip" style="background:${esc(t.col)}"></span>
         <span class="tinfo"><span>${esc(t.short)}</span>
           <span class="trow">${stars({ star: v })}<span class="tsv">${v.toFixed(1)}</span></span>
@@ -266,7 +276,7 @@ function showTeam(id) {
 function drawSquad() {
   const t = DB.teams[curTeam];
   const list = DB.players[curTeam].slice().sort(SORTS[sortKey]);
-  // 팀 전력 — 구단 목록에 띄우는 값과 같은 계산을 쓴다 (teamStar)
+  // 구단 전력 — 구단 목록 버튼에 띄우는 값과 같은 계산을 쓴다 (teamStar)
   const avg = teamStar(curTeam);
 
   const head = [["no", "번호"], ["name", "이름"], ["pos", "포지션"], ["age", "나이"], ["star", "능력"]];
@@ -274,12 +284,14 @@ function drawSquad() {
     <div class="hd">
       <span class="bar" style="background:${esc(t.col)}"></span>
       <div><h2>${esc(t.name)}</h2>
-        <div class="sub">${list.length}명 · 주전 11명 평균
-          ${stars({ star: avg })} ${avg.toFixed(1)}</div></div>
+        <div class="sub">${list.length}명 · 구단 전력
+          ${stars({ star: avg })} ${avg.toFixed(1)}★</div></div>
     </div>
     <div class="legend">
-      <b>별점 읽는 법</b> — K리그1·2 <b>전체 1,024명</b>을 한 줄로 세운 눈금입니다.
-      하위 2%가 0.5★, 상위 2%가 5★. <b>별이 많을수록 언제나 더 나은 선수</b>이고, 눈금은 이것 하나뿐입니다.
+      <b>별점 읽는 법</b> — 표의 <b>선수 별점</b>은 K리그1·2 <b>전체 1,024명</b>을 한 줄로 세운 눈금입니다.
+      하위 2%가 0.5★, 상위 2%가 5★. <b>별이 많을수록 언제나 더 나은 선수</b>이고, 선수 눈금은 이것 하나뿐입니다.
+      <br>위의 <b>구단 전력</b>은 구단끼리 견주는 별도 눈금입니다 — 주전 열한 명을 평균 내면 값이 위로 몰려서
+      선수 눈금으로는 우승 후보와 중위권이 같은 별로 보이기 때문입니다.
       <br><span class="sub">잠재력·나이·성장 가능성은 넣지 않았습니다 — 듀얼은 육성 없이 <b>지금 실력</b>으로만 겨루는 게임입니다.</span>
     </div>
     <table><thead><tr>

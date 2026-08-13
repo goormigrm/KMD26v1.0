@@ -483,19 +483,26 @@ async function boot() {
   };
 }
 
-/* 구단 전력 — 별이 높은 열한 명의 평균(0.5 단위).
-   선수단 화면(squad.html teamStar)과 같은 계산이다. 두 화면이 다른 값을 띄우면 안 된다. */
+/* ── 구단 전력 별점 ────────────────────────────────────────────
+   선수 눈금(1,024명을 한 줄로 세운 것)을 열한 명 평균에 그대로 쓰면 값이 위로 몰려
+   K리그1 이 전부 4.5~5★ 로 붙어 버린다. 그래서 구단은 구단끼리 비교하는 별도 눈금을
+   쓴다 — KM26 과 같은 구간(주전 평균 능력치 60 이 0.5★, 77.5 가 5★)이다.
+   ⚠ squad.html 의 teamStar 와 반드시 같은 계산이어야 한다. */
+const TEAM_STAR_LO = 60, TEAM_STAR_HI = 77.5;
 function teamStar(id) {
   const list = DB.players[id] || [];
-  const best11 = list.slice().sort((a, b) => (b.star || 0) - (a.star || 0)).slice(0, 11);
+  const best11 = list.slice().sort((a, b) => (b.ovr || 0) - (a.ovr || 0)).slice(0, 11);
   if (!best11.length) return 0;
-  return Math.round(best11.reduce((s, p) => s + (p.star || 0), 0) / best11.length * 2) / 2;
+  const o = best11.reduce((s, p) => s + (p.ovr || 0), 0) / best11.length;
+  const v = 0.5 + (o - TEAM_STAR_LO) / (TEAM_STAR_HI - TEAM_STAR_LO) * 4.5;
+  return Math.max(0.5, Math.min(5, Math.round(v * 2) / 2));
 }
 
 function drawTeams(lg) {
   $("#teams").innerHTML = DB.order[lg].map(id => {
     const t = DB.teams[id], v = teamStar(id);
-    return `<button class="team${id === team ? " on" : ""}" data-id="${id}">
+    return `<button class="team${id === team ? " on" : ""}" data-id="${id}"
+      title="${esc(t.name)} · 구단 전력 ${v.toFixed(1)}★">
       <span class="chip" style="background:${esc(t.col)}"></span>
       <span class="tinfo"><span>${esc(t.short)}</span>
         <span class="trow">${stars({ star: v })}<span class="tsv">${v.toFixed(1)}</span></span>
