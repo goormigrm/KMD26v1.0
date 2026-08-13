@@ -121,7 +121,7 @@ func main() {
 	fmt.Printf("경기 길이 %d초 (정규 5400초) · %d쌍\n\n", *secs, *pairs)
 
 	same, diff := 0, 0
-	var loRatio, hiRatio, loDist, hiDist float64
+	var loRatio, hiRatio, loDist, hiDist, loInd, hiInd float64
 	for i := 0; i < *pairs; i++ {
 		seed := 0x5EED0000 + i*7919
 		m0 := time.Now()
@@ -145,21 +145,64 @@ func main() {
 		dB := num(B, "passLen") / max1(num(B, "pass")) * 67
 		loDist += dA
 		hiDist += dB
-		fmt.Printf("  시드 %08x  %s %s %s   평균 패스 %.1fm → %.1fm   롱패스 %.1f%% → %.1f%%   (패스 %.0f→%.0f)  %v\n",
-			seed, fpA, arrow(fpA != fpB), fpB, dA, dB, rA, rB,
-			num(A, "pass"), num(B, "pass"), el.Round(time.Millisecond))
+
+		// 그 슬라이더가 직접 건드리는 지표를 보여 준다.
+		// (예전에는 무엇을 보든 패스 지표만 찍어서, 압박을 재는데 패스 거리를 읽고 있었다)
+		ind := indicator(*key)
+		iA, iB := ind.get(A, num), ind.get(B, num)
+		loInd += iA
+		hiInd += iB
+		fmt.Printf("  시드 %08x  %s %s %s   %s %.1f → %.1f   평균 패스 %.1fm → %.1fm  %v\n",
+			seed, fpA, arrow(fpA != fpB), fpB, ind.label, iA, iB, dA, dB,
+			el.Round(time.Millisecond))
 	}
 
 	fmt.Printf("\n지문이 달라진 쌍 %d/%d\n", diff, *pairs)
-	fmt.Printf("평균 패스 거리 %.1fm (낮음) → %.1fm (높음)\n",
-		loDist/float64(*pairs), hiDist/float64(*pairs))
-	fmt.Printf("롱패스 비율   %.1f%% (낮음) → %.1f%% (높음)\n",
-		loRatio/float64(*pairs), hiRatio/float64(*pairs))
+	n := float64(*pairs)
+	fmt.Printf("%s  %.1f (낮음) → %.1f (높음)\n", indicator(*key).label, loInd/n, hiInd/n)
+	fmt.Printf("평균 패스 거리  %.1fm → %.1fm\n", loDist/n, hiDist/n)
+	fmt.Printf("롱패스 비율     %.1f%% → %.1f%%\n", loRatio/n, hiRatio/n)
 	if diff == 0 {
 		fmt.Println("\n판정: 미반영 — 엔진이 이 값을 읽지 않습니다")
 		os.Exit(1)
 	}
 	fmt.Println("\n판정: 반영됨")
+}
+
+/* 슬라이더별 직접 지표 — "이 값을 올리면 이게 움직여야 한다"
+   test/tactics.html 의 SLIDERS 표와 같은 기준을 쓴다. 둘이 어긋나면 안 된다. */
+type ind struct {
+	label string
+	get   func(m map[string]any, num func(map[string]any, string) float64) float64
+}
+
+func indicator(key string) ind {
+	simple := func(label, field string) ind {
+		return ind{label, func(m map[string]any, num func(map[string]any, string) float64) float64 {
+			return num(m, field)
+		}}
+	}
+	switch key {
+	case "pass":
+		return ind{"롱패스 비율(%)", func(m map[string]any, num func(map[string]any, string) float64) float64 {
+			return pct(num(m, "longPass"), num(m, "pass"))
+		}}
+	case "tempo", "counter":
+		return simple("패스 수", "pass")
+	case "press":
+		return simple("태클 시도", "tackle")
+	case "line":
+		return simple("상대 오프사이드", "offsideOpp")
+	case "width":
+		return simple("크로스", "cross")
+	case "mentality":
+		return simple("슈팅", "shot")
+	case "tackle":
+		return simple("파울", "foul")
+	case "longShot":
+		return simple("중거리 슛", "shotLong")
+	}
+	return simple("패스 수", "pass")
 }
 
 func max1(v float64) float64 {
