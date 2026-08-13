@@ -12,9 +12,10 @@
 
 import { runHeadless, deriveSeed } from "./duel.js";
 import { buildTeam, checkLineup, lineupSig } from "./teams.js";
+import { makeReactions } from "./reactions.js";
 
 self.onmessage = (e) => {
-  const { teams, players, home, away } = e.data;
+  const { teams, players, home, away, reactions } = e.data;
   try {
     const H = buildTeam(teams[home.id], players[home.id], home);
     const A = buildTeam(teams[away.id], players[away.id], away);
@@ -54,6 +55,11 @@ self.onmessage = (e) => {
       away: { id: A.id, name: A.name, short: A.short, col: A.col, goals: r.ag },
       events, goalLine: r.goalLine, stats: r.stats,
       clips: r.clips || [], roster: r.roster || {},
+      // 팬 반응 — 양쪽 시선 모두. 경기가 끝난 뒤에 뽑으므로 결과에 영향이 없다.
+      react: {
+        h: makeReactions(Object.assign({}, r, {home:H.short, away:A.short, seed}), reactions, "h"),
+        a: makeReactions(Object.assign({}, r, {home:H.short, away:A.short, seed}), reactions, "a"),
+      },
       possession: r.possession, referee: r.referee,
       clock: r.clock, elapsedMs: r.elapsedMs, nameOf,
     });

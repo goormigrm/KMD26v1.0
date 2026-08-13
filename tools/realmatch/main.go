@@ -28,6 +28,7 @@ var modules = []string{
 	"src/engine/rules.js",
 	"src/engine/replay.js",
 	"src/engine/duel.js",
+	"src/engine/reactions.js",
 	"src/engine/teams.js",
 }
 
@@ -72,6 +73,13 @@ function playReal(homeId, awayId) {
     scorers: (r.goalLine||[]).reduce(function(o,g){ o[g.n]=(o[g.n]||0)+1; return o; }, {}),
     goals: (r.goalLine||[]).map(function(g){ return g.min + "' " + g.n + " (" + g.side + ")"; }).join(" · "),
     firstLines: r.events.slice(0, 3).map(function(e){ return e.min + "' " + e.txt; }),
+    clipsIsArr: r.clips ? (r.clips.length===0 ? 'empty' : 'n='+r.clips.length) : 'undefined',
+    react: (function(){
+      if (!REACT) return [];
+      var rr = makeReactions(Object.assign({}, r, {home:TEAMS[homeId].short, away:TEAMS[awayId].short, seed:seed}), REACT, "h");
+      return rr.social.slice(0,2).map(function(x){ return "[소셜] " + x.txt; })
+        .concat(rr.fmk.slice(0,3).map(function(x){ return "[FMK/" + x.nick + "] " + x.txt; }));
+    })(),
     clips: (r.clips||[]).length,
     clipFrames: (r.clips||[]).reduce(function(n,c){ return n + c.frames.length; }, 0),
     clipKinds: (r.clips||[]).map(function(c){ return c.min + "'" + c.kind; }).join(" "),
@@ -120,6 +128,11 @@ func main() {
 	vm.Set("PLAYERS", players)
 	vm.Set("GKROLE", *gkRole)
 	vm.Set("RECORD", *record)
+	var react map[string]any
+	if b, err := os.ReadFile(filepath.Join(*root, "data", "reactions.json")); err == nil {
+		_ = json.Unmarshal(b, &react)
+	}
+	vm.Set("REACT", react)
 
 	play, ok := goja.AssertFunction(vm.Get("playReal"))
 	if !ok {
@@ -160,6 +173,13 @@ func main() {
 			r["hShot"], r["aShot"], r["hPass"], r["aPass"], r["hFoul"], r["aFoul"], r["poss"])
 		if g := str(r["goals"]); g != "" {
 			fmt.Printf("    득점: %s\n", g)
+		}
+		fmt.Printf("    클립 %v · 프레임 %.0f장 · %.0fKB\n      %s\n",
+			r["clipsIsArr"], num(r["clipFrames"]), num(r["bytes"])/1024, str(r["clipKinds"]))
+		if rr, ok := r["react"].([]any); ok {
+			for _, l := range rr {
+				fmt.Printf("    %v\n", l)
+			}
 		}
 		if i == 0 {
 			if lines, ok := r["firstLines"].([]any); ok {

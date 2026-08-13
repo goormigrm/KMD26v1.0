@@ -146,6 +146,13 @@ func main() {
         // 역할 목록 — grp 가 그 역할을 맡을 수 있는 자리 묶음, duty 가 고를 수 있는 임무다.
         // fx(효과 함수)는 엔진 쪽 일이라 넘기지 않는다.
         roles: ROLES.map(function(r){ return {k:r.k, n:r.n, grp:r.grp, duty:r.duty}; })
+      },
+      /* 경기 뒤 반응 — 소셜미디어와 FM코리아 문구.
+         [문구, 어조] 짝이고 어조는 -1/0/1 이다. {t}{o}{p}{s} 같은 자리는 경기 결과로 채운다.
+         한글 조사는 "이/가" 처럼 마커로 들어 있어 F_() 가 앞 글자 받침을 보고 고른다. */
+      reactions: {
+        soc: SOC, fmk: FMK,
+        nick: FMK_NICK, rivalNick: FMK_RIVAL_NICK
       }
     });
   `, *seed)
@@ -157,6 +164,7 @@ func main() {
 		K2      []map[string]any `json:"k2"`
 		Labels  map[string]any   `json:"labels"`
 		Tables  map[string]any   `json:"tables"`
+		React   map[string]any   `json:"reactions"`
 		StarRef float64          `json:"starRef"`
 		StarLo  float64          `json:"starLo"`
 		StarHi  float64          `json:"starHi"`
@@ -207,10 +215,11 @@ func main() {
 	teamsB := writeJSON(filepath.Join(outDir, "teams.json"),
 		map[string]any{"order": order, "teams": teams,
 			"labels": built.Labels, "tables": built.Tables})
+	reactB := writeJSON(filepath.Join(outDir, "reactions.json"), built.React)
 	playersB := writeJSON(filepath.Join(outDir, "players.json"), players)
 
 	// 데이터 해시 — 단계 5 에서 대전 코드에 박아, 서로 다른 명단으로 재생하는 사고를 막는다.
-	sum := sha256.Sum256(append(append([]byte{}, teamsB...), playersB...))
+	sum := sha256.Sum256(append(append(append([]byte{}, teamsB...), playersB...), reactB...))
 	dataHash := fmt.Sprintf("%x", sum)[:16]
 
 	writeJSON(filepath.Join(outDir, "meta.json"), map[string]any{

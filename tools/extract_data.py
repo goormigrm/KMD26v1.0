@@ -45,7 +45,10 @@ ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", 
          "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS",
          # 전술판 격자 — KM26 은 자유 배치가 아니라 "한 줄 5칸"의 고정 격자다.
          # 이미 KM26 을 하던 사람들이 오므로 그 형태를 그대로 써야 한다.
-         "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES"]
+         "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES",
+         # 경기 뒤 반응 — 소셜미디어(SOC)와 FM코리아(FMK) 문구 표.
+         # KM26 이 경기 결과를 두고 팬들이 떠드는 걸 보여 주는 재미가 크다.
+         "SOC", "FMK", "FMK_NICK", "FMK_RIVAL_NICK"]
 
 # 탐색을 멈출 지점 — 시즌 상태·UI·저장. 선수를 만드는 데는 필요 없다.
 STUB = set("""G userTeam saveGame addNews notify flash gameAlert showConfirm show refreshTactics
@@ -107,7 +110,10 @@ exports = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE"
            "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER",
            "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN",
            "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS", "SLOT_FAM",
-           "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES"]
+           "ROW_SLOTS", "ROLE_GRP", "ROLE_DEFAULT", "DUTY_N", "ROLES",
+         # 경기 뒤 반응 — 소셜미디어(SOC)와 FM코리아(FMK) 문구 표.
+         # KM26 이 경기 결과를 두고 팬들이 떠드는 걸 보여 주는 재미가 크다.
+         "SOC", "FMK", "FMK_NICK", "FMK_RIVAL_NICK"]
 exports = [e for e in exports if e in seen]
 tail = "\n\nexport {\n  " + ",\n  ".join(exports) + "\n};\n"
 

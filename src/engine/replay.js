@@ -40,39 +40,60 @@ function pack(f) {
 
 let installed = false;
 
-/** 커널의 프레임 기록에 얹어, 하이라이트 앞뒤를 잘라 모은다 */
+/**
+ * 커널에 얹어 하이라이트 앞뒤를 잘라 모은다.
+ *
+ * ⚠ sim.hl 을 쫓아가면 안 된다. markHighlight 는 "한 하프에 가장 중요한 장면" 하나만
+ *   들고 있어서, 같은 무게의 두 번째 골은 아예 기록되지 않는다
+ *   (`if(this.hl && weight <= this.hl.weight) return`).
+ *   그래서 **호출 자체**를 가로챈다.
+ */
 export function installReplay() {
   if (installed) return;
   installed = true;
 
+  const init = (sim) => {
+    if (!sim._clips) { sim._clips = []; sim._pend = null; }
+  };
+
+  /* 1) 장면이 잡히는 순간 — 앞부분을 링버퍼에서 떠 온다 */
+  const _mark = MatchSim.prototype.markHighlight;
+  MatchSim.prototype.markHighlight = function (kind, side, weight) {
+    _mark.call(this, kind, side, weight);
+    if (!this.recording || !this._wantClips) return;
+    init(this);
+    const w = weight || 1;
+
+    // 같은 장면이 이어지는 중이면(슛 → 골) 새로 만들지 않고 이름표만 승격한다
+    if (this._pend && this.t - this._pend.startT < 6) {
+      if (w > this._pend.weight) {
+        this._pend.kind = kind; this._pend.side = side; this._pend.weight = w;
+        this._pend.min = Math.max(0, Math.floor(this.clock / 60));
+      }
+      this._pend.left = CLIP_POST;      // 뒷부분을 다시 늘려 준다
+      return;
+    }
+    const pre = this.buf.slice(Math.max(0, this.buf.length - CLIP_PRE));
+    this._pend = {
+      kind, side, weight: w, startT: this.t,
+      min: Math.max(0, Math.floor(this.clock / 60)),
+      frames: pre.map(pack).filter(Boolean),
+      left: CLIP_POST,
+    };
+    this._clips.push(this._pend);
+  };
+
+  /* 2) 매 틱 — 잡고 있는 장면의 뒷부분을 채운다 */
   const _record = MatchSim.prototype.recordFrame;
   MatchSim.prototype.recordFrame = function () {
     _record.call(this);
     /* ⚠ this.recording 은 읽기만 한다. 커널에 `if(this.recording && RNG()<…)` 가 있어서
        끄면 난수 흐름이 달라져 다른 경기가 된다. 켜고 끌 것은 _wantClips 뿐이다. */
-    if (!this.recording || !this._wantClips) return;
-
-    if (!this._clips) { this._clips = []; this._pend = null; this._hlT = -1; }
+    if (!this.recording || !this._wantClips || !this._pend) return;
     const last = this.buf[this.buf.length - 1];
-    if (!last) return;
-
-    /* markHighlight 는 "지금까지 중 가장 중요한 장면" 하나만 들고 있고,
-       킥오프마다 비워진다. 그래서 t 가 바뀌면 새 장면이라는 뜻이다. */
-    const hl = this.hl;
-    if (hl && hl.t !== this._hlT) {
-      this._hlT = hl.t;
-      const pre = this.buf.slice(Math.max(0, this.buf.length - CLIP_PRE));
-      this._pend = {
-        kind: hl.kind, side: hl.side, weight: hl.weight,
-        min: Math.max(0, Math.floor(this.clock / 60)),
-        frames: pre.map(pack).filter(Boolean),
-        left: CLIP_POST,
-      };
-      this._clips.push(this._pend);
-    } else if (this._pend) {
-      this._pend.frames.push(pack(last));
-      if (--this._pend.left <= 0) this._pend = null;
-    }
+    if (!last) return;                       // 하프타임에 버퍼를 비운 직후
+    this._pend.frames.push(pack(last));
+    if (--this._pend.left <= 0) this._pend = null;
   };
 }
 

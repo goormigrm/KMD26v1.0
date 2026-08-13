@@ -1,7 +1,7 @@
 {
  "srcHash": "d18fe0dfc09c",
- "declCount": 93,
- "lineCount": 1477,
+ "declCount": 97,
+ "lineCount": 2217,
  "rngSites": 18,
  "exports": [
   "mkTeam",
@@ -33,7 +33,11 @@
   "ROLE_GRP",
   "ROLE_DEFAULT",
   "DUTY_N",
-  "ROLES"
+  "ROLES",
+  "SOC",
+  "FMK",
+  "FMK_NICK",
+  "FMK_RIVAL_NICK"
  ],
  "patches": [
   {
@@ -401,6 +405,22 @@
   {
    "name": "starGrade",
    "srcLine": 11091
+  },
+  {
+   "name": "SOC",
+   "srcLine": 12297
+  },
+  {
+   "name": "FMK_NICK",
+   "srcLine": 12914
+  },
+  {
+   "name": "FMK_RIVAL_NICK",
+   "srcLine": 12925
+  },
+  {
+   "name": "FMK",
+   "srcLine": 12953
   },
   {
    "name": "AFF_DEF",

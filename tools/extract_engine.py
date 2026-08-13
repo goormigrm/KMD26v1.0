@@ -59,7 +59,7 @@ exports = ["MatchSim", "matchSkills", "TAC", "getPosFam", "initPosFam", "canonSl
            "computeFormationPositions", "computeRenderSlots", "FORMATION_SHAPE", "SLOT_FAM",
            "FAM_NEAR", "FAM_POS", "ROLES", "ROLE_BY_KEY", "TRAITS", "SIM_SECONDS", "SIM_DT",
            "MATCH_CLOCK_SCALE", "TAC_KEYS", "TAC_DEF", "SLOT_XY", "refCrewOf", "COMM", "onPitch",
-           "slotRating", "ovrStarVal", "playerLevel"]
+           "slotRating", "ovrStarVal", "playerLevel", "F_"]
 exports = [e for e in exports if e in seen]
 tail = "\n\nexport {\n  " + ",\n  ".join(exports) + "\n};\n"
 
