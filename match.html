@@ -50,6 +50,19 @@ button:disabled{opacity:.45;cursor:default}
 .ev.info{color:var(--sub)}
 .ev .tm{font-weight:800;font-size:11.5px;padding:0 5px;border-radius:4px;background:#161b22;flex:none}
 
+/* ── 2D 하이라이트 ─────────────────────────── */
+.hl{position:relative;margin-bottom:12px}
+.hl canvas{width:100%;display:block;border-radius:10px;background:#0f2415;border:1px solid #24402a}
+.hl .cap{position:absolute;left:0;right:0;bottom:0;padding:7px 11px;font-size:13px;font-weight:700;
+     background:linear-gradient(0deg,#000c,#0000);border-radius:0 0 10px 10px}
+.hl .badge{position:absolute;top:8px;left:10px;background:#000a;border:1px solid #ffffff33;
+     border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:800}
+.hl .skip{position:absolute;top:8px;right:10px}
+.hl .skip button{padding:3px 9px;font-size:11.5px;border-radius:6px}
+.hlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px;margin-top:8px}
+.hlist button{padding:6px 8px;font-size:12px;text-align:left;font-weight:700}
+.hlist .k{display:block;font-size:11px;color:var(--sub);font-weight:600}
+
 /* ── 통계 ─────────────────────────────────── */
 table{width:100%;border-collapse:collapse;font-size:13px}
 td{padding:5px 8px;border-bottom:1px solid #21262d}
@@ -91,6 +104,12 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
   </div>
 
   <div class="card" style="margin-top:12px">
+    <div class="hl" id="hl" style="display:none">
+      <canvas id="cv" width="700" height="440"></canvas>
+      <div class="badge" id="hlBadge"></div>
+      <div class="skip"><button id="hlSkip">건너뛰기 ✕</button></div>
+      <div class="cap" id="hlCap"></div>
+    </div>
     <div class="row" style="justify-content:space-between;margin-bottom:9px">
       <div class="row">
         <button id="play" class="pri">⏸ 일시정지</button>
@@ -192,6 +211,7 @@ function start() {
   if (hid === aid) { $("#setupNote").innerHTML = `<span style="color:var(--bad)">같은 팀끼리는 붙을 수 없습니다.</span>`; return; }
   const saved = loadPlan();
 
+  stopClip(); $("#hl").style.display = "none";
   $("#setup").style.display = "none";
   $("#game").style.display = "";
   $("#result").style.display = "none";
@@ -249,11 +269,26 @@ function tick() {
   minute++;
   // "90+3" 같은 추가시간 표기는 90 이후로 몰아서 푼다
   const minOf = e => (typeof e.min === "number" ? e.min : 90 + (parseInt(String(e.min).split("+")[1], 10) || 0));
-  let shown = false;
-  while (idx < R.events.length && minOf(R.events[idx]) <= minute) { push(R.events[idx++]); shown = true; }
+  let shown = false, big = null;
+  while (idx < R.events.length && minOf(R.events[idx]) <= minute) {
+    const e = R.events[idx++];
+    push(e); shown = true;
+    // 골이 나오면 그 장면을 2D 로 보여 준다 — 사람들이 보고 싶은 건 이것이다
+    if (!big && e.type === "goal") big = e;
+  }
   $("#clock").textContent = minute >= 90 ? `90+${minute - 90}분` : `${minute}분`;
   $("#prog").style.width = Math.min(100, minute / 90 * 100) + "%";
   if (shown) $("#log").scrollTop = $("#log").scrollHeight;
+
+  if (big) {
+    const c = clipAt(minute, "goal") || clipAt(minute);
+    if (c) {
+      c._seen = true;
+      pause();                       // 장면을 보는 동안 시계는 멈춘다
+      playClip(c, big.txt, () => { $("#hl").style.display = "none"; resume(); });
+      return;
+    }
+  }
   if (idx >= R.events.length && minute >= 90) finish();
 }
 
@@ -308,10 +343,109 @@ function finish() {
       <br>시드 <code>${R.seed.toString(16)}</code> · 결과 지문 <code>${esc(R.fp)}</code>
       <br><span class="sub">같은 라인업끼리 붙으면 언제 어디서 돌려도 이 지문이 나옵니다.
       단계 5에서 이 값이 대전 코드에 담깁니다.</span>
-    </div>`;
+    </div>
+    ${drawHighlightList()}`;
+
+  $("#result").querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
+    const c = R.clips[+b.dataset.c];
+    playClip(c, `${c.min}' ${KIND_N[c.kind] || c.kind}`, () => {});
+    $("#hl").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
 }
 
 const pct = (ok, n) => (n ? Math.round(ok / n * 100) + "%" : "-");
+
+/* ── 2D 하이라이트 ────────────────────────────────────────────
+   90분 전체를 그리지 않는 이유: 해설 재생이 90분을 1분에 흘려보내므로
+   1분에 150장을 그려야 합니다. 사람이 볼 수 있는 속도가 아닙니다.
+   엔진이 markHighlight() 로 짚어 둔 결정적 장면만 앞뒤로 잘라 보여 줍니다. */
+const KIND_N = { goal: "골", miss: "결정적 기회", save: "선방", pen: "페널티킥", red: "퇴장" };
+let clipTimer = null, onClipEnd = null;
+
+function drawFrame(f) {
+  const cv = $("#cv"), g = cv.getContext("2d");
+  const W = cv.width, H = cv.height, PAD = 14;
+  const X = x => PAD + x * (W - PAD * 2);
+  const Y = y => PAD + y * (H - PAD * 2);
+
+  g.fillStyle = "#12301b"; g.fillRect(0, 0, W, H);
+  // 잔디 줄무늬 — 공이 어디쯤인지 눈으로 가늠하게 해 준다
+  g.fillStyle = "#14351e";
+  for (let i = 0; i < 8; i += 2) g.fillRect(X(i / 8), 0, (W - PAD * 2) / 8, H);
+  g.strokeStyle = "#ffffff33"; g.lineWidth = 1.5;
+  g.strokeRect(X(0), Y(0), X(1) - X(0), Y(1) - Y(0));
+  g.beginPath(); g.moveTo(X(.5), Y(0)); g.lineTo(X(.5), Y(1)); g.stroke();
+  g.beginPath(); g.arc(X(.5), Y(.5), (Y(1) - Y(0)) * 0.13, 0, 7); g.stroke();
+  for (const s of [0, 1]) {   // 페널티 박스
+    const bx = s ? X(1) - (X(1) - X(0)) * 0.17 : X(0);
+    g.strokeRect(bx, Y(.21), (X(1) - X(0)) * 0.17, Y(.79) - Y(.21));
+  }
+
+  if (!f) return;
+  // 선수 — 홈은 왼쪽에서 오른쪽으로 공격한다
+  for (let i = 0; i + 2 < f.a.length; i += 3) {
+    const id = f.a[i], x = f.a[i + 1], y = f.a[i + 2];
+    const p = R.roster[id] || {};
+    const home = p.side === "h";
+    g.beginPath(); g.arc(X(x), Y(y), p.gk ? 7.5 : 8.5, 0, 7);
+    g.fillStyle = p.gk ? "#e3b341" : (home ? R.home.col : R.away.col);
+    g.fill();
+    g.lineWidth = 1.5; g.strokeStyle = "#0009"; g.stroke();
+    if (id === f.o) {                    // 공을 가진 선수 — 흰 링
+      g.beginPath(); g.arc(X(x), Y(y), 12, 0, 7);
+      g.strokeStyle = "#fff"; g.lineWidth = 2; g.stroke();
+    }
+    if (p.no !== "" && p.no != null) {
+      g.fillStyle = "#fff"; g.font = "bold 9px sans-serif"; g.textAlign = "center";
+      g.fillText(String(p.no), X(x), Y(y) + 3);
+    }
+  }
+  // 심판
+  g.beginPath(); g.arc(X(f.r[0]), Y(f.r[1]), 5, 0, 7);
+  g.fillStyle = "#1c1c1c"; g.fill(); g.strokeStyle = "#ffffff55"; g.lineWidth = 1; g.stroke();
+  // 공 — 높이가 있으면 그림자와 함께 띄운다
+  const bz = f.b[2] || 0, lift = Math.min(14, bz * 90);
+  if (lift > 1) {
+    g.beginPath(); g.ellipse(X(f.b[0]), Y(f.b[1]), 4, 2, 0, 0, 7);
+    g.fillStyle = "#0006"; g.fill();
+  }
+  g.beginPath(); g.arc(X(f.b[0]), Y(f.b[1]) - lift, 4.5, 0, 7);
+  g.fillStyle = "#fff"; g.fill();
+  g.strokeStyle = "#0008"; g.lineWidth = 1; g.stroke();
+}
+
+/** 클립 한 편을 재생한다. 끝나면 done() */
+function playClip(c, caption, done) {
+  stopClip();
+  $("#hl").style.display = "";
+  $("#hlBadge").textContent = `${c.min}' ${KIND_N[c.kind] || c.kind}`;
+  $("#hlCap").textContent = caption || "";
+  onClipEnd = done;
+  let i = 0;
+  // 엔진 한 장 = 0.2초, 경기 시계로는 0.4초. 40ms 로 뿌리면 실제보다 조금 빠르게 흐른다.
+  clipTimer = setInterval(() => {
+    if (i >= c.frames.length) { stopClip(); if (done) done(); return; }
+    drawFrame(c.frames[i++]);
+  }, 40);
+}
+function stopClip() {
+  if (clipTimer) clearInterval(clipTimer);
+  clipTimer = null;
+}
+$("#hlSkip").onclick = () => { const f = onClipEnd; stopClip(); $("#hl").style.display = "none"; onClipEnd = null; if (f) f(); };
+
+/** 해설이 그 분에 닿았을 때 볼만한 장면이 있으면 잡아 온다 */
+function clipAt(min, kind) {
+  if (!R || !R.clips) return null;
+  return R.clips.find(c => !c._seen && Math.abs(c.min - min) <= 1 && (!kind || c.kind === kind)) || null;
+}
+
+function drawHighlightList() {
+  if (!R.clips || !R.clips.length) return "";
+  return `<h3 style="margin-top:14px">다시 보기</h3>
+    <div class="hlist">${R.clips.map((c, i) =>
+      `<button data-c="${i}">${c.min}' <span class="k">${KIND_N[c.kind] || c.kind}</span></button>`).join("")}</div>`;
+}
 
 boot();
 </script>

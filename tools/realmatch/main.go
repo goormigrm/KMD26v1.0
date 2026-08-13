@@ -26,6 +26,7 @@ var modules = []string{
 	"src/engine/kernel.js",
 	"src/engine/stubs.js",
 	"src/engine/rules.js",
+	"src/engine/replay.js",
 	"src/engine/duel.js",
 	"src/engine/teams.js",
 }
@@ -56,7 +57,8 @@ function playReal(homeId, awayId) {
   var r = runHeadless(H.team, A.team, {
     seed: seed,
     homeXI: xiOf(H), awayXI: xiOf(A),
-    homeBench: H.bench.filter(Boolean), awayBench: A.bench.filter(Boolean)
+    homeBench: H.bench.filter(Boolean), awayBench: A.bench.filter(Boolean),
+    record: RECORD
   });
   return {
     seed: seed, fp: r.fp, hg: r.hg, ag: r.ag, done: r.done, clock: r.clock,
@@ -69,7 +71,11 @@ function playReal(homeId, awayId) {
     // 득점자별 골 수 — 한 명에게 몰리는지 보려면 이게 필요하다
     scorers: (r.goalLine||[]).reduce(function(o,g){ o[g.n]=(o[g.n]||0)+1; return o; }, {}),
     goals: (r.goalLine||[]).map(function(g){ return g.min + "' " + g.n + " (" + g.side + ")"; }).join(" · "),
-    firstLines: r.events.slice(0, 3).map(function(e){ return e.min + "' " + e.txt; })
+    firstLines: r.events.slice(0, 3).map(function(e){ return e.min + "' " + e.txt; }),
+    clips: (r.clips||[]).length,
+    clipFrames: (r.clips||[]).reduce(function(n,c){ return n + c.frames.length; }, 0),
+    clipKinds: (r.clips||[]).map(function(c){ return c.min + "'" + c.kind; }).join(" "),
+    bytes: r.clips ? JSON.stringify(r.clips).length : 0
   };
 }
 `
@@ -81,6 +87,7 @@ func main() {
 	n := flag.Int("n", 1, "몇 판")
 	all := flag.Bool("all", false, "여러 대진을 돌려 실제 축구와 견줘 본다")
 	gkRole := flag.String("gkrole", "", "골키퍼 역할 (예: SK:A) — 비우면 기본값")
+	record := flag.Bool("record", false, "2D 하이라이트 클립도 모은다")
 	flag.Parse()
 
 	var sb strings.Builder
@@ -112,6 +119,7 @@ func main() {
 	vm.Set("TABLES", teams.Tables)
 	vm.Set("PLAYERS", players)
 	vm.Set("GKROLE", *gkRole)
+	vm.Set("RECORD", *record)
 
 	play, ok := goja.AssertFunction(vm.Get("playReal"))
 	if !ok {

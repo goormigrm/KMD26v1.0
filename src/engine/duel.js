@@ -12,9 +12,11 @@ import { MatchSim, SIM_SECONDS, MATCH_CLOCK_SCALE, onPitch } from "./kernel.js";
 import { installEngineContext, normalizeTeam } from "./stubs.js";
 import { seedRNG, deriveSeed } from "./rng.js";
 import { installDuelRules } from "./rules.js";
+import { installReplay, takeClips, rosterOf } from "./replay.js";
 
 // 듀얼 규칙(D-3)은 커널을 감싸는 방식이라, 경기를 만들기 전에 한 번 입혀 둔다
 installDuelRules();
+installReplay();
 
 /** 출전 기록 한 줄 — KM26 createMatch 의 mk() 와 같은 모양 */
 function entry(p) {
@@ -81,6 +83,10 @@ export function runHeadless(home, away, opt = {}) {
 
   const M = makeMatch(home, away, opt);
   const sim = new MatchSim(M, { live: true });   // live:true 라야 해설 이벤트가 쌓인다
+  /* 2D 하이라이트를 모을지 여부.
+     ⚠ sim.recording 은 절대 건드리지 않는다 — 커널에 `if(this.recording && RNG()<…)` 가 있어
+       끄는 순간 난수 흐름이 달라져 **다른 경기**가 된다. 켜고 끌 것은 클립 수집뿐이다. */
+  sim._wantClips = !!opt.record;
   const t0 = (typeof performance !== "undefined" ? performance.now() : Date.now());
   sim.run();
   const ms = (typeof performance !== "undefined" ? performance.now() : Date.now()) - t0;
@@ -102,6 +108,7 @@ export function runHeadless(home, away, opt = {}) {
     clock: Math.round(sim.clock),
     done: M.done,
   };
+  if (opt.record) { r.clips = takeClips(sim); r.roster = rosterOf(M); }
   r.fp = fingerprint(r);
   return r;
 }

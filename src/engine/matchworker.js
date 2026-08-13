@@ -32,7 +32,7 @@ self.onmessage = (e) => {
       lineupSig(away.id, away.xiMap, away.bench, away.tac, away.roles));
 
     const r = runHeadless(H, A, {
-      seed,
+      seed, record: true,        // 2D 하이라이트 좌표를 함께 모은다
       homeXI: home.xi, awayXI: away.xi,
       homeBench: home.bench.filter(Boolean), awayBench: away.bench.filter(Boolean),
     });
@@ -53,6 +53,7 @@ self.onmessage = (e) => {
       home: { id: H.id, name: H.name, short: H.short, col: H.col, goals: r.hg },
       away: { id: A.id, name: A.name, short: A.short, col: A.col, goals: r.ag },
       events, goalLine: r.goalLine, stats: r.stats,
+      clips: r.clips || [], roster: r.roster || {},
       possession: r.possession, referee: r.referee,
       clock: r.clock, elapsedMs: r.elapsedMs, nameOf,
     });
