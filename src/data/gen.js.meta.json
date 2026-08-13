@@ -1,7 +1,7 @@
 {
  "srcHash": "d18fe0dfc09c",
- "declCount": 108,
- "lineCount": 3044,
+ "declCount": 109,
+ "lineCount": 3105,
  "rngSites": 18,
  "exports": [
   "mkTeam",
@@ -268,6 +268,10 @@
   {
    "name": "PREF_POS_OVERRIDE",
    "srcLine": 2185
+  },
+  {
+   "name": "addPref",
+   "srcLine": 2186
   },
   {
    "name": "inferPrefPos",

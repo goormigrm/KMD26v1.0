@@ -49,6 +49,10 @@ REACT = ["SOC", "FMK", "FMK_NICK", "FMK_RIVAL_NICK",
 # 뿌리 — 여기서 시작해 필요한 것만 따라간다.
 # 표 세 개는 함수가 인자로 받으므로 참조 그래프에 안 걸린다. 직접 넣어 준다.
 ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", "CUR_YEAR",
+         # addPref — PREF_POS_OVERRIDE 를 채우는 최상위 호출문 뭉치. 표를 "선언"만 따라가면
+         # 빈 껍데기 {} 만 딸려 오고, 실명 등록 선수의 선호 포지션이 전부 추론값으로 떨어진다
+         # (좌·우 풀백이 죄다 센터백으로 잡히는 사고가 실제로 났다). 뿌리로 못 박는다.
+         "addPref",
          # 화면에 쓸 이름표도 원본에서 가져온다 — 한글 라벨을 UI 에 베껴 두면 원본과 어긋난다
          "ATTR_LABEL_FM", "FAM_LABEL", "FAM_POS", "TRAITS",
          "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER",
