@@ -28,6 +28,10 @@ h1{font-size:19px;color:var(--gold)}
 .team.on{border-color:var(--acc);background:#12283d;box-shadow:inset 0 0 0 1px var(--acc)}
 /* 구단 색은 왼쪽 띠로만 쓴다 — 배경으로 깔면 옅은 색 구단의 이름이 안 읽힌다 */
 .chip{width:6px;height:26px;border-radius:3px;flex:none;box-shadow:0 0 0 1px #0006}
+/* 구단 이름 아래에 전력 별점 한 줄 — 눌러 보기 전에도 어느 팀이 센지 보여야 한다 */
+.tinfo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.trow{display:flex;align-items:center;gap:5px}
+.tsv{font-size:11px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
 
 /* ── 선수 목록 ─────────────────────────────── */
 .hd{display:flex;align-items:center;gap:11px;margin:16px 0 8px}
@@ -228,13 +232,25 @@ async function boot() {
   });
 }
 
+/* 구단 전력 — 별이 높은 열한 명의 평균(0.5 단위).
+   구단 목록과 스쿼드 머리말이 반드시 같은 값을 써야 눌러 보기 전과 후가 어긋나지 않는다. */
+function teamStar(id) {
+  const list = DB.players[id] || [];
+  const best11 = list.slice().sort((a, b) => rank(b) - rank(a)).slice(0, 11);
+  if (!best11.length) return 0;
+  return Math.round(best11.reduce((s, p) => s + rank(p), 0) / best11.length * 2) / 2;
+}
+
 function drawTeams(lg) {
   const box = $("#teams");
   box.innerHTML = "";
   for (const id of DB.order[lg]) {
-    const t = DB.teams[id];
+    const t = DB.teams[id], v = teamStar(id);
     const b = el(`<button class="team" data-id="${id}">
-        <span class="chip" style="background:${esc(t.col)}"></span>${esc(t.short)}</button>`);
+        <span class="chip" style="background:${esc(t.col)}"></span>
+        <span class="tinfo"><span>${esc(t.short)}</span>
+          <span class="trow">${stars({ star: v })}<span class="tsv">${v.toFixed(1)}</span></span>
+        </span></button>`);
     b.onclick = () => showTeam(id);
     box.appendChild(b);
   }
@@ -250,9 +266,8 @@ function showTeam(id) {
 function drawSquad() {
   const t = DB.teams[curTeam];
   const list = DB.players[curTeam].slice().sort(SORTS[sortKey]);
-  // 팀 전력 — 별이 높은 11명의 평균. 숫자가 아니라 별로 보여 준다.
-  const best11 = list.slice().sort((a, b) => rank(b) - rank(a)).slice(0, 11);
-  const avg = best11.reduce((s, p) => s + rank(p), 0) / Math.max(1, best11.length);
+  // 팀 전력 — 구단 목록에 띄우는 값과 같은 계산을 쓴다 (teamStar)
+  const avg = teamStar(curTeam);
 
   const head = [["no", "번호"], ["name", "이름"], ["pos", "포지션"], ["age", "나이"], ["star", "능력"]];
   $("#squad").innerHTML = `
@@ -260,7 +275,7 @@ function drawSquad() {
       <span class="bar" style="background:${esc(t.col)}"></span>
       <div><h2>${esc(t.name)}</h2>
         <div class="sub">${list.length}명 · 주전 11명 평균
-          ${stars({ star: Math.round(avg * 2) / 2 })} ${(Math.round(avg * 2) / 2).toFixed(1)}</div></div>
+          ${stars({ star: avg })} ${avg.toFixed(1)}</div></div>
     </div>
     <div class="legend">
       <b>별점 읽는 법</b> — K리그1·2 <b>전체 1,024명</b>을 한 줄로 세운 눈금입니다.

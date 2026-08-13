@@ -1287,14 +1287,30 @@ function clipAt(min) {
    코드 두 개만 있으면 누구나 같은 경기를 재현합니다 — 제3자 중재도 됩니다.
    양쪽 값이 다르면 조작이 드러나므로 결과 지문을 함께 적어 둡니다(설계서 2-3). */
 function drawResultLink() {
-  if (!lastPlans) return "";           // 연습 경기는 발급하지 않는다
+  const head = `<h3 style="margin-top:14px">🔗 결과 링크</h3>`;
+
+  /* 연습 경기는 링크를 만들 수 없다 — 상대 라인업을 AI 감독이 그 자리에서 짜므로
+     코드에 담을 것이 없다. 전에는 칸이 통째로 사라져서 "링크 기능이 없어졌다"로 보였다.
+     이제는 왜 없는지와 무엇을 하면 되는지를 그 자리에 적어 둔다. */
+  if (!lastPlans) return head + `<div class="note">
+    <b>연습 경기라 결과 링크가 나오지 않습니다.</b> 상대 라인업을 AI 감독이 그 자리에서 짜기 때문에
+    코드로 담을 수 없습니다 — 사람과 겨룬 대전이라야 링크가 만들어집니다.
+    <br><a href="lineup.html">라인업 화면</a>에서 <b>🔗 대전 코드 발급</b>을 눌러 상대에게 건네고,
+    상대 코드를 <b>원정 · 🔗 대전 코드 붙여넣기</b>에 넣으면 대전이 됩니다.</div>`;
+
   let a, b;
   try {
     a = encodePlan(lastPlans.hp, codeCtx());
     b = encodePlan(lastPlans.ap, codeCtx());
-  } catch (e) { return ""; }
+  } catch (e) {
+    // 조용히 사라지면 원인을 찾을 길이 없다 — 왜 못 만들었는지 그대로 알린다
+    return head + `<div class="note"><span style="color:var(--bad)">결과 링크를 만들지 못했습니다 —
+      ${esc(e.message)}</span><br>라인업이나 명단이 코드 규격에 맞지 않는 경우입니다.
+      <a href="lineup.html">라인업 화면</a>에서 다시 짜 보시고, 그래도 같으면
+      <a href="https://github.com/goormigrm/KMD26v1.0/issues">제보</a>해 주세요.</div>`;
+  }
   const link = resultLink(a, b);
-  return `<h3 style="margin-top:14px">🔗 결과 링크</h3>
+  return head + `
     <div class="row">
       <input id="resLink" readonly value="${esc(link)}"
         style="flex:1;min-width:240px;background:var(--bg3);color:var(--acc);border:1px solid var(--line);
