@@ -23,8 +23,8 @@
      같아야 하기 때문입니다. 경기 결과에는 영향이 없습니다(이미 끝났으므로).
    ───────────────────────────────────────────────────────────── */
 
-import { F_ } from "./kernel.js";
-import { seedRNG, RNG } from "./rng.js";
+import { F_ } from "./kernel.js?v=271bde54ea";
+import { seedRNG, RNG } from "./rng.js?v=271bde54ea";
 
 // 커널에도 R() 이 있다 — 모듈을 이어 붙여 쓰는 도구(goja)에서 겹치므로 이름을 달리한다
 const rnd = n => Math.floor(RNG() * n);
@@ -60,13 +60,13 @@ function handle(tbl, rival) {
   return { nick: "팬" + rnd(9999), emoji: "💬" };
 }
 
-/* ── 안양팬 ─────────────────────────────────────────────────────
+/* ── 차짬 (안양팬) ──────────────────────────────────────────────
    원본에 없는 KMD26 쪽 추가입니다. 안양이 나오는 경기에는 무슨 일이 있어도 안양을 편들고,
    안양이 없는 경기에는 무슨 일이 있어도 심드렁한 소리를 합니다.
    펨코에만 나타나고 한 경기에 한 번 옵니다. 글은 다른 사람 글과 똑같이 보입니다 —
    눈에 띄게 칠하지 않습니다.
    문구의 {an} 은 안양, {vs} 는 안양의 상대입니다 — 보는 쪽이 어디든 같은 말을 하게. */
-const DEV = { nick: "안양팬", team: "anyang" };
+const DEV = { nick: "차짬", label: "안양팬", team: "anyang" };
 
 const DEV_ANYANG = [
   "안양 경기력 봤냐? 이게 축구지 ㅋㅋ 오늘 기분 좋다",
@@ -254,7 +254,7 @@ export function makeReactions(r, tbl, side = "h") {
     const txt = one(forAnyang ? DEV_ANYANG : DEV_OTHER);
     const tone = forAnyang ? (devSide === side ? 1 : -1) : -1;
     board.push({
-      txt: F_(txt, vars), tone, nick: DEV.nick, always: true,
+      txt: F_(txt, vars), tone, nick: DEV.nick, label: DEV.label, always: true,
       up: 40 + rnd(600), dn: 10 + rnd(90), views: 500 + rnd(5000),
     });
   }

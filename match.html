@@ -243,11 +243,6 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
     <a class="navbtn on" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
     <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
-  <div class="navsep">개발 확인용</div>
-  <div>
-    <a class="navbtn" href="test/determinism.html">🔬 결정론</a>
-    <a class="navbtn" href="test/tactics.html">🔬 전술 반영</a>
-  </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
 
@@ -354,8 +349,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=271bde54ea";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=271bde54ea";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -770,7 +765,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=271bde54ea", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -1255,6 +1250,7 @@ function reactHTML() {
       <div class="who"><b class="nick">${esc(x.emoji || "")}${esc(x.nick || "")}</b>
         ${x.rival ? `<span class="tag riv">타팬</span>` : ""}
         ${x.troll ? `<span class="tag troll">상주</span>` : ""}
+        ${x.label ? `<span class="tag">${esc(x.label)}</span>` : ""}
         <span class="vote">👍 ${nOf(x.up || 0)} · 👎 ${nOf(x.dn || 0)}
           <span class="sub">· 조회 ${nOf(x.views || 0)}</span></span></div>
       <div class="tx">${esc(x.txt)}</div></div>`;

@@ -231,11 +231,6 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
     <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
-  <div class="navsep">개발 확인용</div>
-  <div>
-    <a class="navbtn" href="test/determinism.html">🔬 결정론</a>
-    <a class="navbtn" href="test/tactics.html">🔬 전술 반영</a>
-  </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
 
@@ -255,8 +250,6 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <input type="file" id="impJson" accept=".json,application/json" style="display:none">
       <span class="sub">슬롯은 이 브라우저에만 남습니다. 다른 기기로 옮기거나 남에게 주려면 파일로 내보내세요.</span>
   </div>
-  <!-- 추천 라인업 — 저장소에 넣어 둔 파일을 그대로 불러온다 -->
-  <div class="row" style="margin-top:8px" id="presets"></div>
   <!-- 슬롯은 누르면 바로 적용하지 않는다 — 여기서 한 번 묻는다 -->
   <div class="note" id="slotAsk" style="display:none"></div>
   <!-- 구단을 고르기 전에는 아래 안내문(#hint)이 없으므로, 슬롯 관련 알림은 여기에 띄운다 -->
@@ -358,8 +351,8 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=271bde54ea";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=271bde54ea";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -449,7 +442,7 @@ async function boot() {
     tac = Object.assign({}, PRESETS[b.dataset.p]); drawTac();
   });
 
-  drawTeams("k1"); drawTac(); drawOrders(); drawSlots(); drawPresetBtns();
+  drawTeams("k1"); drawTac(); drawOrders(); drawSlots();
   $("#expJson").onclick = exportFile;
   $("#impBtn").onclick = () => $("#impJson").click();
   $("#impJson").onchange = e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ""; };
@@ -1108,43 +1101,6 @@ function applyPlan(p, where) {
   drawTac(); drawOrders(); draw();
   if (lost) { flash(where + "에서 " + lost + "명을 찾지 못했습니다 — 선수 명단이 바뀌었을 수 있습니다."); drawHint(); }
   return true;
-}
-
-/* ── 추천 라인업 ───────────────────────────────────────────────
-   저장소의 presets/*.json 을 그대로 불러옵니다. 파일 내보내기와 같은 형식이라
-   내려받아서 남에게 줄 수도 있습니다. */
-const PRESETS_FILE = [
-  { f: "presets/anyang-recommended.json", n: "🇦 안양 추천 라인업" },
-];
-
-function drawPresetBtns() {
-  $("#presets").innerHTML = PRESETS_FILE.map((p, i) =>
-    `<button data-pre="${i}">${esc(p.n)}</button>`).join("")
-    + `<span class="sub">측정해서 고른 라인업입니다 — 불러온 뒤 마음대로 고쳐 쓰세요.</span>`;
-  $("#presets").querySelectorAll("[data-pre]").forEach(b => b.onclick = () => {
-    const P = PRESETS_FILE[+b.dataset.pre];
-    const box = $("#slotAsk");
-    box.style.display = "";
-    box.innerHTML = `<b>${esc(P.n)}</b> 을 불러옵니다.
-      ${team ? "지금 편집 중인 배치·전술은 사라집니다." : ""}
-      <div class="row" style="margin-top:8px">
-        <button id="askOk" class="on">✔ 불러오기</button>
-        <button id="askNo">취소</button>
-      </div>`;
-    $("#askNo").onclick = closeAsk;
-    $("#askOk").onclick = async () => {
-      closeAsk();
-      try {
-        const p = await fetch(P.f + "?v=" + (DB.meta.dataHash || "")).then(r => {
-          if (!r.ok) throw new Error("파일을 찾지 못했습니다");
-          return r.json();
-        });
-        applyPlan(p, P.n);
-      } catch (e) {
-        flash("추천 라인업을 불러오지 못했습니다 — " + e.message); drawHint();
-      }
-    };
-  });
 }
 
 function drawSlots() {

@@ -8,12 +8,12 @@
    단계 2부터 모든 경기는 시드를 받습니다. 같은 시드 = 같은 경기.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim, SIM_SECONDS, MATCH_CLOCK_SCALE, onPitch } from "./kernel.js";
-import { installEngineContext, normalizeTeam } from "./stubs.js";
-import { seedRNG, deriveSeed } from "./rng.js";
-import { installDuelRules } from "./rules.js";
-import { installOrders } from "./orders.js";
-import { installReplay, takeClips, rosterOf, frameZero } from "./replay.js";
+import { MatchSim, SIM_SECONDS, MATCH_CLOCK_SCALE, onPitch } from "./kernel.js?v=271bde54ea";
+import { installEngineContext, normalizeTeam } from "./stubs.js?v=271bde54ea";
+import { seedRNG, deriveSeed } from "./rng.js?v=271bde54ea";
+import { installDuelRules } from "./rules.js?v=271bde54ea";
+import { installOrders } from "./orders.js?v=271bde54ea";
+import { installReplay, takeClips, rosterOf, frameZero } from "./replay.js?v=271bde54ea";
 
 // 듀얼 규칙(D-3)은 커널을 감싸는 방식이라, 경기를 만들기 전에 한 번 입혀 둔다
 installDuelRules();

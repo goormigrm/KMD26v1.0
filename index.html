@@ -96,11 +96,6 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
     <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
     <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
-  <div class="navsep">개발 확인용</div>
-  <div>
-    <a class="navbtn" href="test/determinism.html">🔬 결정론</a>
-    <a class="navbtn" href="test/tactics.html">🔬 전술 반영</a>
-  </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
 
@@ -139,7 +134,7 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 [A] 결과 링크를 연다 → 토씨 하나 안 틀리고 똑같은 경기</div>
 </div>
 
-<h2>화면</h2>
+<h2>무엇이 들어 있나</h2>
 
 <a class="lnk" href="lineup.html">
   <b>라인업</b>
@@ -157,47 +152,6 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
   <b>선수단</b>
   <span class="d">K리그1·2 29개 구단 1,024명. 능력치 40종 · 특성 · 포지션 능숙도.</span>
 </a>
-
-<h2>진행 상태</h2>
-<div class="card">
-<table>
-<tr><th>단계</th><th>내용</th><th>상태</th></tr>
-<tr><td>1·2</td><td>엔진 추출 · 결정론(시드) 확보</td><td class="ok">완료</td></tr>
-<tr><td>3</td><td>전술 반영 검증 · 원본 버그 수정</td><td class="ok">완료</td></tr>
-<tr><td>4</td><td>실제 선수 데이터 — 29개 구단 1,024명</td><td class="ok">완료</td></tr>
-<tr><td>6·7</td><td>라인업 편집 · 경기 재생 (2D·팬 반응)</td><td class="ok">완료</td></tr>
-<tr><td>A</td><td>연습 모드 — 3난이도 × 전술 3종</td><td class="ok">완료</td></tr>
-<tr><td>5</td><td>대전 코드 · 초대/결과 링크</td><td class="ok">완료</td></tr>
-<tr><td>8</td><td>조건부 지시</td><td class="ok">완료</td></tr>
-<tr><td>10</td><td>배포 다듬기</td><td class="wait">진행 중</td></tr>
-</table>
-<p class="sub" style="margin-top:12px">
-밸런스는 <b>오픈베타에서 실제로 해 보고</b> 잡습니다 — 표로 맞추는 것보다 사람이 해 보는 게 빠릅니다.
-이상한 점이 보이면 알려 주세요.
-</p>
-</div>
-
-<h2>개발용 검증 페이지</h2>
-
-<a class="lnk" href="test/determinism.html">
-  <b>단계 2 — 결정론 검증</b>
-  <span class="d">같은 시드로 100번 돌려 경기가 완전히 같은지 확인합니다. 이게 통과해야 결과 링크가 성립합니다.</span>
-</a>
-
-<a class="lnk" href="test/tactics.html">
-  <b>단계 3 — 전술 반영 검증</b>
-  <span class="d">전술 슬라이더 8종이 경기를 실제로 바꾸는지, 어느 방향으로 바꾸는지 측정합니다.</span>
-</a>
-
-<a class="lnk" href="test/headless.html">
-  <b>단계 1 — 엔진 헤드리스 구동</b>
-  <span class="d">매치엔진이 화면 없이 90분을 완주하는지 확인합니다.</span>
-</a>
-
-<p class="sub" style="margin-top:14px">
-⚠ <b>검증 페이지</b>의 선수만 합성 데이터입니다 — 엔진이 도는지 보는 곳이라 형태만 맞으면 됩니다.
-위쪽 화면(라인업·경기·선수단)은 <b>실제 K리그 명단 1,024명</b>을 씁니다.
-</p>
 
 <footer>
 매치엔진은 <a href="https://github.com/KleagueM2026/KM26v2.0">KM26 v2.0</a> 에서 가져왔고, 원저작자의 사용 허락을 받았습니다.
