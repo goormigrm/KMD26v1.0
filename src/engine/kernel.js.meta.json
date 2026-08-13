@@ -1,0 +1,1469 @@
+{
+ "srcHash": "d18fe0dfc09c",
+ "declCount": 347,
+ "lineCount": 6103,
+ "exports": [
+  "MatchSim",
+  "matchSkills",
+  "TAC",
+  "getPosFam",
+  "initPosFam",
+  "canonSlot",
+  "computeFormationPositions",
+  "computeRenderSlots",
+  "FORMATION_SHAPE",
+  "SLOT_FAM",
+  "FAM_NEAR",
+  "FAM_POS",
+  "ROLES",
+  "ROLE_BY_KEY",
+  "TRAITS",
+  "SIM_SECONDS",
+  "SIM_DT",
+  "MATCH_CLOCK_SCALE",
+  "TAC_KEYS",
+  "TAC_DEF",
+  "SLOT_XY",
+  "refCrewOf",
+  "COMM",
+  "onPitch"
+ ],
+ "excluded": [
+  "DOW_KR",
+  "attEstimate",
+  "calOpenDate",
+  "dateOfDay",
+  "home",
+  "isSellout",
+  "matchDayOf",
+  "nextFriendly",
+  "nextOpponent",
+  "staffOpt",
+  "tableOf"
+ ],
+ "stubbed": [
+  "G",
+  "addMood",
+  "addNews",
+  "adjustTrust",
+  "armyAttach",
+  "attendanceFor",
+  "bestXI",
+  "devSnapshot",
+  "ensureAIRoles",
+  "famK",
+  "flash",
+  "fmkFill",
+  "gainPosFam",
+  "gameAlert",
+  "joinClub",
+  "loanSocial",
+  "matchBench",
+  "notify",
+  "refBias",
+  "refreshTactics",
+  "renewSocial",
+  "rivalFill",
+  "rivalFmk",
+  "saveGame",
+  "show",
+  "showConfirm",
+  "socialFill",
+  "stadOf",
+  "staffLog",
+  "teamOVR",
+  "tfLogAdd",
+  "userTeam",
+  "xiStrength"
+ ],
+ "order": [
+  {
+   "name": "R",
+   "srcLine": 1272
+  },
+  {
+   "name": "pick",
+   "srcLine": 1273
+  },
+  {
+   "name": "clamp",
+   "srcLine": 1274
+  },
+  {
+   "name": "FORMATION_SHAPE",
+   "srcLine": 1280
+  },
+  {
+   "name": "MENT_ATTRS",
+   "srcLine": 1359
+  },
+  {
+   "name": "PHYS_ATTRS",
+   "srcLine": 1360
+  },
+  {
+   "name": "attr20",
+   "srcLine": 1411
+  },
+  {
+   "name": "ROLE_GRP",
+   "srcLine": 1687
+  },
+  {
+   "name": "ROLES",
+   "srcLine": 1693
+  },
+  {
+   "name": "ROLE_BY_KEY",
+   "srcLine": 1864
+  },
+  {
+   "name": "ROLE_DEFAULT",
+   "srcLine": 1872
+  },
+  {
+   "name": "getRole",
+   "srcLine": 1873
+  },
+  {
+   "name": "roleFit",
+   "srcLine": 1885
+  },
+  {
+   "name": "roleFx",
+   "srcLine": 1912
+  },
+  {
+   "name": "TRAITS",
+   "srcLine": 1929
+  },
+  {
+   "name": "TRAIT_BY_KEY",
+   "srcLine": 2048
+  },
+  {
+   "name": "FX",
+   "srcLine": 2088
+  },
+  {
+   "name": "TRAIT_FX_K",
+   "srcLine": 2092
+  },
+  {
+   "name": "traitFx",
+   "srcLine": 2093
+  },
+  {
+   "name": "normalizeFx",
+   "srcLine": 2104
+  },
+  {
+   "name": "canonSlot",
+   "srcLine": 2246
+  },
+  {
+   "name": "FAM_POS",
+   "srcLine": 2551
+  },
+  {
+   "name": "SLOT_FAM",
+   "srcLine": 2558
+  },
+  {
+   "name": "FAM_NEAR",
+   "srcLine": 2562
+  },
+  {
+   "name": "initPosFam",
+   "srcLine": 2585
+  },
+  {
+   "name": "getPosFam",
+   "srcLine": 2598
+  },
+  {
+   "name": "frnQ",
+   "srcLine": 2938
+  },
+  {
+   "name": "pickEmergencyGK",
+   "srcLine": 3010
+  },
+  {
+   "name": "slotPickScore",
+   "srcLine": 3015
+  },
+  {
+   "name": "formationSlots",
+   "srcLine": 3023
+  },
+  {
+   "name": "TAC_KEYS",
+   "srcLine": 3349
+  },
+  {
+   "name": "TAC_STEPS",
+   "srcLine": 3350
+  },
+  {
+   "name": "TAC_DEF",
+   "srcLine": 3351
+  },
+  {
+   "name": "tacVal",
+   "srcLine": 3352
+  },
+  {
+   "name": "TAC",
+   "srcLine": 3354
+  },
+  {
+   "name": "getZone",
+   "srcLine": 3411
+  },
+  {
+   "name": "setZone",
+   "srcLine": 3416
+  },
+  {
+   "name": "ROW_SLOTS",
+   "srcLine": 3425
+  },
+  {
+   "name": "SLOT_BAND",
+   "srcLine": 3435
+  },
+  {
+   "name": "BANDS",
+   "srcLine": 3436
+  },
+  {
+   "name": "SLOT_XY",
+   "srcLine": 3449
+  },
+  {
+   "name": "mirrorXY",
+   "srcLine": 3459
+  },
+  {
+   "name": "computeFormationPositions",
+   "srcLine": 3462
+  },
+  {
+   "name": "DEFAULT_SPREAD",
+   "srcLine": 3484
+  },
+  {
+   "name": "FMW",
+   "srcLine": 3498
+  },
+  {
+   "name": "SLOT_FMW",
+   "srcLine": 3540
+  },
+  {
+   "name": "FMW_GK",
+   "srcLine": 3550
+  },
+  {
+   "name": "ATTR_MEAN",
+   "srcLine": 3573
+  },
+  {
+   "name": "attrMeans",
+   "srcLine": 3574
+  },
+  {
+   "name": "ROLEFIT_Q",
+   "srcLine": 3588
+  },
+  {
+   "name": "ROLEFIT_S",
+   "srcLine": 3589
+  },
+  {
+   "name": "FIT_BASE",
+   "srcLine": 3590
+  },
+  {
+   "name": "FIT_Q",
+   "srcLine": 3591
+  },
+  {
+   "name": "FIT_S",
+   "srcLine": 3592
+  },
+  {
+   "name": "playerLevel",
+   "srcLine": 3595
+  },
+  {
+   "name": "STAR_MID",
+   "srcLine": 3618
+  },
+  {
+   "name": "STAR_SPAN",
+   "srcLine": 3619
+  },
+  {
+   "name": "STAR_LEAGUE_OFF",
+   "srcLine": 3626
+  },
+  {
+   "name": "ROLEFIT_LEAGUE_OFF",
+   "srcLine": 3628
+  },
+  {
+   "name": "STAR_CTX",
+   "srcLine": 3629
+  },
+  {
+   "name": "starRefLevel",
+   "srcLine": 3661
+  },
+  {
+   "name": "leagueLevel",
+   "srcLine": 3671
+  },
+  {
+   "name": "_SR_CACHE",
+   "srcLine": 3683
+  },
+  {
+   "name": "slotRating",
+   "srcLine": 3684
+  },
+  {
+   "name": "slotRatingCalc",
+   "srcLine": 3692
+  },
+  {
+   "name": "famStarMul",
+   "srcLine": 3727
+  },
+  {
+   "name": "FAMSTAR_MIN",
+   "srcLine": 3731
+  },
+  {
+   "name": "FAMSTAR_POW",
+   "srcLine": 3732
+  },
+  {
+   "name": "prefSlotOf",
+   "srcLine": 3759
+  },
+  {
+   "name": "setSlot",
+   "srcLine": 3854
+  },
+  {
+   "name": "computeRenderSlots",
+   "srcLine": 3859
+  },
+  {
+   "name": "condFactor",
+   "srcLine": 3982
+  },
+  {
+   "name": "COMM",
+   "srcLine": 4093
+  },
+  {
+   "name": "hasJong",
+   "srcLine": 4208
+  },
+  {
+   "name": "JOSA",
+   "srcLine": 4217
+  },
+  {
+   "name": "fixJosa",
+   "srcLine": 4219
+  },
+  {
+   "name": "F_",
+   "srcLine": 4223
+  },
+  {
+   "name": "ev",
+   "srcLine": 4266
+  },
+  {
+   "name": "onPitch",
+   "srcLine": 4283
+  },
+  {
+   "name": "refVars",
+   "srcLine": 4426
+  },
+  {
+   "name": "banMatches",
+   "srcLine": 4663
+  },
+  {
+   "name": "freezeLiveSlots",
+   "srcLine": 4691
+  },
+  {
+   "name": "subIn",
+   "srcLine": 4703
+  },
+  {
+   "name": "canEnter",
+   "srcLine": 4777
+  },
+  {
+   "name": "AI_SUB_WINDOWS",
+   "srcLine": 4801
+  },
+  {
+   "name": "AI_SUB_TIRED",
+   "srcLine": 4802
+  },
+  {
+   "name": "AI_SUB_URGENT",
+   "srcLine": 4803
+  },
+  {
+   "name": "aiSubs",
+   "srcLine": 4804
+  },
+  {
+   "name": "aiSubOnce",
+   "srcLine": 4817
+  },
+  {
+   "name": "tacticSig",
+   "srcLine": 6424
+  },
+  {
+   "name": "FAM_PENALTY",
+   "srcLine": 6428
+  },
+  {
+   "name": "noteTacticChange",
+   "srcLine": 6429
+  },
+  {
+   "name": "famOf",
+   "srcLine": 6448
+  },
+  {
+   "name": "simPick",
+   "srcLine": 9367
+  },
+  {
+   "name": "starValFromScore",
+   "srcLine": 11058
+  },
+  {
+   "name": "ovrStarVal",
+   "srcLine": 11061
+  },
+  {
+   "name": "lerp",
+   "srcLine": 24096
+  },
+  {
+   "name": "PITCH_AR",
+   "srcLine": 24120
+  },
+  {
+   "name": "clamp01",
+   "srcLine": 24995
+  },
+  {
+   "name": "SPD",
+   "srcLine": 25023
+  },
+  {
+   "name": "SPD_A",
+   "srcLine": 25032
+  },
+  {
+   "name": "ACC_A",
+   "srcLine": 25033
+  },
+  {
+   "name": "paceMul",
+   "srcLine": 25034
+  },
+  {
+   "name": "accMul",
+   "srcLine": 25038
+  },
+  {
+   "name": "SIM_DT",
+   "srcLine": 25300
+  },
+  {
+   "name": "SIM_SECONDS",
+   "srcLine": 25301
+  },
+  {
+   "name": "MATCH_CLOCK_SCALE",
+   "srcLine": 25304
+  },
+  {
+   "name": "TEMPO",
+   "srcLine": 25305
+  },
+  {
+   "name": "PASS_SPEED",
+   "srcLine": 25306
+  },
+  {
+   "name": "CTRL_RADIUS",
+   "srcLine": 25307
+  },
+  {
+   "name": "TACKLE_RANGE",
+   "srcLine": 25308
+  },
+  {
+   "name": "SLIDE_RANGE",
+   "srcLine": 25309
+  },
+  {
+   "name": "SLIDE_COMMIT",
+   "srcLine": 25310
+  },
+  {
+   "name": "STAM_PER_MIN",
+   "srcLine": 25314
+  },
+  {
+   "name": "STAM_REF_RUN",
+   "srcLine": 25315
+  },
+  {
+   "name": "SP_ARRIVE",
+   "srcLine": 25316
+  },
+  {
+   "name": "AERIAL_RANGE",
+   "srcLine": 25317
+  },
+  {
+   "name": "BOX_X",
+   "srcLine": 25318
+  },
+  {
+   "name": "SHOT_TYPE",
+   "srcLine": 25329
+  },
+  {
+   "name": "CURVE_MAX",
+   "srcLine": 25331
+  },
+  {
+   "name": "chooseShotType",
+   "srcLine": 25335
+  },
+  {
+   "name": "GOAL_HALF",
+   "srcLine": 25368
+  },
+  {
+   "name": "SHOT_MAX_M",
+   "srcLine": 25369
+  },
+  {
+   "name": "LS_PREF",
+   "srcLine": 25373
+  },
+  {
+   "name": "LS_SKILL",
+   "srcLine": 25374
+  },
+  {
+   "name": "lsLerp",
+   "srcLine": 25378
+  },
+  {
+   "name": "SHOT_GAIN",
+   "srcLine": 25383
+  },
+  {
+   "name": "BLOCK_P",
+   "srcLine": 25387
+  },
+  {
+   "name": "BLOCK_CORNER_P",
+   "srcLine": 25388
+  },
+  {
+   "name": "CROSS_CORNER_P",
+   "srcLine": 25389
+  },
+  {
+   "name": "ACC_BASE",
+   "srcLine": 25390
+  },
+  {
+   "name": "SAVE_BASE",
+   "srcLine": 25391
+  },
+  {
+   "name": "SHOT_DIV",
+   "srcLine": 25392
+  },
+  {
+   "name": "SHOT_BIAS",
+   "srcLine": 25393
+  },
+  {
+   "name": "BLOCK_W",
+   "srcLine": 25394
+  },
+  {
+   "name": "SHOT_SPEED",
+   "srcLine": 25395
+  },
+  {
+   "name": "SHOT_MIN_TICKS",
+   "srcLine": 25396
+  },
+  {
+   "name": "VAR_CHECK_P",
+   "srcLine": 25398
+  },
+  {
+   "name": "VAR_DECIDE_SECS",
+   "srcLine": 25399
+  },
+  {
+   "name": "VAR_CONFIRM_P",
+   "srcLine": 25400
+  },
+  {
+   "name": "CELEBRATE_OFF_SECS",
+   "srcLine": 25401
+  },
+  {
+   "name": "CELEBRATE_SECS",
+   "srcLine": 25402
+  },
+  {
+   "name": "ISO_TO_M",
+   "srcLine": 25403
+  },
+  {
+   "name": "GRAVITY",
+   "srcLine": 25410
+  },
+  {
+   "name": "GRASS_FRICTION",
+   "srcLine": 25411
+  },
+  {
+   "name": "AIR_DRAG",
+   "srcLine": 25412
+  },
+  {
+   "name": "BOUNCE",
+   "srcLine": 25413
+  },
+  {
+   "name": "BOUNCE_GRIP",
+   "srcLine": 25414
+  },
+  {
+   "name": "BALL_STOPV",
+   "srcLine": 25415
+  },
+  {
+   "name": "BALL_MINBOUNCE",
+   "srcLine": 25416
+  },
+  {
+   "name": "AERIAL_ROLLOUT",
+   "srcLine": 25419
+  },
+  {
+   "name": "OFFSIDE_LATE_P",
+   "srcLine": 25421
+  },
+  {
+   "name": "OFFSIDE_LATE_WIN",
+   "srcLine": 25422
+  },
+  {
+   "name": "CTRL_Z",
+   "srcLine": 25423
+  },
+  {
+   "name": "GOAL_POST",
+   "srcLine": 25425
+  },
+  {
+   "name": "CROSSBAR_Z",
+   "srcLine": 25426
+  },
+  {
+   "name": "VOLLEY_Z",
+   "srcLine": 25427
+  },
+  {
+   "name": "HEAD_Z0",
+   "srcLine": 25428
+  },
+  {
+   "name": "GK_OFFLINE",
+   "srcLine": 25429
+  },
+  {
+   "name": "GK_SWEEP_X",
+   "srcLine": 25430
+  },
+  {
+   "name": "GK_SWEEP_EDGE",
+   "srcLine": 25431
+  },
+  {
+   "name": "GK_CLAIM_P",
+   "srcLine": 25432
+  },
+  {
+   "name": "GK_SUPPORT_X",
+   "srcLine": 25433
+  },
+  {
+   "name": "GK_SWEEP_MIN",
+   "srcLine": 25434
+  },
+  {
+   "name": "GK_SWEEP_PUSH",
+   "srcLine": 25435
+  },
+  {
+   "name": "GK_TURN_DIST",
+   "srcLine": 25436
+  },
+  {
+   "name": "POST_BOUNCE",
+   "srcLine": 25437
+  },
+  {
+   "name": "NET_DRAG",
+   "srcLine": 25438
+  },
+  {
+   "name": "stepBallPhysics",
+   "srcLine": 25442
+  },
+  {
+   "name": "FRIC_EASE",
+   "srcLine": 25473
+  },
+  {
+   "name": "frictionEase",
+   "srcLine": 25474
+  },
+  {
+   "name": "loftPeak",
+   "srcLine": 25476
+  },
+  {
+   "name": "LOOSE_STOP",
+   "srcLine": 25496
+  },
+  {
+   "name": "LOOSE_PICKUP",
+   "srcLine": 25497
+  },
+  {
+   "name": "LOOSE_MAXT",
+   "srcLine": 25498
+  },
+  {
+   "name": "LOOSE_GRACE",
+   "srcLine": 25499
+  },
+  {
+   "name": "LOOSE_CATCH_V",
+   "srcLine": 25501
+  },
+  {
+   "name": "SAVE_TYPE",
+   "srcLine": 25503
+  },
+  {
+   "name": "DIVE_HOLD",
+   "srcLine": 25504
+  },
+  {
+   "name": "BURST_MUL",
+   "srcLine": 25508
+  },
+  {
+   "name": "BURST_DUR",
+   "srcLine": 25509
+  },
+  {
+   "name": "BURST_COOL",
+   "srcLine": 25510
+  },
+  {
+   "name": "CHASE_MAXT",
+   "srcLine": 25511
+  },
+  {
+   "name": "SWEEP_EDGE",
+   "srcLine": 25512
+  },
+  {
+   "name": "REACT_MIN",
+   "srcLine": 25513
+  },
+  {
+   "name": "REACT_MAX",
+   "srcLine": 25514
+  },
+  {
+   "name": "BOOKED_CAUTION",
+   "srcLine": 25517
+  },
+  {
+   "name": "meTune",
+   "srcLine": 25532
+  },
+  {
+   "name": "AERIAL_FOUL_P",
+   "srcLine": 25542
+  },
+  {
+   "name": "SHIRT_FOUL_P",
+   "srcLine": 25543
+  },
+  {
+   "name": "TAKEON_RANGE",
+   "srcLine": 25544
+  },
+  {
+   "name": "TAKEON_TRY",
+   "srcLine": 25545
+  },
+  {
+   "name": "TAKEON_COOL",
+   "srcLine": 25546
+  },
+  {
+   "name": "TAKEON_POW",
+   "srcLine": 25547
+  },
+  {
+   "name": "TAKEON_STAGGER",
+   "srcLine": 25548
+  },
+  {
+   "name": "TAKEON_FAIL_LOSS",
+   "srcLine": 25549
+  },
+  {
+   "name": "TAKEON_GREED",
+   "srcLine": 25550
+  },
+  {
+   "name": "ROLE_FWD_X",
+   "srcLine": 25551
+  },
+  {
+   "name": "ROLE_WIDE_Y",
+   "srcLine": 25552
+  },
+  {
+   "name": "CUTIN_FROM",
+   "srcLine": 25560
+  },
+  {
+   "name": "CUTIN_FULL",
+   "srcLine": 25561
+  },
+  {
+   "name": "CUTIN_MIN_OFF",
+   "srcLine": 25562
+  },
+  {
+   "name": "CUTIN_ANGLE",
+   "srcLine": 25563
+  },
+  {
+   "name": "CUTIN_LOOK",
+   "srcLine": 25564
+  },
+  {
+   "name": "CUTIN_LANE",
+   "srcLine": 25565
+  },
+  {
+   "name": "ROLE_PM_BONUS",
+   "srcLine": 25566
+  },
+  {
+   "name": "ROLE_SPOT_W",
+   "srcLine": 25567
+  },
+  {
+   "name": "BODY_R",
+   "srcLine": 25568
+  },
+  {
+   "name": "DISCIPLINE_SOFT",
+   "srcLine": 25574
+  },
+  {
+   "name": "DISCIPLINE_MAX",
+   "srcLine": 25575
+  },
+  {
+   "name": "DEF_DISC",
+   "srcLine": 25576
+  },
+  {
+   "name": "COMPACT_MAX",
+   "srcLine": 25577
+  },
+  {
+   "name": "ITC_MUL",
+   "srcLine": 25578
+  },
+  {
+   "name": "SHOT_BIAS_ADJ",
+   "srcLine": 25579
+  },
+  {
+   "name": "CROSS_ADJ",
+   "srcLine": 25580
+  },
+  {
+   "name": "SPACING_R",
+   "srcLine": 25581
+  },
+  {
+   "name": "SPACING_PUSH",
+   "srcLine": 25582
+  },
+  {
+   "name": "PUSH_MAX",
+   "srcLine": 25583
+  },
+  {
+   "name": "SHIELD_BONUS",
+   "srcLine": 25584
+  },
+  {
+   "name": "JOSTLE_ITER",
+   "srcLine": 25585
+  },
+  {
+   "name": "ACCEL_BASE",
+   "srcLine": 25590
+  },
+  {
+   "name": "DECEL_MUL",
+   "srcLine": 25595
+  },
+  {
+   "name": "GK_CATCH_X",
+   "srcLine": 25598
+  },
+  {
+   "name": "GK_CATCH_R",
+   "srcLine": 25599
+  },
+  {
+   "name": "GK_CATCH_P",
+   "srcLine": 25600
+  },
+  {
+   "name": "POS_ERR_MAX",
+   "srcLine": 25601
+  },
+  {
+   "name": "POS_ERR_DRIFT",
+   "srcLine": 25602
+  },
+  {
+   "name": "HESITATE_MAX",
+   "srcLine": 25603
+  },
+  {
+   "name": "LINE_SYNC",
+   "srcLine": 25604
+  },
+  {
+   "name": "INJ_TICK_P",
+   "srcLine": 25608
+  },
+  {
+   "name": "INJ_TACKLE_P",
+   "srcLine": 25609
+  },
+  {
+   "name": "INJ_DOWN_SECS",
+   "srcLine": 25610
+  },
+  {
+   "name": "CB_ZONE_X",
+   "srcLine": 25611
+  },
+  {
+   "name": "CB_ZONE_Y",
+   "srcLine": 25612
+  },
+  {
+   "name": "CB_MARK_Y",
+   "srcLine": 25613
+  },
+  {
+   "name": "CB_MARK_X",
+   "srcLine": 25614
+  },
+  {
+   "name": "CB_MARK_GOALSIDE",
+   "srcLine": 25615
+  },
+  {
+   "name": "CB_MARK_LEASH",
+   "srcLine": 25616
+  },
+  {
+   "name": "CB_ZONE_NEAR",
+   "srcLine": 25617
+  },
+  {
+   "name": "TARGET_SMOOTH",
+   "srcLine": 25618
+  },
+  {
+   "name": "TARGET_JUMP",
+   "srcLine": 25619
+  },
+  {
+   "name": "TARGET_DEAD",
+   "srcLine": 25620
+  },
+  {
+   "name": "ARRIVE_R",
+   "srcLine": 25626
+  },
+  {
+   "name": "ARRIVE_MIN",
+   "srcLine": 25627
+  },
+  {
+   "name": "TARGET_HOLD",
+   "srcLine": 25630
+  },
+  {
+   "name": "TURN_RATE",
+   "srcLine": 25632
+  },
+  {
+   "name": "DRIB_TOUCH",
+   "srcLine": 25633
+  },
+  {
+   "name": "DRIB_LEAD",
+   "srcLine": 25634
+  },
+  {
+   "name": "BALL_ROLL_FRICTION",
+   "srcLine": 25635
+  },
+  {
+   "name": "CROSS_BLOCK_R",
+   "srcLine": 25636
+  },
+  {
+   "name": "CROSS_BLOCK_P",
+   "srcLine": 25637
+  },
+  {
+   "name": "shotGeom",
+   "srcLine": 25641
+  },
+  {
+   "name": "shotLaneBlockers",
+   "srcLine": 25655
+  },
+  {
+   "name": "evaluateShot",
+   "srcLine": 25677
+  },
+  {
+   "name": "SETPIECE_PHASES",
+   "srcLine": 25734
+  },
+  {
+   "name": "PEN_MARK_M",
+   "srcLine": 25747
+  },
+  {
+   "name": "PITCH_LEN_M",
+   "srcLine": 25748
+  },
+  {
+   "name": "PEN_SPOT_ADV",
+   "srcLine": 25749
+  },
+  {
+   "name": "SP_KEEPOUT_M",
+   "srcLine": 25750
+  },
+  {
+   "name": "PEN_WAIT",
+   "srcLine": 25754
+  },
+  {
+   "name": "PEN_BOX_CAUTION",
+   "srcLine": 25764
+  },
+  {
+   "name": "PEN_ACC_BASE",
+   "srcLine": 25765
+  },
+  {
+   "name": "PEN_SAVE_BASE",
+   "srcLine": 25766
+  },
+  {
+   "name": "WALL_MAX_M",
+   "srcLine": 25768
+  },
+  {
+   "name": "WALL_GAP_M",
+   "srcLine": 25769
+  },
+  {
+   "name": "WALL_SHIFT_M",
+   "srcLine": 25770
+  },
+  {
+   "name": "FK_DIRECT_M",
+   "srcLine": 25771
+  },
+  {
+   "name": "SP_WALL_HOLD",
+   "srcLine": 25772
+  },
+  {
+   "name": "CORNER_SHORT_P",
+   "srcLine": 25773
+  },
+  {
+   "name": "HL_BUF_MAX",
+   "srcLine": 25777
+  },
+  {
+   "name": "HL_CAP_MAX",
+   "srcLine": 25778
+  },
+  {
+   "name": "HL_W",
+   "srcLine": 25791
+  },
+  {
+   "name": "THROW_MAX",
+   "srcLine": 25794
+  },
+  {
+   "name": "MATCH_STATE",
+   "srcLine": 25796
+  },
+  {
+   "name": "SP_STATE",
+   "srcLine": 25799
+  },
+  {
+   "name": "CARD",
+   "srcLine": 25805
+  },
+  {
+   "name": "FOUL_SCENE_T",
+   "srcLine": 25806
+  },
+  {
+   "name": "SIM_REF_SPEED",
+   "srcLine": 25807
+  },
+  {
+   "name": "SIM_REF_TRAIL",
+   "srcLine": 25808
+  },
+  {
+   "name": "SETPIECE_KEEPOUT",
+   "srcLine": 25810
+  },
+  {
+   "name": "SETPIECE_BACK",
+   "srcLine": 25811
+  },
+  {
+   "name": "CROSS_TYPE",
+   "srcLine": 25812
+  },
+  {
+   "name": "advOf",
+   "srcLine": 25814
+  },
+  {
+   "name": "inBox",
+   "srcLine": 25815
+  },
+  {
+   "name": "evaluateCross",
+   "srcLine": 25821
+  },
+  {
+   "name": "PASS_TYPE",
+   "srcLine": 25873
+  },
+  {
+   "name": "PASS_LONG_M",
+   "srcLine": 25874
+  },
+  {
+   "name": "PASS_VMAX",
+   "srcLine": 25875
+  },
+  {
+   "name": "PASS_OVER",
+   "srcLine": 25876
+  },
+  {
+   "name": "THRU_SPACE_MIN",
+   "srcLine": 25901
+  },
+  {
+   "name": "THRU_LOOK",
+   "srcLine": 25902
+  },
+  {
+   "name": "THRU_CROWD_MAX",
+   "srcLine": 25903
+  },
+  {
+   "name": "throughSpaceCheck",
+   "srcLine": 25904
+  },
+  {
+   "name": "runDistance",
+   "srcLine": 25931
+  },
+  {
+   "name": "interceptPointAccel",
+   "srcLine": 25936
+  },
+  {
+   "name": "passLaunchSpeed",
+   "srcLine": 25960
+  },
+  {
+   "name": "findBestPass",
+   "srcLine": 25967
+  },
+  {
+   "name": "decideCrossDelivery",
+   "srcLine": 26057
+  },
+  {
+   "name": "EARLY_RUN_P",
+   "srcLine": 26067
+  },
+  {
+   "name": "EARLY_RUN_LEAD",
+   "srcLine": 26068
+  },
+  {
+   "name": "OFFSIDE_SEEN",
+   "srcLine": 26069
+  },
+  {
+   "name": "offsideLineX",
+   "srcLine": 26071
+  },
+  {
+   "name": "isOffsidePos",
+   "srcLine": 26078
+  },
+  {
+   "name": "PRESS_RADIUS",
+   "srcLine": 26086
+  },
+  {
+   "name": "PAIR_CENTER",
+   "srcLine": 26094
+  },
+  {
+   "name": "PAIR_TIGHT",
+   "srcLine": 26098
+  },
+  {
+   "name": "slotUsed",
+   "srcLine": 26101
+  },
+  {
+   "name": "tacticalAnchorXY",
+   "srcLine": 26111
+  },
+  {
+   "name": "pressureOn",
+   "srcLine": 26147
+  },
+  {
+   "name": "laneBlocked",
+   "srcLine": 26156
+  },
+  {
+   "name": "evaluatePassOptions",
+   "srcLine": 26173
+  },
+  {
+   "name": "OFF_ROLE",
+   "srcLine": 26227
+  },
+  {
+   "name": "WIDE_SLOTS",
+   "srcLine": 26228
+  },
+  {
+   "name": "SLOT_SIDE",
+   "srcLine": 26231
+  },
+  {
+   "name": "MID_SLOTS",
+   "srcLine": 26232
+  },
+  {
+   "name": "FWD_SLOTS",
+   "srcLine": 26233
+  },
+  {
+   "name": "oppLineX",
+   "srcLine": 26235
+  },
+  {
+   "name": "assignOffRoles",
+   "srcLine": 26246
+  },
+  {
+   "name": "roleAnchorXY",
+   "srcLine": 26285
+  },
+  {
+   "name": "findOpenSpot",
+   "srcLine": 26322
+  },
+  {
+   "name": "DEF_ROLE",
+   "srcLine": 26380
+  },
+  {
+   "name": "exposedFlank",
+   "srcLine": 26384
+  },
+  {
+   "name": "topThreat",
+   "srcLine": 26395
+  },
+  {
+   "name": "assignDefRoles",
+   "srcLine": 26408
+  },
+  {
+   "name": "defTargetXY",
+   "srcLine": 26535
+  },
+  {
+   "name": "blockDepth",
+   "srcLine": 26619
+  },
+  {
+   "name": "compactY",
+   "srcLine": 26625
+  },
+  {
+   "name": "goalSideX",
+   "srcLine": 26634
+  },
+  {
+   "name": "W",
+   "srcLine": 26647
+  },
+  {
+   "name": "applyFamiliarity",
+   "srcLine": 26654
+  },
+  {
+   "name": "TFAM_PASS",
+   "srcLine": 26672
+  },
+  {
+   "name": "applyTeamFam",
+   "srcLine": 26673
+  },
+  {
+   "name": "BODY_REF_H",
+   "srcLine": 26687
+  },
+  {
+   "name": "bodyFx",
+   "srcLine": 26688
+  },
+  {
+   "name": "FAM_PEN_HEAVY",
+   "srcLine": 26707
+  },
+  {
+   "name": "FAM_PEN_LIGHT",
+   "srcLine": 26708
+  },
+  {
+   "name": "FAM_CURVE",
+   "srcLine": 26709
+  },
+  {
+   "name": "BAND_ORDER",
+   "srcLine": 26711
+  },
+  {
+   "name": "OUTBAND_PEN",
+   "srcLine": 26712
+  },
+  {
+   "name": "GK_MISUSE",
+   "srcLine": 26713
+  },
+  {
+   "name": "bandGapPenalty",
+   "srcLine": 26714
+  },
+  {
+   "name": "matchSkills",
+   "srcLine": 26725
+  },
+  {
+   "name": "MatchSim",
+   "srcLine": 26807
+  },
+  {
+   "name": "REF_FAM_DEF",
+   "srcLine": 31254
+  },
+  {
+   "name": "refNames",
+   "srcLine": 31255
+  },
+  {
+   "name": "REF_TRAIT",
+   "srcLine": 31259
+  },
+  {
+   "name": "refCrewOf",
+   "srcLine": 31281
+  }
+ ]
+}

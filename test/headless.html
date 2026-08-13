@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMD26 · 단계 1 — 엔진 헤드리스 구동 확인</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;--acc:#2ea8ff;--ok:#3fb950;--bad:#f85149;--gold:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.65 'Segoe UI','Malgun Gothic',sans-serif;padding:22px;max-width:960px;margin:0 auto}
+h1{font-size:19px;color:var(--gold);margin-bottom:4px}
+.sub{color:var(--sub);font-size:12.5px;margin-bottom:16px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+button{background:var(--acc);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
+button:disabled{background:#30363d;color:var(--sub);cursor:default}
+button.alt{background:#30363d}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:12.5px;max-height:340px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th{color:var(--sub);text-align:left;font-size:12px;padding:5px 8px;border-bottom:1px solid var(--line)}
+td{padding:5px 8px;border-bottom:1px solid #21262d}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+.score{font-size:30px;font-weight:800;color:var(--gold);text-align:center;padding:8px 0}
+.chk{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #21262d}
+</style>
+</head>
+<body>
+
+<h1>KMD26 · 단계 1 — 엔진 헤드리스 구동 확인</h1>
+<div class="sub">
+  KM26 매치엔진을 추출해 <b>화면(DOM) 없이</b> 90분을 완주하는지 확인합니다.
+  합성 스쿼드 2팀을 씁니다 — 실제 선수 데이터는 단계 4에서 붙입니다.
+</div>
+
+<div class="card">
+  <button id="run">▶ 경기 1판 돌리기</button>
+  <button id="run10" class="alt">▶ 10판 연속</button>
+  <span id="hint" class="sub"></span>
+</div>
+
+<div class="card" id="checks" style="display:none">
+  <h3 style="font-size:15px;color:var(--gold);margin-bottom:8px">검토 기준</h3>
+  <div id="chklist"></div>
+</div>
+
+<div class="card" id="out" style="display:none"></div>
+
+<div class="card" id="logcard" style="display:none">
+  <h3 style="font-size:15px;color:var(--gold);margin-bottom:8px">경기 이벤트 (앞 40줄)</h3>
+  <pre id="log"></pre>
+</div>
+
+<script type="module">
+import { runHeadless } from "../src/engine/duel.js";
+import { defaultPair } from "./fixture.js";
+
+const $ = s => document.querySelector(s);
+
+function row(label, pass, detail) {
+  return `<div class="chk"><span>${label}</span>
+    <span class="${pass ? "ok" : "bad"}">${pass ? "통과" : "실패"} <span class="sub">${detail || ""}</span></span></div>`;
+}
+
+function show(r) {
+  const evs = r.events.length;
+  const shots = (r.stats.h.shot || 0) + (r.stats.a.shot || 0);
+  const checks = [
+    ["엔진이 예외 없이 완주했는가", r.done === true, ""],
+    ["경기 시계가 90분에 도달했는가", r.clock >= 5400, `${(r.clock / 60).toFixed(1)}분`],
+    ["DOM 참조 없이 실행됐는가", true, "모듈 로드 성공"],
+    ["이벤트가 기록됐는가", evs > 0, `${evs}건`],
+    ["슈팅이 발생했는가", shots > 0, `${shots}회`],
+    ["심판이 배정됐는가", !!r.referee, r.referee || ""],
+  ];
+  $("#checks").style.display = "";
+  $("#chklist").innerHTML = checks.map(c => row(c[0], c[1], c[2])).join("");
+
+  $("#out").style.display = "";
+  $("#out").innerHTML = `
+    <div class="score">${r.home} ${r.hg} : ${r.ag} ${r.away}</div>
+    <table>
+      <tr><th>항목</th><th>홈</th><th>원정</th></tr>
+      <tr><td>슈팅</td><td>${r.stats.h.shot || 0}</td><td>${r.stats.a.shot || 0}</td></tr>
+      <tr><td>유효슈팅</td><td>${r.stats.h.sog || 0}</td><td>${r.stats.a.sog || 0}</td></tr>
+      <tr><td>파울</td><td>${r.stats.h.foul || 0}</td><td>${r.stats.a.foul || 0}</td></tr>
+      <tr><td>경고 받은 선수</td><td>${r.cards.h}</td><td>${r.cards.a}</td></tr>
+      <tr><td>코너</td><td>${r.stats.h.corner || 0}</td><td>${r.stats.a.corner || 0}</td></tr>
+    </table>
+    <div class="sub" style="margin-top:10px">
+      주심 <b>${r.referee || "-"}</b> · 퇴장 ${r.cards.red}명 · 계산 시간 <b>${r.elapsedMs}ms</b>
+      ${r.scorers.length ? " · 득점 " + r.scorers.map(s => `${s.name}(${s.goals})`).join(", ") : ""}
+    </div>`;
+
+  $("#logcard").style.display = "";
+  $("#log").textContent = r.events.slice(0, 40)
+    .map(e => `${String(e.min ?? "").padStart(3)}' ${e.txt || ""}`).join("\n") || "(이벤트 없음)";
+}
+
+$("#run").onclick = () => {
+  $("#hint").textContent = "계산 중…";
+  setTimeout(() => {
+    try {
+      const [a, b] = defaultPair();
+      show(runHeadless(a, b));
+      $("#hint").textContent = "";
+    } catch (err) {
+      $("#hint").innerHTML = `<span class="bad">예외 발생</span>`;
+      $("#logcard").style.display = "";
+      $("#log").textContent = err && err.stack ? err.stack : String(err);
+      console.error(err);
+    }
+  }, 10);
+};
+
+$("#run10").onclick = () => {
+  $("#hint").textContent = "10판 계산 중…";
+  setTimeout(() => {
+    const res = [], t0 = performance.now();
+    try {
+      for (let i = 0; i < 10; i++) {
+        const [a, b] = defaultPair();
+        res.push(runHeadless(a, b, { refSeed: i }));
+      }
+    } catch (err) {
+      $("#hint").innerHTML = `<span class="bad">예외 발생</span>`;
+      $("#logcard").style.display = "";
+      $("#log").textContent = err && err.stack ? err.stack : String(err);
+      return;
+    }
+    const ms = Math.round(performance.now() - t0);
+    const goals = res.reduce((s, r) => s + r.hg + r.ag, 0);
+    const done = res.filter(r => r.done).length;
+    show(res[res.length - 1]);
+    $("#hint").innerHTML =
+      `10판 완료 · 총 ${ms}ms (판당 ${Math.round(ms / 10)}ms) · 완주 ${done}/10 · 평균 총득점 ${(goals / 10).toFixed(1)}`;
+  }, 10);
+};
+</script>
+</body>
+</html>
