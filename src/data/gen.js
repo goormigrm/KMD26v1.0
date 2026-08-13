@@ -3,7 +3,7 @@
    생성: tools/extract_data.py
    원본: KM26 v2.0 (KleagueM2026/KM26v2.0) — 원저작자 허락 하에 사용
    원본 해시: sha256:d18fe0dfc09c
-   추출 선언 83개 / 1241줄
+   추출 선언 88개 / 1282줄
    난수 시드화: Math.random() 18곳 → RNG()
 
    ── 듀얼 패치 ─────────────────────────────────────────────
@@ -149,6 +149,22 @@ const ROSTER26={
 const R = (n)=>Math.floor(RNG()*n);
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+const FORMATION_SHAPE={
+  "4-3-3":   [["DF","LB"],["DF","LCB"],["DF","RCB"],["DF","RB"],["MF","LCM"],["MF","CM"],["MF","RCM"],["FW","LW"],["FW","ST"],["FW","RW"]],
+  "4-4-2":   [["DF","LB"],["DF","LCB"],["DF","RCB"],["DF","RB"],["MF","LM"],["MF","LCM"],["MF","RCM"],["MF","RM"],["FW","LS"],["FW","RS"]],
+  "4-2-3-1": [["DF","LB"],["DF","LCB"],["DF","RCB"],["DF","RB"],["DM","LDM"],["DM","RDM"],["AM","LAM"],["AM","CAM"],["AM","RAM"],["FW","ST"]],
+  "4-1-4-1": [["DF","LB"],["DF","LCB"],["DF","RCB"],["DF","RB"],["DM","DM"],["MF","LM"],["MF","LCM"],["MF","RCM"],["MF","RM"],["FW","ST"]],
+  "4-2-2-2": [["DF","LB"],["DF","LCB"],["DF","RCB"],["DF","RB"],["DM","LDM"],["DM","RDM"],["AM","LAM"],["AM","RAM"],["FW","LS"],["FW","RS"]],
+  "4-3-1-2": [["DF","LB"],["DF","LCB"],["DF","RCB"],["DF","RB"],["MF","LCM"],["MF","CM"],["MF","RCM"],["AM","CAM"],["FW","LS"],["FW","RS"]],
+  "4-4-1-1": [["DF","LB"],["DF","LCB"],["DF","RCB"],["DF","RB"],["MF","LM"],["MF","LCM"],["MF","RCM"],["MF","RM"],["AM","CAM"],["FW","ST"]],
+  "3-5-2":   [["DF","LCB"],["DF","CB"],["DF","RCB"],["WB","LWB"],["WB","RWB"],["MF","LCM"],["MF","CM"],["MF","RCM"],["FW","LS"],["FW","RS"]],
+  "5-3-2":   [["DF","LB"],["DF","LCB"],["DF","CB"],["DF","RCB"],["DF","RB"],["MF","LCM"],["MF","CM"],["MF","RCM"],["FW","LS"],["FW","RS"]],
+  "5-2-1-2": [["DF","LB"],["DF","LCB"],["DF","CB"],["DF","RCB"],["DF","RB"],["DM","LDM"],["DM","RDM"],["AM","CAM"],["FW","LS"],["FW","RS"]],
+  "3-4-3":   [["DF","LCB"],["DF","CB"],["DF","RCB"],["MF","LM"],["MF","LCM"],["MF","RCM"],["MF","RM"],["FW","LW"],["FW","ST"],["FW","RW"]],
+  "3-4-2-1": [["DF","LCB"],["DF","CB"],["DF","RCB"],["MF","LM"],["MF","LCM"],["MF","RCM"],["MF","RM"],["AM","LAM"],["AM","RAM"],["FW","ST"]]
+};
+/* 포메이션을 팀에 적용한다 — 선발 11명을 뽑고, 각자 어울리는 라인·슬롯에 앉힌다. */
 
 let PID=1;
 
@@ -1007,6 +1023,16 @@ const FAM_NEAR={
 /* 능숙도 눈금 — 위 세 칸이 전부 초록 계열이라 화면에서 구분이 안 갔다.
    초록 → 연두 → 노랑 → 주황 → 빨강으로 색상환을 따라 내려가게 다시 짰다. */
 
+const FAM_LV=[
+  {min:96,n:"자연스러움",c:"#00d26a"},   // 원래 자리
+  {min:85,n:"매우 능숙", c:"#5ce65c"},
+  {min:70,n:"능숙함",   c:"#a8e04a"},   // 연두
+  {min:55,n:"무난함",   c:"#e3d34a"},   // 노란빛
+  {min:40,n:"미숙함",   c:"#e8a33a"},   // 주황
+  {min:20,n:"어색함",   c:"#e8683a"},
+  {min:0, n:"못함",     c:"#f85149"}
+];
+
 function initPosFam(p){
   const home = SLOT_FAM[p.prefPos] || (p.pos==="GK"?"GK":p.pos==="DF"?"DC":p.pos==="MF"?"MC":"ST");
   const f={};
@@ -1131,6 +1157,21 @@ function estimateOvr(base, by, no, frn, pos){
   const v = base + ageAdj + noAdj + (frn?3:0);   // [KMD26 D-2] (R(7)-3) 제거 — 기대값 0
   return clamp(v, 50, base+8);
 }
+
+const TAC_KEYS=["pass","tempo","press","line","width","mentality","tackle","longShot"];
+
+const TAC_DEF={pass:2,tempo:2,press:2,line:2,width:2,counter:false,mentality:2,tackle:2,longShot:2};
+
+const SLOT_XY={
+  GK:{x:0.04,y:0.5},
+  LB:{x:0.20,y:0.10}, LCB:{x:0.16,y:0.32}, CB:{x:0.14,y:0.5}, RCB:{x:0.16,y:0.68}, RB:{x:0.20,y:0.90},
+  SW:{x:0.09,y:0.5},
+  LWB:{x:0.25,y:0.06}, RWB:{x:0.25,y:0.94},
+  LDM:{x:0.29,y:0.36}, DM:{x:0.27,y:0.5}, RDM:{x:0.29,y:0.64},
+  LM:{x:0.46,y:0.12}, LCM:{x:0.42,y:0.34}, CM:{x:0.40,y:0.5}, RCM:{x:0.42,y:0.66}, RM:{x:0.46,y:0.88},
+  LAM:{x:0.60,y:0.28}, CAM:{x:0.60,y:0.5}, RAM:{x:0.60,y:0.72},
+  LW:{x:0.72,y:0.15}, LS:{x:0.76,y:0.36}, ST:{x:0.80,y:0.5}, RS:{x:0.76,y:0.64}, RW:{x:0.72,y:0.85}
+};
 
 let ATTR_MEAN=null, ATTR_MEAN_AT=-1;
 
@@ -1274,5 +1315,11 @@ export {
   starGrade,
   starRefLevel,
   playerLevel,
-  STAR_GAIN
+  STAR_GAIN,
+  FORMATION_SHAPE,
+  SLOT_XY,
+  FAM_LV,
+  TAC_DEF,
+  TAC_KEYS,
+  SLOT_FAM
 };

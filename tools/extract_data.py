@@ -39,7 +39,10 @@ ROOTS = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", 
          "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER",
          # 별점 — 화면에 능력치 숫자를 그대로 띄우지 않기 위해. KM26 과 같은 눈금을 써야 하므로
          # 계산식을 베끼지 않고 원본 함수를 그대로 돌린다 (은색 눈금까지 포함).
-         "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN"]
+         "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN",
+         # 전술판이 쓸 표 — 포메이션 · 자리 좌표 · 능숙도 눈금 · 전술 기본값.
+         # 화면에 베껴 두면 원본이 바뀔 때 어긋난다.
+         "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS"]
 
 # 탐색을 멈출 지점 — 시즌 상태·UI·저장. 선수를 만드는 데는 필요 없다.
 STUB = set("""G userTeam saveGame addNews notify flash gameAlert showConfirm show refreshTactics
@@ -99,7 +102,8 @@ hdr = (
 exports = ["mkTeam", "D1", "D2", "ROSTER26", "PLAYER_TWEAK", "PREF_POS_OVERRIDE", "CUR_YEAR",
            "ATTR_LABEL_FM", "FAM_LABEL", "FAM_POS", "TRAITS",
            "TECH_ORDER", "MENT_ORDER", "PHYS_ORDER", "GK_ORDER",
-           "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN"]
+           "starGrade", "starRefLevel", "playerLevel", "STAR_GAIN",
+           "FORMATION_SHAPE", "SLOT_XY", "FAM_LV", "TAC_DEF", "TAC_KEYS", "SLOT_FAM"]
 exports = [e for e in exports if e in seen]
 tail = "\n\nexport {\n  " + ",\n  ".join(exports) + "\n};\n"
 

@@ -1,7 +1,7 @@
 {
  "srcHash": "d18fe0dfc09c",
- "declCount": 83,
- "lineCount": 1241,
+ "declCount": 88,
+ "lineCount": 1282,
  "rngSites": 18,
  "exports": [
   "mkTeam",
@@ -22,7 +22,13 @@
   "starGrade",
   "starRefLevel",
   "playerLevel",
-  "STAR_GAIN"
+  "STAR_GAIN",
+  "FORMATION_SHAPE",
+  "SLOT_XY",
+  "FAM_LV",
+  "TAC_DEF",
+  "TAC_KEYS",
+  "SLOT_FAM"
  ],
  "patches": [
   {
@@ -54,6 +60,10 @@
   {
    "name": "clamp",
    "srcLine": 1274
+  },
+  {
+   "name": "FORMATION_SHAPE",
+   "srcLine": 1280
   },
   {
    "name": "PID",
@@ -260,6 +270,10 @@
    "srcLine": 2562
   },
   {
+   "name": "FAM_LV",
+   "srcLine": 2574
+  },
+  {
    "name": "initPosFam",
    "srcLine": 2585
   },
@@ -290,6 +304,18 @@
   {
    "name": "estimateOvr",
    "srcLine": 2988
+  },
+  {
+   "name": "TAC_KEYS",
+   "srcLine": 3349
+  },
+  {
+   "name": "TAC_DEF",
+   "srcLine": 3351
+  },
+  {
+   "name": "SLOT_XY",
+   "srcLine": 3449
   },
   {
    "name": "ATTR_MEAN",

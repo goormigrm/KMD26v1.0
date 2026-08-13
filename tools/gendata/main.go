@@ -113,6 +113,15 @@ func main() {
         tech: TECH_ORDER, ment: MENT_ORDER, phys: PHYS_ORDER, gk: GK_ORDER,
         // 특성은 선수 항목에 키만 저장된다("looksForPass"). 읽을 이름은 여기서 온다.
         trait: TRAITS.reduce(function(o, t){ o[t.k] = t.n; return o; }, {})
+      },
+      // 전술판이 쓸 표 — 화면에 베껴 두면 원본이 바뀔 때 어긋난다
+      tables: {
+        formation: FORMATION_SHAPE,  // 포메이션 → 자리 10개 (골키퍼는 늘 있으므로 빠져 있다)
+        slotXY: SLOT_XY,             // 자리 → 전술판 좌표 (0~1)
+        slotFam: SLOT_FAM,           // 자리 → 능숙도 항목
+        famLv: FAM_LV,               // 능숙도 → 이름·색
+        tacDef: TAC_DEF,             // 전술 기본값
+        tacKeys: TAC_KEYS            // 슬라이더 8종의 순서
       }
     });
   `, *seed)
@@ -123,6 +132,7 @@ func main() {
 		K1      []map[string]any `json:"k1"`
 		K2      []map[string]any `json:"k2"`
 		Labels  map[string]any   `json:"labels"`
+		Tables  map[string]any   `json:"tables"`
 		StarRef float64          `json:"starRef"`
 	}
 	check(json.Unmarshal([]byte(v.String()), &built), "생성 결과를 읽지 못했습니다")
@@ -169,7 +179,8 @@ func main() {
 
 	check(os.MkdirAll(outDir, 0o755), "data 폴더를 만들지 못했습니다")
 	teamsB := writeJSON(filepath.Join(outDir, "teams.json"),
-		map[string]any{"order": order, "teams": teams, "labels": built.Labels})
+		map[string]any{"order": order, "teams": teams,
+			"labels": built.Labels, "tables": built.Tables})
 	playersB := writeJSON(filepath.Join(outDir, "players.json"), players)
 
 	// 데이터 해시 — 단계 5 에서 대전 코드에 박아, 서로 다른 명단으로 재생하는 사고를 막는다.

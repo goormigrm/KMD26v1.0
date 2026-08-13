@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMD26 · 라인업</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#0b0f14;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;
+      --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341;--turf:#16351f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.6 'Segoe UI','Malgun Gothic',sans-serif;
+     padding:16px 12px 80px;max-width:1180px;margin:0 auto}
+a{color:var(--acc);text-decoration:none}
+h1{font-size:18px;color:var(--gold)}
+h3{font-size:13.5px;color:var(--gold);margin-bottom:7px}
+.sub{color:var(--sub);font-size:12.5px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:13px 14px;margin-bottom:12px}
+
+/* ── 팀 고르기 ─────────────────────────────── */
+.tabs{display:flex;gap:6px;margin-bottom:9px}
+.tab{background:var(--bg2);border:1px solid var(--line);color:var(--sub);border-radius:8px;
+     padding:6px 13px;font-size:13px;font-weight:700;cursor:pointer}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:7px}
+.team{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);
+      border-radius:9px;padding:9px 10px;cursor:pointer;font-size:14px;font-weight:700;color:var(--txt)}
+.team:hover{border-color:var(--acc);background:#1c2530}
+.team.on{border-color:var(--acc);background:#12283d;box-shadow:inset 0 0 0 1px var(--acc)}
+.chip{width:5px;height:22px;border-radius:3px;flex:none;box-shadow:0 0 0 1px #0006}
+
+/* ── 본문 2단 ─────────────────────────────── */
+.wrap{display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(300px,1fr);gap:12px;align-items:start}
+@media (max-width:860px){ .wrap{grid-template-columns:1fr} }
+
+/* ── 전술판 ───────────────────────────────── */
+.pitch{position:relative;width:100%;aspect-ratio:5/7;border-radius:10px;overflow:hidden;
+       background:linear-gradient(180deg,#122b19,#0f2415);border:1px solid #24402a}
+.pitch .ln{position:absolute;border:1px solid #ffffff20}
+.slot{position:absolute;transform:translate(-50%,-50%);width:62px;text-align:center;cursor:pointer;
+      user-select:none;-webkit-user-select:none}
+.slot .dot{width:38px;height:38px;margin:0 auto;border-radius:50%;background:#0b0f14cc;
+      border:2px solid var(--line);display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:800;color:var(--sub)}
+.slot .nm{font-size:11px;margin-top:2px;font-weight:700;text-shadow:0 1px 3px #000;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot .po{font-size:9.5px;color:#cbd5e1;text-shadow:0 1px 3px #000}
+.slot.sel .dot{border-color:var(--acc);box-shadow:0 0 0 3px #2ea8ff44}
+.slot.empty .dot{border-style:dashed}
+
+/* ── 선수 목록 ─────────────────────────────── */
+.plist{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:9px;background:var(--bg3)}
+.prow{display:flex;align-items:center;gap:9px;padding:7px 9px;border-bottom:1px solid #1b2028;cursor:pointer}
+.prow:last-child{border-bottom:0}
+.prow:hover{background:#161b22}
+.prow.used{opacity:.38}
+.prow .no{width:24px;text-align:right;color:var(--sub);font-size:12px;font-variant-numeric:tabular-nums}
+.prow .nm{flex:1;font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .pp{background:#161b22;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px;color:var(--sub)}
+.fam{width:34px;text-align:center;font-size:11px;font-weight:800;border-radius:5px;padding:1px 0}
+
+/* ── 별점 ─────────────────────────────────── */
+.stars{position:relative;display:inline-block;color:#39404d;letter-spacing:1.5px;
+       font-size:12px;white-space:nowrap;line-height:1}
+.stars::before{content:'★★★★★';position:absolute;left:0;top:0;width:var(--pct,0%);
+       overflow:hidden;color:var(--gold);white-space:nowrap}
+.stars.silver::before{color:#aab4c0}
+
+/* ── 전술 슬라이더 ─────────────────────────── */
+.sl{display:grid;grid-template-columns:74px 1fr 60px;align-items:center;gap:9px;margin-bottom:7px}
+.sl label{font-size:12.5px;color:var(--sub)}
+.sl input[type=range]{width:100%;accent-color:var(--acc)}
+.sl .v{font-size:12px;font-weight:700;text-align:right}
+select,button{background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+       border-radius:8px;padding:8px 11px;font-size:13.5px;font-weight:700;cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.warn{color:var(--warn)}
+.note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
+      border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div><h1>라인업</h1><div class="sub" id="meta">불러오는 중…</div></div>
+  <div class="sub"><a href="index.html">← 첫 페이지</a> · <a href="squad.html">선수단</a></div>
+</div>
+
+<div class="card" id="pick">
+  <div class="tabs">
+    <button class="tab on" data-lg="k1">K리그1</button>
+    <button class="tab" data-lg="k2">K리그2</button>
+  </div>
+  <div class="teams" id="teams"></div>
+</div>
+
+<div id="main" style="display:none">
+  <div class="wrap">
+    <div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px">
+          <div class="row">
+            <select id="formation"></select>
+            <button id="auto">자동 배치</button>
+            <button id="clear">비우기</button>
+          </div>
+          <div class="sub" id="count"></div>
+        </div>
+        <div class="pitch" id="pitch"></div>
+        <div class="note" id="hint">
+          자리를 누르면 그 자리에 세울 수 있는 선수가 오른쪽에 <b>능숙도 순</b>으로 뜹니다.
+          선수를 누르면 배치되고, 이미 선 선수를 누르면 자리에서 뺍니다.
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3 id="listTitle">선수단</h3>
+        <div class="plist" id="plist"></div>
+      </div>
+
+      <div class="card">
+        <h3>후보 (최대 9명)</h3>
+        <div class="plist" id="bench" style="max-height:190px"></div>
+      </div>
+
+      <div class="card">
+        <h3>전술</h3>
+        <div id="sliders"></div>
+        <label class="row" style="margin-top:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="counter" style="accent-color:var(--acc)"> 역습 노리기
+        </label>
+        <div class="note" id="tacnote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let DB = null, T = null;              // T = tables
+let team = null, formation = "4-3-3";
+let xi = {};                          // slot -> playerId
+let bench = [];                       // playerId[]
+let tac = {};
+let selSlot = null;
+
+/* 슬라이더 이름표 — 엔진은 0~4 숫자만 알고, 그게 무슨 뜻인지는 화면이 정한다 */
+const SLIDER = {
+  pass:      ["패스 길이", ["아주 짧게", "짧게", "보통", "길게", "아주 길게"]],
+  tempo:     ["템포",      ["아주 느리게", "느리게", "보통", "빠르게", "아주 빠르게"]],
+  press:     ["압박",      ["아주 약하게", "약하게", "보통", "강하게", "아주 강하게"]],
+  line:      ["수비 라인", ["아주 낮게", "낮게", "보통", "높게", "아주 높게"]],
+  width:     ["폭",        ["아주 좁게", "좁게", "보통", "넓게", "아주 넓게"]],
+  mentality: ["멘탈리티",  ["매우 수비적", "수비적", "균형", "공격적", "매우 공격적"]],
+  tackle:    ["태클",      ["아주 조심히", "조심히", "보통", "거칠게", "아주 거칠게"]],
+  longShot:  ["중거리 슛", ["아주 자제", "자제", "보통", "적극", "아주 적극"]],
+};
+
+const SILVER_TOP = 0.5;
+const rank = p => (p.silver ? p.star / 5 * SILVER_TOP : p.star);
+const stars = p => {
+  const pct = Math.round((p.star || 0) / 5 * 100);
+  return `<span class="stars${p.silver ? " silver" : ""}" style="--pct:${pct}%">★★★★★</span>`;
+};
+
+/** 그 자리에서 얼마나 제 기량이 나오는가 (0~100) */
+const famOf = (p, slot) => (p.posFam && p.posFam[T.slotFam[slot]]) || 0;
+const famLv = v => T.famLv.find(l => v >= l.min) || T.famLv[T.famLv.length - 1];
+
+/** 포메이션이 요구하는 자리 — 골키퍼는 늘 있으므로 표에서 빠져 있다 */
+const slotsOf = f => ["GK", ...T.formation[f].map(s => s[1])];
+
+const byId = id => DB.players[team].find(p => p.id === id);
+const placed = () => new Set([...Object.values(xi), ...bench]);
+
+async function boot() {
+  try {
+    const m = await fetch("data/meta.json", { cache: "no-cache" }).then(r => r.json());
+    const v = "?v=" + (m.dataHash || "");
+    const [t, p] = await Promise.all([
+      fetch("data/teams.json" + v).then(r => r.json()),
+      fetch("data/players.json" + v).then(r => r.json()),
+    ]);
+    DB = { teams: t.teams, order: t.order, players: p, meta: m };
+    T = t.tables;
+    if (!T) throw new Error("전술판 표가 없습니다 — 데이터를 다시 만들어 주세요");
+  } catch (e) {
+    $("#meta").innerHTML = `<span style="color:var(--bad)">데이터를 불러오지 못했습니다 — ${esc(e.message)}</span>`;
+    return;
+  }
+  $("#meta").textContent = `${DB.meta.teamCount}개 구단 · ${DB.meta.playerCount}명`;
+
+  $("#formation").innerHTML = Object.keys(T.formation)
+    .map(f => `<option${f === formation ? " selected" : ""}>${f}</option>`).join("");
+  tac = Object.assign({}, T.tacDef);
+  drawTeams("k1");
+  drawSliders();
+
+  document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === b));
+    drawTeams(b.dataset.lg);
+  });
+  $("#formation").onchange = () => { formation = $("#formation").value; refit(); draw(); };
+  $("#auto").onclick = () => { autoFill(); draw(); };
+  $("#clear").onclick = () => { xi = {}; bench = []; selSlot = null; draw(); };
+  $("#counter").onchange = () => { tac.counter = $("#counter").checked; drawSliders(); };
+}
+
+function drawTeams(lg) {
+  $("#teams").innerHTML = DB.order[lg].map(id => {
+    const t = DB.teams[id];
+    return `<button class="team${id === team ? " on" : ""}" data-id="${id}">
+      <span class="chip" style="background:${esc(t.col)}"></span>${esc(t.short)}</button>`;
+  }).join("");
+  $("#teams").querySelectorAll(".team").forEach(b => b.onclick = () => {
+    team = b.dataset.id; xi = {}; bench = []; selSlot = null;
+    drawTeams(lg); autoFill(); $("#main").style.display = ""; draw();
+  });
+}
+
+/* 포메이션이 바뀌면 없어진 자리의 선수를 후보로 내린다 */
+function refit() {
+  const keep = new Set(slotsOf(formation));
+  for (const s of Object.keys(xi)) {
+    if (!keep.has(s)) { if (bench.length < 9) bench.push(xi[s]); delete xi[s]; }
+  }
+}
+
+/* 자동 배치 — 자리마다 "능숙도 × 별점"이 가장 높은 선수부터 채운다.
+   사람이 짜는 순서와 같다: 골키퍼를 먼저 세우고, 남은 자리를 하나씩 메운다. */
+function autoFill() {
+  if (!team) return;
+  xi = {}; bench = [];
+  const pool = DB.players[team].slice();
+  const score = (p, slot) => {
+    if ((slot === "GK") !== (p.pos === "GK")) return -1;      // 골키퍼와 필드 플레이어는 섞지 않는다
+    return famOf(p, slot) / 100 * 1.1 + rank(p) / 5;
+  };
+  for (const slot of slotsOf(formation)) {
+    let best = null, bs = -1;
+    for (const p of pool) {
+      if (placed().has(p.id)) continue;
+      const s = score(p, slot);
+      if (s > bs) { bs = s; best = p; }
+    }
+    if (best && bs >= 0) xi[slot] = best.id;
+  }
+  // 후보 9명 — 남은 선수 중 골키퍼 하나를 반드시 넣고, 나머지는 별점 순
+  const rest = pool.filter(p => !placed().has(p.id));
+  const gk = rest.find(p => p.pos === "GK");
+  if (gk) bench.push(gk.id);
+  for (const p of rest.slice().sort((a, b) => rank(b) - rank(a))) {
+    if (bench.length >= 9) break;
+    if (!bench.includes(p.id)) bench.push(p.id);
+  }
+}
+
+function draw() {
+  drawPitch(); drawList(); drawBench();
+  const n = Object.keys(xi).length;
+  $("#count").innerHTML = n === 11
+    ? `<span style="color:var(--ok)">선발 11명 · 후보 ${bench.length}명</span>`
+    : `<span class="warn">선발 ${n}/11명</span> · 후보 ${bench.length}명`;
+}
+
+function drawPitch() {
+  const box = $("#pitch");
+  // 하프라인·센터서클·페널티박스 — 자리를 눈으로 가늠하는 데 필요한 만큼만
+  let h = `<div class="ln" style="left:0;right:0;top:50%;height:0"></div>
+    <div class="ln" style="left:50%;top:50%;width:86px;height:86px;border-radius:50%;transform:translate(-50%,-50%)"></div>
+    <div class="ln" style="left:22%;right:22%;bottom:0;height:13%;border-bottom:0"></div>
+    <div class="ln" style="left:22%;right:22%;top:0;height:13%;border-top:0"></div>`;
+
+  for (const slot of slotsOf(formation)) {
+    const xy = T.slotXY[slot] || { x: 0.5, y: 0.5 };
+    // 엔진 좌표는 가로가 공격 방향이다. 전술판은 세로로 세우므로 축을 바꾼다.
+    const left = xy.y * 100, top = (1 - xy.x) * 100;
+    const pid = xi[slot], p = pid != null ? byId(pid) : null;
+    const fv = p ? famOf(p, slot) : 0, lv = p ? famLv(fv) : null;
+    h += `<div class="slot${selSlot === slot ? " sel" : ""}${p ? "" : " empty"}"
+            style="left:${left}%;top:${top}%" data-slot="${slot}">
+        <div class="dot" ${p ? `style="border-color:${lv.c};color:${lv.c}"` : ""}>${esc(slot)}</div>
+        ${p ? `<div class="nm">${esc(p.name)}</div><div class="po">${stars(p)}</div>` : ""}
+      </div>`;
+  }
+  box.innerHTML = h;
+  box.querySelectorAll(".slot").forEach(el => el.onclick = () => {
+    const s = el.dataset.slot;
+    selSlot = (selSlot === s) ? null : s;
+    draw();
+  });
+}
+
+function drawList() {
+  const title = selSlot ? `${selSlot} 자리에 세울 선수` : "선수단";
+  $("#listTitle").textContent = title;
+  const used = placed();
+  let list = DB.players[team].slice();
+
+  if (selSlot) {
+    // 그 자리를 소화할 수 있는 순서로 — 능숙도가 먼저, 같으면 별점
+    list = list.filter(p => (selSlot === "GK") === (p.pos === "GK"));
+    list.sort((a, b) => (famOf(b, selSlot) - famOf(a, selSlot)) || (rank(b) - rank(a)));
+  } else {
+    list.sort((a, b) => rank(b) - rank(a));
+  }
+
+  $("#plist").innerHTML = list.map(p => {
+    const fv = selSlot ? famOf(p, selSlot) : 0, lv = selSlot ? famLv(fv) : null;
+    const on = used.has(p.id);
+    return `<div class="prow${on ? " used" : ""}" data-id="${p.id}">
+      <span class="no">${p.no ?? "-"}</span>
+      <span class="nm">${esc(p.name)}</span>
+      ${selSlot ? `<span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${fv}</span>` : ""}
+      <span class="pp">${esc(p.prefPos)}</span>
+      ${stars(p)}
+    </div>`;
+  }).join("");
+
+  $("#plist").querySelectorAll(".prow").forEach(el => el.onclick = () => {
+    const id = +el.dataset.id;
+    if (selSlot) {
+      // 다른 자리에 서 있던 선수라면 그 자리를 비우고 옮긴다
+      for (const s of Object.keys(xi)) if (xi[s] === id) delete xi[s];
+      bench = bench.filter(b => b !== id);
+      xi[selSlot] = id;
+      selSlot = null;
+    } else {
+      // 자리를 안 고른 상태에서는 후보로 넣거나 뺀다
+      if (bench.includes(id)) bench = bench.filter(b => b !== id);
+      else if (!placed().has(id) && bench.length < 9) bench.push(id);
+    }
+    draw();
+  });
+}
+
+function drawBench() {
+  $("#bench").innerHTML = bench.length
+    ? bench.map(id => {
+        const p = byId(id);
+        return `<div class="prow" data-id="${id}">
+          <span class="no">${p.no ?? "-"}</span>
+          <span class="nm">${esc(p.name)}</span>
+          <span class="pp">${esc(p.prefPos)}</span>${stars(p)}</div>`;
+      }).join("")
+    : `<div style="padding:12px;text-align:center" class="sub">후보가 없습니다</div>`;
+  $("#bench").querySelectorAll(".prow").forEach(el => el.onclick = () => {
+    bench = bench.filter(b => b !== +el.dataset.id); draw();
+  });
+}
+
+function drawSliders() {
+  $("#sliders").innerHTML = T.tacKeys.map(k => {
+    const [name, steps] = SLIDER[k];
+    const v = tac[k] ?? 2;
+    return `<div class="sl"><label>${name}</label>
+      <input type="range" min="0" max="4" step="1" value="${v}" data-k="${k}">
+      <span class="v" data-v="${k}">${steps[v]}</span></div>`;
+  }).join("");
+  $("#sliders").querySelectorAll("input").forEach(el => el.oninput = () => {
+    const k = el.dataset.k, v = +el.value;
+    tac[k] = v;
+    $(`[data-v="${k}"]`).textContent = SLIDER[k][1][v];
+    drawTacNote();
+  });
+  $("#counter").checked = !!tac.counter;
+  drawTacNote();
+}
+
+/* 지금 지시가 어떤 축구인지 한 줄로 되짚어 준다 — 슬라이더 여덟 개는 따로 보면 감이 안 온다 */
+function drawTacNote() {
+  const t = tac, hi = v => v >= 3, lo = v => v <= 1;
+  const s = [];
+  if (lo(t.pass) && lo(t.tempo)) s.push("짧게 돌리며 천천히 만든다");
+  if (hi(t.pass)) s.push("길게 넘겨 뒷공간을 노린다");
+  if (hi(t.press) && hi(t.line)) s.push("높은 곳에서 잡아먹는다");
+  if (lo(t.line) && t.counter) s.push("내려앉아 역습을 노린다");
+  if (hi(t.width)) s.push("측면을 벌려 크로스를 올린다");
+  if (hi(t.tackle)) s.push("거칠게 붙는다 — 카드를 각오해야 한다");
+  if (hi(t.mentality)) s.push("앞으로 나가 슛을 늘린다");
+  $("#tacnote").innerHTML = s.length
+    ? "이 지시는 — " + s.join(" · ")
+    : "무난한 균형 지시입니다. 슬라이더를 극단으로 옮기면 경기가 눈에 띄게 달라집니다.";
+}
+
+boot();
+</script>
+</body>
+</html>
