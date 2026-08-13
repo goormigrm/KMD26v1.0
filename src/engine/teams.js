@@ -13,18 +13,36 @@
 const clone = o => JSON.parse(JSON.stringify(o));
 
 /**
+ * 전술판에서 감독이 끌어다 놓은 자리 → 커널이 읽는 모양(선수id → 자리).
+ *
+ * 커널 computeRenderSlots() 는 `t.tactic.slot` 을 **최우선으로** 지키고, 없는 선수만
+ * 포메이션의 남은 자리에 자동 배치합니다. 여기서 빈 표를 넘기면 감독이 짠 배치가
+ * 전부 자동 배치로 덮입니다 — "센터백을 최전방에" 같은 자유 배치(설계 결정)가 무의미해집니다.
+ */
+function slotMapOf(plan) {
+  const out = {};
+  // 라인업 화면은 자리→선수id 로 들고 있다 (xiMap, 저장 슬롯 파일에서는 xi)
+  const bySlot = plan.xiMap || (Array.isArray(plan.xi) ? null : plan.xi);
+  if (!bySlot) return out;
+  for (const slot of Object.keys(bySlot)) if (bySlot[slot] != null) out[bySlot[slot]] = slot;
+  return out;
+}
+
+/**
  * 엔진용 팀 객체를 만든다.
  * @param {object} meta   teams.json 의 구단 항목 {id,name,short,col,col2,div}
  * @param {Array}  roster players.json 의 그 구단 선수 배열
- * @param {object} plan   { tac, roles } — 라인업 화면이 만든 전술·역할
+ * @param {object} plan   { tac, roles, xiMap, formation } — 라인업 화면이 만든 것
  */
 export function buildTeam(meta, roster, plan = {}) {
+  // 포메이션은 tac 안에 있을 수도(경기 화면), 한 칸 밖에 있을 수도(저장 슬롯 파일) 있다
+  const formation = (plan.tac && plan.tac.formation) || plan.formation || "4-3-3";
   const tac = Object.assign(
-    { formation: "4-3-3", mentality: 2, pass: 2, tempo: 2, press: 2,
+    { mentality: 2, pass: 2, tempo: 2, press: 2,
       line: 2, width: 2, counter: false, tackle: 2, longShot: 2 },
     plan.tac || {},
     // 역할은 선수 id 로 저장된다 — 커널 getRole() 이 이 모양을 읽는다
-    { role: clone(plan.roles || {}), benchSel: [], slot: {}, zone: {} }
+    { formation, role: clone(plan.roles || {}), benchSel: [], slot: slotMapOf(plan), zone: {} }
   );
 
   return {
@@ -106,4 +124,85 @@ export function lineupSig(teamId, xi, bench, tac, roles) {
       .map(k => (tac || {})[k]).join(",") + "," + ((tac || {}).counter ? 1 : 0),
     Object.keys(roles || {}).sort().map(id => id + ":" + roles[id].r + roles[id].d).join(","),
   ].join("|");
+}
+
+/** 라인업 한 벌의 지문 — 위 lineupSig 을 plan 한 덩어리로 부르는 것 */
+export function planSig(plan) {
+  return lineupSig(plan.id, plan.xiMap || plan.xi, plan.bench, plan.tac, plan.roles);
+}
+
+/* ── 같은 구단끼리의 대전 ────────────────────────────────────────
+   "울산 vs 울산" 을 막을 이유는 없습니다 — 선수와 전술이 다르면 다른 팀입니다.
+   다만 엔진과 화면에 두 군데 걸림돌이 있어 먼저 치워야 합니다.
+
+   ① 선수 id 충돌 — 커널은 양 팀 22명을 한 배열(agents)에 담고 id 로 찾습니다.
+        byId(id){ return this.agents.find(a=>a.id===id) }
+      같은 구단을 양쪽에 세우면 원정 슈터를 찾을 때 홈 선수가 잡혀 경기가 엉킵니다.
+      그래서 원정 쪽 선수 id 를 통째로 옮깁니다. 선수 id 는 1~1024 이므로 10만을
+      더해도 겹치지 않습니다.
+      ⚠ 옮긴 id 는 **엔진 안에서만** 삽니다. 시드(= 단계 5 의 대전 코드)는 반드시
+        옮기기 전 id 로 뽑아야 두 사람의 코드가 같은 값을 냅니다.
+
+   ② 이름·색 충돌 — 이름표가 같으면 해설도 팬 반응도 어느 쪽인지 알 수 없습니다.
+      게다가 커널 ev() 는 "직전 줄과 같은 팀인가"를 이름표(short)로 판단해
+      (`prev.t===t`) 시간 배지를 생략하므로, 이름이 같으면 상대 팀 줄이 우리 줄에
+      이어 붙습니다. 원정 쪽에 (어웨이) 를 붙이고 원정 유니폼 색(col2)을 입힙니다.
+   ──────────────────────────────────────────────────────────── */
+export const AWAY_ID_SHIFT = 100000;
+
+/** 선수 id 를 옮긴 명단 (얕은 복사 — buildTeam 이 다시 깊은 복사한다) */
+export function shiftRoster(roster, shift = AWAY_ID_SHIFT) {
+  return (roster || []).map(p => Object.assign({}, p, { id: p.id + shift }));
+}
+
+/** 라인업 한 벌의 선수 id 를 같은 만큼 옮긴다 (선발·교체·역할 모두) */
+export function shiftPlan(plan, shift = AWAY_ID_SHIFT) {
+  const s = id => (id == null ? id : id + shift);
+  const bySlot = plan.xiMap || (Array.isArray(plan.xi) ? null : plan.xi) || {};
+  const xiMap = {};
+  for (const slot of Object.keys(bySlot)) xiMap[slot] = s(bySlot[slot]);
+  const roles = {};
+  // 역할 표의 키는 선수 id 다. 숫자가 아니면 옮기지 않고 그대로 둔다(조용히 잃지 않게)
+  for (const k of Object.keys(plan.roles || {}))
+    roles[Number.isFinite(+k) ? s(+k) : k] = plan.roles[k];
+  return Object.assign({}, plan, {
+    xiMap,
+    // 선발 순서는 그대로 둔다 — 엔진이 명단 순서를 보는 곳이 있다
+    xi: Array.isArray(plan.xi) ? plan.xi.map(s) : Object.values(xiMap),
+    bench: (plan.bench || []).map(s),
+    roles,
+  });
+}
+
+/** 같은 구단끼리일 때 쓸 이름표·색 — 화면과 엔진이 같은 값을 쓰게 한곳에 둔다 */
+export function sideLabels(meta) {
+  return {
+    h: { short: meta.short + " (홈)",   name: meta.name + " (홈)",   col: meta.col },
+    a: { short: meta.short + " (어웨이)", name: meta.name + " (어웨이)", col: meta.col2 || meta.col },
+  };
+}
+
+/**
+ * 양 팀을 엔진에 넘길 모양으로 함께 갖춘다.
+ * 같은 구단이면 원정 쪽 선수 id·이름표·색을 갈라 놓는다.
+ *
+ * @returns {{H:object, A:object, home:object, away:object, same:boolean}}
+ *          home·away 는 **엔진에 넘길** 라인업(같은 구단이면 id 가 옮겨진 것).
+ *          시드를 뽑을 때는 원본 plan 을 그대로 쓸 것.
+ */
+export function prepareSides(teamsMeta, playersDB, homePlan, awayPlan) {
+  const same = homePlan.id === awayPlan.id;
+  const home = homePlan;
+  const away = same ? shiftPlan(awayPlan) : awayPlan;
+
+  const H = buildTeam(teamsMeta[home.id], playersDB[home.id], home);
+  const A = buildTeam(teamsMeta[away.id],
+    same ? shiftRoster(playersDB[away.id]) : playersDB[away.id], away);
+
+  if (same) {
+    const L = sideLabels(teamsMeta[home.id]);
+    Object.assign(H, L.h);
+    Object.assign(A, L.a);
+  }
+  return { H, A, home, away, same };
 }

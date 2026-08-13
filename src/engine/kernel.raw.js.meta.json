@@ -29,7 +29,8 @@
   "onPitch",
   "slotRating",
   "ovrStarVal",
-  "playerLevel"
+  "playerLevel",
+  "F_"
  ],
  "excluded": [
   "DOW_KR",

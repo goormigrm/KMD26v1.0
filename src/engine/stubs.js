@@ -25,14 +25,22 @@ let ctxInstalled = false;
  * @param {number} refSeed 심판 배정 시드 (단계 2에서 경기 시드와 연결)
  */
 export function installEngineContext(teams, refSeed = 0) {
+  /* 커널은 G.teams 를 "리그 전체"로 보고 훑습니다(attrMeans·starRefLevel).
+     같은 구단끼리 붙는 경기에서 id 로 덮어쓰면 한 팀만 남아 리그 평균이 반쪽이 되므로,
+     키가 겹치면 뒤에 표를 붙여 둘 다 남깁니다. 커널은 이 키를 이름으로 쓰지 않고
+     훑기만 합니다(G.teams[id] 로 특정 구단을 찾는 곳이 없습니다). */
   const map = {};
-  for (const t of teams) map[t.id] = t;
+  for (const t of teams) {
+    let k = t.id;
+    while (map[k]) k += "#";
+    map[k] = t;
+  }
 
   globalThis.G = {
     season: DUEL_FIXED.season,
     day: refSeed | 0,          // refCrewOf 가 심판을 뽑는 데 쓰는 값
     teams: map,
-    k1: teams.map(t => t.id),
+    k1: Object.keys(map),
     k2: [],
     r1: 0, r2: 0,
     meTune: null,              // 엔진 에디터 보정 없음 → meTune() 이 1을 반환

@@ -9,7 +9,7 @@
    ⚠ 이건 원본 그대로입니다. 듀얼 버그 수정은 tools/patch_kernel.py 가 붙입니다.
 
    ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────
-   원본(kernel.raw.js) 해시: sha256:6cb75bb1f842
+   원본(kernel.raw.js) 해시: sha256:47ccdcb1e19e
    · [전술] PASS-01   2D 엔진이 팀 전술 '패스 길이'를 읽지 않는다 — 패스 목표 선택에 연결
    · [전술] PASS-02   같은 슬라이더를 패스 실행(길게 띄우는 문턱)에도 연결 — 목표만 바꾸면 걷어차는 모양이 안 따라온다
    · [전술] PASS-03   '몇 m부터 길게 차는가' 문턱도 팀 전술을 따르게 — 원본은 선수 특성만 읽는다
@@ -6186,5 +6186,6 @@ export {
   onPitch,
   slotRating,
   ovrStarVal,
-  playerLevel
+  playerLevel,
+  F_
 };

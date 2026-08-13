@@ -11,26 +11,32 @@
    ───────────────────────────────────────────────────────────── */
 
 import { runHeadless, deriveSeed } from "./duel.js";
-import { buildTeam, checkLineup, lineupSig } from "./teams.js";
+import { checkLineup, planSig, prepareSides } from "./teams.js";
 import { makeReactions } from "./reactions.js";
 
 self.onmessage = (e) => {
-  const { teams, players, home, away, reactions } = e.data;
+  const { teams, players, home: homePlan, away: awayPlan, reactions } = e.data;
   try {
-    const H = buildTeam(teams[home.id], players[home.id], home);
-    const A = buildTeam(teams[away.id], players[away.id], away);
+    /* 시드는 양쪽 라인업에서 함께 유도한다 (설계 결정 D-1).
+       ⚠ 선수 id 를 옮기기 **전** 라인업으로 뽑는다 — 단계 5 의 대전 코드와 값이 어긋나면
+         두 사람의 재생이 갈라진다. */
+    const hSig = planSig(homePlan), aSig = planSig(awayPlan);
+
+    /* 같은 구단끼리는 붙을 수 있다. 단, 선수·전술까지 한 글자도 다르지 않으면
+       두 팀을 가릴 것이 없다(지문도 대칭이라 승자가 시드 운으로만 갈린다). */
+    if (hSig === aSig) {
+      throw new Error("양 팀의 선수·전술이 완전히 같습니다 — 한쪽 라인업을 바꿔 주세요.");
+    }
+
+    // 같은 구단이면 원정 쪽 선수 id·이름표·색을 갈라 놓는다 (teams.js 참고)
+    const { H, A, home, away } = prepareSides(teams, players, homePlan, awayPlan);
 
     for (const [side, t, plan] of [["홈", H, home], ["원정", A, away]]) {
       const bad = checkLineup(t, plan.xi);
       if (bad) throw new Error(`${side} 팀(${t.short}) 라인업 — ${bad}`);
     }
 
-    /* 시드는 양쪽 라인업에서 함께 유도한다 (설계 결정 D-1).
-       단계 5 의 대전 코드가 이 자리를 대신할 때까지, 성질만 미리 갖춰 둔다 —
-       같은 라인업끼리 붙으면 언제 어디서 돌려도 같은 경기가 나온다. */
-    const seed = deriveSeed(
-      lineupSig(home.id, home.xiMap, home.bench, home.tac, home.roles),
-      lineupSig(away.id, away.xiMap, away.bench, away.tac, away.roles));
+    const seed = deriveSeed(hSig, aSig);
 
     const r = runHeadless(H, A, {
       seed, record: true,        // 2D 하이라이트 좌표를 함께 모은다

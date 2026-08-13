@@ -300,7 +300,8 @@ async function boot() {
      지금은 같은 브라우저 안에서만 오가므로 저장소에 두고 간다. */
   $("#go").onclick = () => {
     if (xiCount() !== 11) { flash("선발 열한 명을 채워야 경기를 시작할 수 있습니다."); drawHint(); return; }
-    localStorage.setItem("kmd26.lineup", JSON.stringify({ id: team, xi, bench, tac, roles }));
+    // ⚠ formation 을 빼먹으면 경기 화면이 4-3-3 으로 세운다 — 고른 모양이 그대로 가야 한다
+    localStorage.setItem("kmd26.lineup", JSON.stringify({ id: team, formation, xi, bench, tac, roles }));
     location.href = "match.html";
   };
 }

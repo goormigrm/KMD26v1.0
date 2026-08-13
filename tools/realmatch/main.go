@@ -38,30 +38,42 @@ var (
 )
 
 const driver = `
-function playReal(homeId, awayId) {
-  var mk = function(id) {
-    var lu = autoLineup(PLAYERS[id], TABLES, "4-3-3");
-    // 골키퍼 역할을 바꿔 가며 볼 수 있게 — 스위퍼 키퍼 공격 임무는 키퍼를 크게 끌어낸다
-    var rl = {};
-    if (GKROLE) { rl[lu.xi.GK] = {r: GKROLE.split(":")[0], d: GKROLE.split(":")[1] || "D"}; }
-    var t = buildTeam(TEAMS[id], PLAYERS[id], {tac:{}, roles:rl});
-    var bad = checkLineup(t, Object.keys(lu.xi).map(function(s){ return lu.xi[s]; }));
-    if (bad) throw new Error(id + " 라인업 — " + bad);
-    return {team:t, xi:lu.xi, bench:lu.bench};
+/* 경기 화면(match.html)이 일꾼에게 넘기는 것과 **같은 모양**으로 라인업을 만든다.
+   여기서 모양이 어긋나면 이 도구의 측정값이 실제 경기와 달라진다. */
+function mkPlan(id, form) {
+  var lu = autoLineup(PLAYERS[id], TABLES, form);
+  // 골키퍼 역할을 바꿔 가며 볼 수 있게 — 스위퍼 키퍼 공격 임무는 키퍼를 크게 끌어낸다
+  var rl = {};
+  if (GKROLE) { rl[lu.xi.GK] = {r: GKROLE.split(":")[0], d: GKROLE.split(":")[1] || "D"}; }
+  return {
+    id: id, xiMap: lu.xi,
+    xi: Object.keys(lu.xi).map(function(s){ return lu.xi[s]; }),
+    bench: lu.bench, tac: {formation: form}, roles: rl
   };
-  var H = mk(homeId), A = mk(awayId);
-  var seed = deriveSeed(
-    lineupSig(homeId, H.xi, H.bench, {}, {}),
-    lineupSig(awayId, A.xi, A.bench, {}, {}));
+}
 
-  var xiOf = function(o){ return Object.keys(o.xi).map(function(s){ return o.xi[s]; }); };
-  var r = runHeadless(H.team, A.team, {
+function playReal(homeId, awayId) {
+  var hp = mkPlan(homeId, FORM), ap = mkPlan(awayId, AWAYFORM || FORM);
+  var hSig = planSig(hp), aSig = planSig(ap);
+  if (hSig === aSig) throw new Error("양 팀의 선수·전술이 완전히 같습니다 (-awayform 으로 갈라 주세요)");
+
+  // 같은 구단끼리면 원정 쪽 선수 id·이름표·색을 갈라 놓는다
+  var S = prepareSides(TEAMS, PLAYERS, hp, ap);
+  var sides = [["홈", S.H, S.home], ["원정", S.A, S.away]];
+  for (var i = 0; i < sides.length; i++) {
+    var bad = checkLineup(sides[i][1], sides[i][2].xi);
+    if (bad) throw new Error(sides[i][0] + " " + sides[i][1].short + " 라인업 — " + bad);
+  }
+
+  var seed = deriveSeed(hSig, aSig);
+  var r = runHeadless(S.H, S.A, {
     seed: seed,
-    homeXI: xiOf(H), awayXI: xiOf(A),
-    homeBench: H.bench.filter(Boolean), awayBench: A.bench.filter(Boolean),
+    homeXI: S.home.xi, awayXI: S.away.xi,
+    homeBench: S.home.bench.filter(Boolean), awayBench: S.away.bench.filter(Boolean),
     record: RECORD
   });
   return {
+    hName: S.H.short, aName: S.A.short,
     seed: seed, fp: r.fp, hg: r.hg, ag: r.ag, done: r.done, clock: r.clock,
     events: r.events.length, ref: r.referee,
     hShot: r.stats.h.shot, aShot: r.stats.a.shot,
@@ -76,9 +88,25 @@ function playReal(homeId, awayId) {
     clipsIsArr: r.clips ? (r.clips.length===0 ? 'empty' : 'n='+r.clips.length) : 'undefined',
     react: (function(){
       if (!REACT) return [];
-      var rr = makeReactions(Object.assign({}, r, {home:TEAMS[homeId].short, away:TEAMS[awayId].short, seed:seed}), REACT, "h");
+      var rr = makeReactions(Object.assign({}, r, {home:S.H.short, away:S.A.short, seed:seed}), REACT, "h");
       return rr.social.slice(0,2).map(function(x){ return "[소셜] " + x.txt; })
         .concat(rr.fmk.slice(0,3).map(function(x){ return "[FMK/" + x.nick + "] " + x.txt; }));
+    })(),
+    /* 같은 구단끼리 붙었을 때의 안전판 —
+       커널은 양 팀 22명을 한 배열에 담고 id 로 찾으므로(byId), 원정 쪽 id 가 하나라도
+       옮겨지지 않으면 홈 선수가 잘못 잡힌다. 명단 전체가 제 쪽에 있는지 세어 본다.
+       (-record 로 돌릴 때만 r.roster 가 온다) */
+    idCheck: (function(){
+      if (!r.roster) return "";
+      var n = 0, h = 0, a = 0, wrong = 0;
+      for (var id in r.roster) {
+        n++;
+        var side = r.roster[id].side, shifted = (+id) >= 100000;
+        if (side === "h") h++; else a++;
+        if (shifted !== (side === "a")) wrong++;   // 옮긴 id 는 반드시 원정, 나머지는 홈
+      }
+      return "명단 " + n + "명 (홈 " + h + " · 원정 " + a + ")" +
+             (S.same ? " · id 갈림 " + (wrong ? "어긋남 " + wrong + "건" : "정상") : " · 다른 구단");
     })(),
     clips: (r.clips||[]).length,
     clipFrames: (r.clips||[]).reduce(function(n,c){ return n + c.frames.length; }, 0),
@@ -96,6 +124,8 @@ func main() {
 	all := flag.Bool("all", false, "여러 대진을 돌려 실제 축구와 견줘 본다")
 	gkRole := flag.String("gkrole", "", "골키퍼 역할 (예: SK:A) — 비우면 기본값")
 	record := flag.Bool("record", false, "2D 하이라이트 클립도 모은다")
+	form := flag.String("form", "4-3-3", "포메이션")
+	awayForm := flag.String("awayform", "", "원정 포메이션 — 비우면 -form 과 같게. 같은 구단끼리 붙일 때 필요하다")
 	flag.Parse()
 
 	var sb strings.Builder
@@ -128,6 +158,8 @@ func main() {
 	vm.Set("PLAYERS", players)
 	vm.Set("GKROLE", *gkRole)
 	vm.Set("RECORD", *record)
+	vm.Set("FORM", *form)
+	vm.Set("AWAYFORM", *awayForm)
 	var react map[string]any
 	if b, err := os.ReadFile(filepath.Join(*root, "data", "reactions.json")); err == nil {
 		_ = json.Unmarshal(b, &react)
@@ -167,6 +199,9 @@ func main() {
 		}
 		r := v.Export().(map[string]any)
 		fps = append(fps, str(r["fp"]))
+		if i == 0 {
+			fmt.Printf("  %s vs %s\n", str(r["hName"]), str(r["aName"]))
+		}
 		fmt.Printf("  %v : %v  (%.0f분 · 이벤트 %v건 · 주심 %v)  %v\n",
 			r["hg"], r["ag"], num(r["clock"])/60, r["events"], r["ref"], time.Since(t0).Round(time.Millisecond))
 		fmt.Printf("    슈팅 %v:%v · 패스 %v:%v · 파울 %v:%v · 점유 %v%%\n",
@@ -176,6 +211,12 @@ func main() {
 		}
 		fmt.Printf("    클립 %v · 프레임 %.0f장 · %.0fKB\n      %s\n",
 			r["clipsIsArr"], num(r["clipFrames"]), num(r["bytes"])/1024, str(r["clipKinds"]))
+		if c := str(r["idCheck"]); c != "" {
+			fmt.Printf("    %s\n", c)
+			if strings.Contains(c, "어긋남") {
+				fail("선수 id 가 상대 팀 쪽에 섞였습니다 — " + c)
+			}
+		}
 		if rr, ok := r["react"].([]any); ok {
 			for _, l := range rr {
 				fmt.Printf("    %v\n", l)
