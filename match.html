@@ -351,8 +351,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=c7b2adac8f";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=c7b2adac8f";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=9bb4aff70a";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=9bb4aff70a";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -775,7 +775,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=c7b2adac8f", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=9bb4aff70a", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -799,6 +799,9 @@ function start() {
   w.postMessage({
     teams: DB.teams, players: DB.players, reactions: DB.react,
     home: hp, away: ap,
+    /* 일꾼이 대전 코드를 직접 만들어 시드를 뽑는다 — 코드가 같으면 같은 경기여야 하므로
+       (선수 명단은 위에서 이미 넘겼다) */
+    codeCtx: { order: DB.order, tables: T, dataHash: DB.meta.dataHash },
     // 연습은 매 판 새 시드 — 같은 판만 반복되면 연습이 되지 않는다(설계서 단계 A)
     seed: practice ? (Math.floor(Math.random() * 0xffffffff) >>> 0) || 1 : 0,
   });

@@ -80,6 +80,11 @@ function playReal(homeId, awayId) {
     if (bad) throw new Error(sides[i][0] + " " + sides[i][1].short + " 라인업 — " + bad);
   }
 
+  /* ⚠ 이 시드는 **게임 화면과 다르다.** 경기 화면(matchworker)은 대전 코드 두 개에서
+     시드를 뽑는다 — 여기서는 코덱과 데이터 해시를 들고 오지 않으므로 라인업 지문으로
+     대신한다. 이 도구의 목적은 "진짜 명단으로 경기가 끝까지 도는가"를 보는 것이라
+     값이 도구 안에서 재현되기만 하면 된다. 실제 대전을 그대로 재현해야 할 때는
+     경기 화면의 결과 링크를 쓸 것. */
   var seed = deriveSeed(hSig, aSig);
   var r = runHeadless(S.H, S.A, {
     seed: seed,

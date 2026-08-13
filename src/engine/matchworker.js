@@ -10,11 +10,12 @@
      먼저 다 돌린 뒤 재생하면 1·2·4배속도 되감기도 공짜입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { runHeadless, deriveSeed } from "./duel.js?v=c7b2adac8f";
-import { checkLineup, planSig, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=c7b2adac8f";
-import { makeReactions } from "./reactions.js?v=c7b2adac8f";
-import { slotRating } from "./kernel.js?v=c7b2adac8f";
-import { installEngineContext } from "./stubs.js?v=c7b2adac8f";
+import { runHeadless, deriveSeed } from "./duel.js?v=9bb4aff70a";
+import { checkLineup, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=9bb4aff70a";
+import { encodePlan } from "../codec/duelcode.js?v=9bb4aff70a";
+import { makeReactions } from "./reactions.js?v=9bb4aff70a";
+import { slotRating } from "./kernel.js?v=9bb4aff70a";
+import { installEngineContext } from "./stubs.js?v=9bb4aff70a";
 
 /* 연습 모드의 상대를 여기서 짠다 — 화면이 아니라 일꾼에서.
    "어려움"이 쓰는 slotRating 은 커널 함수라 화면에 올릴 수 없다(6천 줄). */
@@ -49,16 +50,32 @@ self.onmessage = (e) => {
       awayPlan = aiPlan(Object.assign({ tables: awayPlan.tables }, awayPlan.ai),
                         teams, players, homePlan.tac);
     }
-    /* 시드는 양쪽 라인업에서 함께 유도한다 (설계 결정 D-1).
-       ⚠ 선수 id 를 옮기기 **전** 라인업으로 뽑는다 — 단계 5 의 대전 코드와 값이 어긋나면
-         두 사람의 재생이 갈라진다. */
-    const hSig = planSig(homePlan), aSig = planSig(awayPlan);
     const practice = !!(e.data.away && e.data.away.ai);
 
-    /* 같은 구단끼리는 붙을 수 있다. 단, 선수·전술까지 한 글자도 다르지 않으면
-       두 팀을 가릴 것이 없다(지문도 대칭이라 승자가 시드 운으로만 갈린다). */
-    if (hSig === aSig && !practice) {
-      throw new Error("양 팀의 선수·전술이 완전히 같습니다 — 한쪽 라인업을 바꿔 주세요.");
+    /* ── 시드는 대전 코드 두 개에서 뽑는다 (설계 결정 D-1) ──────────────
+       ⚠ 예전에는 planSig(라인업 **객체**)로 뽑았다. 그런데 화면이 세운 라인업과
+         코드에서 되살린 라인업은 모양이 다르다 — 자동 라인업은 전술 슬라이더도 역할도
+         비어 있고, 코드에서 되살리면 기본값(슬라이더 전부 2 · 자리별 기본 역할)이
+         채워져 들어온다. 같은 라인업인데 지문이 갈리니 시드도 갈렸고,
+         결과 링크를 열면 방금 본 경기와 전혀 다른 경기가 재생됐다.
+         (제보: 같은 링크에서 시드 17f5f8c → 91363c5d)
+         코드는 두 사람이 실제로 주고받는 바로 그 문자열이다. 시드를 여기서 뽑아야
+         "코드가 같으면 같은 경기"가 성립한다 — 화면 문구도 그렇게 약속하고 있다.
+       ⚠ 선수 id 를 옮기기 **전**에 뽑는다. prepareSides 가 같은 구단끼리 붙을 때
+         원정 쪽 id 를 +100000 하므로, 그 뒤에 뽑으면 두 사람의 값이 어긋난다. */
+    let codeA = null, codeB = null;
+    if (!practice) {
+      const cc = e.data.codeCtx;
+      if (!cc) throw new Error("대전 코드 문맥이 없습니다 — 시드를 뽑을 수 없습니다");
+      const ctx = { order: cc.order, tables: cc.tables, players, dataHash: cc.dataHash };
+      codeA = encodePlan(homePlan, ctx);
+      codeB = encodePlan(awayPlan, ctx);
+
+      /* 같은 구단끼리는 붙을 수 있다. 단, 코드가 한 글자도 다르지 않으면 두 팀을 가릴
+         것이 없다(지문도 대칭이라 승자가 시드 운으로만 갈린다). */
+      if (codeA === codeB) {
+        throw new Error("양 팀의 선수·전술이 완전히 같습니다 — 한쪽 라인업을 바꿔 주세요.");
+      }
     }
 
     // 같은 구단이면 원정 쪽 선수 id·이름표·색을 갈라 놓는다 (teams.js 참고)
@@ -71,7 +88,7 @@ self.onmessage = (e) => {
 
     /* 연습은 매 판 새 시드다. 대전의 "같은 라인업이면 한 판만 성립"은 결과를 골라
        보낼 수 없게 하려는 규칙이라 대전에만 해당한다(설계서 단계 A). */
-    const seed = practice ? ((e.data.seed >>> 0) || 1) : deriveSeed(hSig, aSig);
+    const seed = practice ? ((e.data.seed >>> 0) || 1) : deriveSeed(codeA, codeB);
 
     // 연습 상대만 스스로 지시를 바꾼다 (rules.js 의 aiTacticCheck 래퍼가 이 스위치를 본다)
     A.autoTactic = !!awayPlan.autoTactic;
