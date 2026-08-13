@@ -139,6 +139,7 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
           <select id="formation"></select>
           <button id="auto">자동 배치</button>
           <button id="clear">비우기</button>
+          <button id="go" class="on">▶ 이 라인업으로 경기</button>
         </div>
         <div class="sub" id="count"></div>
       </div>
@@ -164,6 +165,11 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
       <div class="card">
         <h3 id="listTitle">그 외 명단</h3>
         <div class="plist" id="plist"></div>
+        <div class="note" style="border-left-color:var(--gold)">
+          <b>별점</b> — K리그1·2 전체 1,024명을 한 줄로 세운 눈금입니다. 하위 2%가 0.5★, 상위 2%가 5★.
+          눈금은 이것 하나뿐이라 <b>별이 많을수록 언제나 더 나은 선수</b>입니다.
+          잠재력은 넣지 않았습니다 — 듀얼은 육성 없이 지금 실력으로만 겨룹니다.
+        </div>
       </div>
     </div>
   </div>
@@ -264,6 +270,14 @@ async function boot() {
   $("#formation").onchange = () => { formation = $("#formation").value; autoFill(); sel = null; draw(); };
   $("#auto").onclick = () => { autoFill(); sel = null; draw(); };
   $("#clear").onclick = () => { xi = {}; bench = new Array(9).fill(null); roles = {}; sel = null; draw(); };
+
+  /* 경기 화면으로 넘긴다. 단계 5 의 대전 코드가 생기면 이 자리를 코드가 대신한다 —
+     지금은 같은 브라우저 안에서만 오가므로 저장소에 두고 간다. */
+  $("#go").onclick = () => {
+    if (xiCount() !== 11) { flash("선발 열한 명을 채워야 경기를 시작할 수 있습니다."); drawHint(); return; }
+    localStorage.setItem("kmd26.lineup", JSON.stringify({ id: team, xi, bench, tac, roles }));
+    location.href = "match.html";
+  };
 }
 
 function drawTeams(lg) {

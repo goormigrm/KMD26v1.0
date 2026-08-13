@@ -70,6 +70,8 @@ tr.p.on{background:#12283d}
 .tag{display:inline-block;background:var(--bg3);border:1px solid var(--line);border-radius:6px;
      padding:2px 8px;font-size:11.5px;margin:3px 4px 0 0}
 .empty{color:var(--sub);text-align:center;padding:36px 0}
+.legend{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--gold);
+        border-radius:7px;padding:9px 12px;font-size:12.5px;color:var(--sub);margin:2px 0 10px}
 </style>
 </head>
 <body>
@@ -88,8 +90,9 @@ tr.p.on{background:#12283d}
 </div>
 <div class="teams" id="teams"></div>
 
-<div id="squad"></div>
+<!-- 선수 상세는 목록 **위**에 둔다. 아래에 두면 선수를 누를 때마다 화면이 내려가 불편하다 -->
 <div id="detail"></div>
+<div id="squad"></div>
 
 <script type="module">
 const $ = s => document.querySelector(s);
@@ -196,6 +199,11 @@ function drawSquad() {
         <div class="sub">${list.length}명 · 주전 11명 평균
           ${stars({ star: Math.round(avg * 2) / 2 })} ${(Math.round(avg * 2) / 2).toFixed(1)}</div></div>
     </div>
+    <div class="legend">
+      <b>별점 읽는 법</b> — K리그1·2 <b>전체 1,024명</b>을 한 줄로 세운 눈금입니다.
+      하위 2%가 0.5★, 상위 2%가 5★. <b>별이 많을수록 언제나 더 나은 선수</b>이고, 눈금은 이것 하나뿐입니다.
+      <br><span class="sub">잠재력·나이·성장 가능성은 넣지 않았습니다 — 듀얼은 육성 없이 <b>지금 실력</b>으로만 겨루는 게임입니다.</span>
+    </div>
     <table><thead><tr>
       ${head.map(([k, n]) => `<th data-k="${k}">${n}${sortKey === k ? " ▾" : ""}</th>`).join("")}
       <th>선호 자리</th><th>키</th>
@@ -281,7 +289,6 @@ function showPlayer(id) {
         듀얼은 육성 없이 <b>지금 실력</b>으로만 겨루는 게임입니다.
       </div>
     </div>`;
-  $("#detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 boot();
