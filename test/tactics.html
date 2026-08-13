@@ -232,12 +232,12 @@ function render(out, N) {
       <tr><th>항목</th><th>지표</th><th class="num">낮음</th><th class="num">높음</th><th class="num">변화</th>
           <th class="num">기대 방향</th><th class="num">홈 승 (낮음→높음)</th><th>판정</th></tr>
       ${rows.map(x => `<tr>
-        <td class="name"><b>${x.r.r.s.name}</b><br><span class="sub">${x.r.r.s.loL} → ${x.r.r.s.hiL}</span></td>
-        <td class="sub">${x.r.r.s.stat}</td>
+        <td class="name"><b>${x.r.s.name}</b><br><span class="sub">${x.r.s.loL} → ${x.r.s.hiL}</span></td>
+        <td class="sub">${x.r.s.stat}</td>
         <td class="num">${f1(x.mLo)}</td>
         <td class="num">${f1(x.mHi)}</td>
         <td class="num ${x.pct > 0 ? "ok" : x.pct < 0 ? "bad" : "sub"}">${x.pct > 0 ? "+" : ""}${f1(x.pct)}%</td>
-        <td class="num">${x.up}/${N} <span class="sub">(${Math.round(x.ratio)}%)</span></td>
+        <td class="num">${x.up}/${N} <span class="sub">(${Math.round(x.ratio)}%${x.tie ? ` · 동률 ${x.tie}` : ""})</span></td>
         <td class="num sub">${Math.round(x.r.loWin / N * 100)}% → ${Math.round(x.r.hiWin / N * 100)}%</td>
         <td class="${V[x.verdict][0]}">${V[x.verdict][1]}</td>
       </tr>`).join("")}
