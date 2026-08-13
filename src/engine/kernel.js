@@ -10,12 +10,17 @@
 
    ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────
    원본(kernel.raw.js) 해시: sha256:6cb75bb1f842
-   · [전술] PASS-01 2D 엔진이 팀 전술 '패스 길이'를 읽지 않는다 — 패스 목표 선택에 연결
-   · [전술] PASS-02 같은 슬라이더를 패스 실행(길게 띄우는 문턱)에도 연결 — 목표만 바꾸면 걷어차는 모양이 안 따라온다
-   · [전술] PASS-03 '몇 m부터 길게 차는가' 문턱도 팀 전술을 따르게 — 원본은 선수 특성만 읽는다
-   · [버그] PK-01   kickoff() 이 b.isPenalty 를 지우지 않아, PK 다음 킥오프가 센터서클에서 '페널티킥'이 된다
-   · [버그] PK-02   PK 득점이 VAR 로 취소된다. PK 는 오프사이드도 빌드업 반칙도 있을 수 없다 (분 단위 엔진에는 isPen 가드가 있다)
-   · [버그] PK-03   90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다
+   · [전술] PASS-01   2D 엔진이 팀 전술 '패스 길이'를 읽지 않는다 — 패스 목표 선택에 연결
+   · [전술] PASS-02   같은 슬라이더를 패스 실행(길게 띄우는 문턱)에도 연결 — 목표만 바꾸면 걷어차는 모양이 안 따라온다
+   · [전술] PASS-03   '몇 m부터 길게 차는가' 문턱도 팀 전술을 따르게 — 원본은 선수 특성만 읽는다
+   · [버그] PRESS-01  압박 계수가 '압박당하는 쪽'의 지시로 계산된다 — 압박을 올리면 우리 선수가 더 눌린 것처럼 나온다
+   · [전술] PRESS-02  압박이 태클 시도 빈도에 연결돼 있지 않다 — 높은 압박은 더 자주 달려드는 것이다
+   · [전술] MENT-01   공격적 멘탈리티인데 슈팅이 오히려 줄었다 — 슛 판단에 붙는 항이 ±0.06 으로 사실상 없었다
+   · [버그] TEMPO-01  전술이 3단계에서 5단계로 바뀔 때 tempoK 계수가 안 따라왔다 — 폭도 절반, 중립점도 어긋나 있었다
+   · [버그] PK-01     kickoff() 이 b.isPenalty 를 지우지 않아, PK 다음 킥오프가 센터서클에서 '페널티킥'이 된다
+   · [버그] PK-02     PK 득점이 VAR 로 취소된다. PK 는 오프사이드도 빌드업 반칙도 있을 수 없다 (분 단위 엔진에는 isPen 가드가 있다)
+   · [버그] PK-03     90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다
+   · [보류] WIDTH-01  크로스 판단 문턱이 팀 '폭'을 읽지 않는다 (수정안이 역효과라 보류)
    ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.
    ───────────────────────────────────────────────────────────── */
 import { RNG } from "./rng.js";
@@ -1854,7 +1859,7 @@ function evaluateShot(a, opps, ctx){
   const TR=a.tr||{};
   // 특성: 중거리 슛 선호/자제, 득점보다 패스 선호
   const trShot = FX(a,"shoot")*1.0 + (g.distM>20 ? FX(a,"longShot")*0.75 : 0);
-  let score = q*SHOT_GAIN + SHOT_BIAS + SHOT_BIAS_ADJ + flairBonus + trShot + ((ctx.mentality||1)-1)*0.06;
+  let score = q*SHOT_GAIN + SHOT_BIAS + SHOT_BIAS_ADJ + flairBonus + trShot + ((ctx.mentality||1)-1)*0.30;   // [KMD26 MENT-01] 0.06 → 0.30. 자리만 밀지 말고 '때린다'는 판단도 바뀌어야 한다
   score += Math.log(meTune("shot"))*0.55;   // 🎛️ 에디터 튠 — 1.0이면 0
   // ── 중거리 슛 — 감독의 지시가 "때릴까 한 번 더 만들까"를 가른다.
   //    거리 감점(q에 이미 반영)에 눌려 박스 밖 슛이 거의 안 나오던 것을 여기서 되살린다.
@@ -2306,7 +2311,13 @@ function pressureOn(pt, opponents, pressTac){
     const d=Math.hypot((o.x-pt.x)*PITCH_AR, o.y-pt.y);
     if(d<PRESS_RADIUS) s+=(1-d/PRESS_RADIUS);
   }
-  return s*(0.8+((pressTac===undefined?1:pressTac))*0.25);
+  /* [KMD26 PRESS-01] 압박 계수는 **압박하는 쪽**의 지시를 따라야 한다.
+     호출부가 전부 '압박당하는 팀'의 값을 넘기고 있어서, 압박을 올리면
+     우리 선수가 더 눌린 것처럼 계산돼 오히려 안전하게 돌렸다. */
+  const _pk = (opponents && opponents.length && opponents[0].team)
+            ? TAC(opponents[0].team).press
+            : (pressTac===undefined?1:pressTac);
+  return s*(0.8+_pk*0.25);
 }
 /* 패스 경로 위에 상대가 걸쳐 있는 정도(0=완전히 열림, 1=완전히 막힘) */
 
@@ -4717,7 +4728,10 @@ class MatchSim{
   /* ⏱️ 템포 — 전술 슬라이더가 2D의 "공 잡고 있는 시간"을 실제로 줄이고 늘린다.
      (제보 — 역습·템포가 화면에서만 조절되고 엔진에는 반영되지 않았다) */
   tempoK(side){
-    try{ const T=TAC(this.rec(side).team); return clamp(1.12-(T.tempo!=null?T.tempo:2)*0.06, 0.85, 1.15); }
+    /* [KMD26 TEMPO-01] T.tempo 는 tacVal 을 거쳐 0~2 로 들어오는데 계수가 옛 0~4 눈금에 맞춰져
+       있었다. 그래서 폭이 절반(1.12~1.00)이고 중립점도 1.06 으로 어긋나 있었다.
+       0.12 로 두면 1.12~0.88 이 되어 아래 clamp(0.85~1.15) 와 정확히 맞고 중립이 1.00 이 된다. */
+    try{ const T=TAC(this.rec(side).team); return clamp(1.12-(T.tempo!=null?T.tempo:1)*0.12, 0.85, 1.15); }
     catch(e){ return 1; }
   }
   /* ⚡ 역습 창 — 소유권을 빼앗은 순간부터 몇 초간, 역습 전술 팀은 앞만 본다 */
@@ -5076,7 +5090,8 @@ class MatchSim{
       if(!inStand && !slide) continue;
       // 실제 축구는 경기당 태클이 30~40회다. 매 스텝 미세 경합을 전부 시도로 세면 수백 회가 되므로
       // 시도 자체를 드물게 만든다(붙어 있어도 대부분은 그냥 견제만 하는 상태).
-      if(RNG() > (slide?0.006:0.009)*markEdge/(TEMPO*1.5)*(0.8+T.tackle*0.2)) continue;   // 틱당 확률이라 시간을 늘린 만큼 낮춘다
+      // [KMD26 PRESS-02] 팀 압박 지시도 읽는다 — 높은 압박은 더 자주 발을 뻗는 것이다
+      if(RNG() > (slide?0.006:0.009)*markEdge/(TEMPO*1.5)*(0.8+T.tackle*0.2)*(0.75+T.press*0.25)) continue;   // 틱당 확률이라 시간을 늘린 만큼 낮춘다
       const atk=o.tackleSkill*(0.75+T.tackle*0.18)*(slide?1.28:1.0);   // 슬라이딩이 성공률은 더 높다
       // 퍼스트 터치가 나쁘면 압박에서 볼이 발에서 튄다 — 태클을 버티는 힘도 떨어진다
       const keep=carrier.dribSkill*1.25*(0.72+(carrier.firstTouch||0.6)*0.46);

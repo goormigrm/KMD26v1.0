@@ -32,6 +32,9 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "src/engine/kernel.js"
 #   find   : 원본에서 찾을 문자열 (정규식 아님 — 문자 그대로)
 #   repl   : 바꿔 넣을 문자열
 #   count  : 걸려야 하는 횟수. 다르면 중단한다.
+#   off    : True 면 **적용하지 않는다.** 효과가 확인되지 않은 수정을 지우는 대신 꺼 둔다 —
+#            무엇을 왜 손대려 했는지가 코드에 남아 있어야 나중에 다시 볼 수 있다.
+#            꺼 둔 것도 앵커는 그대로 검사하므로, 원본이 갱신되면 여기서 걸린다.
 # ─────────────────────────────────────────────────────────────
 PATCHES = [
 
@@ -132,8 +135,22 @@ PATCHES = [
   dict(
     id="WIDTH-01",
     kind="전술",
-    why="크로스 판단 문턱이 팀 '폭'을 읽지 않는다 — 폭은 자리만 벌리고 판단은 안 바꿨다",
+    off=True,   # ⛔ 보류 — 아래 "측정" 참고. 켜면 오히려 나빠진다.
+    why="크로스 판단 문턱이 팀 '폭'을 읽지 않는다 (수정안이 역효과라 보류)",
     count=1,
+    # ── 측정 (2026-08-13, tools/simcheck, 45분 10쌍) ────────────────────
+    #   패치 없음 : 크로스 16.4 → 19.0 (16쌍, 방향 일치 9/16 = 사실상 잡음)
+    #   이 패치   : 크로스 11.6 →  8.5 (10쌍, 9쌍 중 6쌍 감소) ← 거꾸로 갔다
+    #
+    # 문턱만 낮추는 걸로는 안 된다. 폭에는 서로 맞서는 두 힘이 있다고 본다.
+    #   (+) 넓게 서면 측면 깊숙이 자리 잡는 선수가 늘어 올릴 기회가 는다
+    #   (−) 넓게 서면 **박스 안에 댈 사람이 준다** — inBoxMates 가 비면 크로스는 통째로 취소된다
+    # 문턱을 낮추면 (+)만 커지는데, 정작 막고 있는 건 (−) 쪽이라 효과가 없거나 뒤집힌다.
+    #
+    # 다음에 볼 곳 — 문턱이 아니라 "박스에 누가 들어가는가"다.
+    #   · assignOffRoles 가 폭을 읽게 해서, 넓은 팀일수록 중앙 공격수·미드필더를 박스로 밀어 넣기
+    #   · tacticalAnchorXY 의 wScale(0.72+width*0.28)이 최전방까지 똑같이 벌리는지 확인
+    #     (측면을 벌리는 것과 스트라이커를 벌리는 것은 다른 이야기다)
     find=(
       "  const wide=Math.abs(carrier.y-0.5) > 0.21-cf*0.055;\n"
       "  if(!wide || cx < 0.56-cf*0.075) return null;\n"
@@ -235,7 +252,9 @@ rawhash = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
 
 code = raw
 applied = []
+skipped = []
 for p in PATCHES:
+    # 꺼 둔 패치도 앵커는 검사한다 — 원본이 갱신되면 여기서 알아차려야 한다
     n = code.count(p["find"])
     if n != p["count"]:
         sys.exit(
@@ -243,6 +262,9 @@ for p in PATCHES:
             "  원본이 갱신돼 해당 코드가 달라졌을 수 있습니다. 손으로 확인하고 find 를 고치세요.\n"
             "  대상: %s" % (p["id"], n, p["count"], p["why"])
         )
+    if p.get("off"):
+        skipped.append(p)
+        continue
     code = code.replace(p["find"], p["repl"])
     applied.append(p)
 
@@ -254,7 +276,8 @@ if i < 0:
 note = (
     "\n   ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────\n"
     "   원본(kernel.raw.js) 해시: sha256:%s\n" % rawhash
-    + "".join("   · [%s] %-7s %s\n" % (p["kind"], p["id"], p["why"]) for p in applied)
+    + "".join("   · [%s] %-9s %s\n" % (p["kind"], p["id"], p["why"]) for p in applied)
+    + ("".join("   · [보류] %-9s %s\n" % (p["id"], p["why"]) for p in skipped) if skipped else "")
     + "   ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.\n"
 )
 code = code[:i] + note + code[i:]
@@ -263,3 +286,5 @@ io.open(OUT, "w", encoding="utf-8").write(code)
 print("OK %d patches applied -> %s" % (len(applied), OUT))
 for p in applied:
     print("   [%s] %s  %s" % (p["kind"], p["id"], p["why"]))
+for p in skipped:
+    print("   [보류] %s  %s" % (p["id"], p["why"]))
