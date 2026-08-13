@@ -56,24 +56,33 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 /* ── 전술판 ───────────────────────────────────────────────────
    KM26 과 같은 "한 줄 5칸" 격자입니다. 자유 좌표가 아니라 정해진 자리에 세웁니다 —
    이미 개리그 매니저를 하던 분들이 오기 때문에 그 형태를 그대로 씁니다. */
-.pitch{background:linear-gradient(180deg,#14301c,#0f2415);border:1px solid #24402a;
-       border-radius:10px;padding:8px 6px;display:grid;gap:4px}
-.prow5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
-.cell{min-height:52px;border-radius:7px;display:flex;flex-direction:column;justify-content:center;
+.pitch{position:relative;overflow:hidden;
+       background:linear-gradient(180deg,#14301c,#0f2415);border:1px solid #24402a;
+       border-radius:10px;padding:10px 8px}
+/* 코트 — 격자 뒤에 깔린다. 그 자리가 경기장 어디쯤인지 눈으로 가늠하게 해 준다.
+   아래가 우리 골문(GK 줄), 위가 상대 골문(FW 줄)이다. */
+.pmark{position:absolute;inset:0;pointer-events:none}
+.pmark i{position:absolute;display:block;border:1.5px solid #ffffff1f}
+.pgrid{position:relative;display:grid;gap:5px}
+.prow5{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+/* 칸 크기는 오른쪽 선발 명단 한 줄과 비슷하게 — 이름이 잘리지 않고 읽히는 크기다 */
+.cell{min-height:64px;border-radius:8px;display:flex;flex-direction:column;justify-content:center;
       align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;
-      border:1px dashed #ffffff26;color:#ffffff55;font-size:11px;font-weight:800;padding:3px}
+      border:1px dashed #ffffff2e;color:#ffffff66;font-size:12px;font-weight:800;padding:4px}
 .cell.off{border-color:transparent;cursor:default}
-.cell.has{border:1px solid var(--line);background:#0b0f14d9;color:var(--txt);padding:4px 3px}
+.cell.has{border:1px solid var(--line);background:#0b0f14cc;color:var(--txt);padding:5px 4px}
 .cell.sel{border-color:var(--acc);box-shadow:0 0 0 2px #2ea8ff66}
 .cell.drop{border-color:var(--ok);border-style:dashed;background:#1a3a2455}
-.cell .role{font-size:9.5px;font-weight:800;background:#161b22;border:1px solid var(--line);
-      border-radius:4px;padding:0 4px;margin-bottom:2px;white-space:nowrap;
+.cell .role{font-size:10.5px;font-weight:800;background:#161b22;border:1px solid var(--line);
+      border-radius:4px;padding:0 5px;margin-bottom:3px;white-space:nowrap;
       max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.cell .who{display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;
+.cell .who{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:700;
       max-width:100%;overflow:hidden}
 .cell .who .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cell .fdot{width:7px;height:7px;border-radius:50%;flex:none}
+.cell .fdot{width:8px;height:8px;border-radius:50%;flex:none}
+.cell .sl{font-size:10px;color:var(--sub);font-weight:800;margin-top:2px}
 .cell.drag{opacity:.4}
+@media (max-width:520px){ .cell{min-height:56px} .cell .who{font-size:12px} }
 
 /* ── 선수 목록 ─────────────────────────────── */
 .plist{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:9px;background:var(--bg3)}
@@ -125,7 +134,25 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
   <div class="sub"><a href="index.html">← 첫 페이지</a> · <a href="squad.html">선수단</a></div>
 </div>
 
+<!-- 저장 슬롯이 맨 위 — 짜 둔 라인업이 있으면 구단을 고르기 전에 그것부터 불러오는 게 순서다.
+     불러오면 그 라인업의 구단·전술·배치가 한꺼번에 올라온다. -->
 <div class="card">
+  <h3>💾 저장 슬롯</h3>
+  <div class="slots" id="slots"></div>
+  <div class="row" style="margin-top:10px">
+    <button id="expJson">📥 파일로 내보내기</button>
+    <button id="impBtn">📤 파일에서 불러오기</button>
+    <input type="file" id="impJson" accept=".json,application/json" style="display:none">
+    <span class="sub">슬롯은 이 브라우저에만 남습니다. 다른 기기로 옮기거나 남에게 주려면 파일로 내보내세요.</span>
+  </div>
+  <!-- 슬롯은 누르면 바로 적용하지 않는다 — 여기서 한 번 묻는다 -->
+  <div class="note" id="slotAsk" style="display:none"></div>
+  <!-- 구단을 고르기 전에는 아래 안내문(#hint)이 없으므로, 슬롯 관련 알림은 여기에 띄운다 -->
+  <div class="note" id="slotNote" style="display:none"></div>
+</div>
+
+<div class="card">
+  <h3>🏟 구단</h3>
   <div class="tabs">
     <button class="tab on" data-lg="k1">K리그1</button>
     <button class="tab" data-lg="k2">K리그2</button>
@@ -143,17 +170,6 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <div class="note" id="tacnote"></div>
   </div>
 
-  <div class="card">
-    <h3>💾 저장 슬롯</h3>
-    <div class="slots" id="slots"></div>
-    <div class="row" style="margin-top:10px">
-      <button id="expJson">📥 파일로 내보내기</button>
-      <button id="impBtn">📤 파일에서 불러오기</button>
-      <input type="file" id="impJson" accept=".json,application/json" style="display:none">
-      <span class="sub">슬롯은 이 브라우저에만 남습니다. 다른 기기로 옮기거나 남에게 주려면 파일로 내보내세요.</span>
-    </div>
-  </div>
-
   <div class="wrap">
     <div class="card">
       <div class="row" style="justify-content:space-between;margin-bottom:10px">
@@ -165,7 +181,20 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
         </div>
         <div class="sub" id="count"></div>
       </div>
-      <div class="pitch" id="pitch"></div>
+      <div class="pitch" id="pitch">
+        <!-- 반코트 배경 — 예전 화면에 있던 코트를 격자 뒤에 다시 깐 것 -->
+        <div class="pmark" aria-hidden="true">
+          <i style="left:0;right:0;top:50%;border-width:1.5px 0 0"></i>
+          <i style="left:50%;top:50%;width:98px;height:98px;border-radius:50%;transform:translate(-50%,-50%)"></i>
+          <i style="left:50%;top:50%;width:6px;height:6px;border:0;border-radius:50%;
+                    background:#ffffff2e;transform:translate(-50%,-50%)"></i>
+          <i style="left:17%;right:17%;top:-2px;height:15%;border-top:0"></i>
+          <i style="left:33%;right:33%;top:-2px;height:6%;border-top:0"></i>
+          <i style="left:17%;right:17%;bottom:-2px;height:15%;border-bottom:0"></i>
+          <i style="left:33%;right:33%;bottom:-2px;height:6%;border-bottom:0"></i>
+        </div>
+        <div class="pgrid" id="pgrid"></div>
+      </div>
       <div class="note" id="hint"></div>
     </div>
 
@@ -483,6 +512,13 @@ function drawXI() {
 
 function drawHint() {
   let h;
+  // 구단을 고르기 전에는 전술판(#hint)이 화면에 없다 — 그럴 때는 슬롯 카드에 띄운다
+  if (flashMsg && $("#main").style.display === "none") {
+    $("#slotNote").style.display = "";
+    $("#slotNote").innerHTML = `<span class="warn">⚠ ${esc(flashMsg)}</span>`;
+    return;
+  }
+  if ($("#slotNote").style.display !== "none" && !flashMsg) $("#slotNote").style.display = "none";
   if (flashMsg) { $("#hint").innerHTML = `<span class="warn">⚠ ${esc(flashMsg)}</span>`; return; }
   if (sel && sel.kind === "slot") h = `<b>${sel.slot}</b> 자리에 세울 선수를 고르세요. 오른쪽 목록이 그 자리 <b>능숙도 순</b>으로 정렬됩니다.`;
   else if (sel && sel.kind === "player") h = `<b>${esc(byId(sel.id).name)}</b> 선수를 세울 자리를 고르세요.`;
@@ -521,7 +557,8 @@ const ROW_ORDER = ["FW", "AM", "MF", "DM", "WB", "DF", "SW"];
 
 function drawPitch() {
   const rows = ROW_ORDER.map(r => T.rowSlots[r]).concat([[null, null, "GK", null, null]]);
-  $("#pitch").innerHTML = rows.map(cells => `<div class="prow5">${cells.map(slot => {
+  // ⚠ #pitch 가 아니라 #pgrid 에 쓴다 — #pitch 안에는 코트 배경(.pmark)이 함께 있다
+  $("#pgrid").innerHTML = rows.map(cells => `<div class="prow5">${cells.map(slot => {
     if (!slot) return `<div class="cell off"></div>`;
     const pid = xi[slot], p = pid != null ? byId(pid) : null;
     const isSel = sel && sel.kind === "slot" && sel.slot === slot;
@@ -536,10 +573,11 @@ function drawPitch() {
       ${r ? `<span class="role">${esc(r.k)} · ${esc(r.duty)}</span>` : ""}
       <span class="who"><span class="fdot" style="background:${lv.c}"></span>
         <span class="nm">${esc(p.name)}</span></span>
+      <span class="sl">${esc(slot)}</span>
     </div>`;
   }).join("")}</div>`).join("");
 
-  $("#pitch").querySelectorAll(".cell[data-slot]").forEach(el => {
+  $("#pgrid").querySelectorAll(".cell[data-slot]").forEach(el => {
     const slot = el.dataset.slot;
     el.onclick = () => tapSlot(slot);
     // 마우스는 끌어서 옮기고, 손가락은 두 번 눌러서 옮긴다 — 둘 다 된다
@@ -799,16 +837,53 @@ function drawSlots() {
   $("#slots").querySelectorAll("[data-act]").forEach(el => el.onclick = e => {
     e.stopPropagation();
     const i = +el.dataset.i, act = el.dataset.act, list = loadSlots();
-    if (act === "save") {
-      if (!team || xiCount() === 0) { flash("먼저 라인업을 짜 주세요."); drawHint(); return; }
-      list[i] = currentPlan();
-      if (saveSlots(list)) { drawSlots(); flash(`${i + 1}번 슬롯에 저장했습니다.`); drawHint(); }
-    } else if (act === "del") {
-      list[i] = null; saveSlots(list); drawSlots();
-    } else if (act === "load" && list[i]) {
-      if (applyPlan(list[i], `${i + 1}번 슬롯`)) drawSlots();
-    }
+    // 빈 칸에 저장하는 것만 바로 한다 — 잃을 것이 없다.
+    // 불러오기·덮어쓰기·지우기는 되돌릴 수 없으므로 한 번 묻는다.
+    if (act === "save" && !list[i]) return doSlot(i, "save");
+    askSlot(i, act, list[i]);
   });
+}
+
+/* ── 슬롯을 만지기 전에 한 번 묻는다 ──────────────────────────
+   슬롯 한 칸에는 열한 명과 전술이 다 들어 있어서, 잘못 누르면 짜 둔 것이 한 번에 사라진다. */
+function askSlot(i, act, s) {
+  if (!s && act !== "save") return;
+  const what = s ? `<b>${i + 1}번 · ${esc(s.name || s.id)}</b>
+      <span class="sub">(${esc(s.formation || "")} · 선발 ${Object.keys(s.xi || {}).length}명)</span>` : `<b>${i + 1}번</b>`;
+  const msg = {
+    load: `${what} 을 불러옵니다. ${team ? "지금 편집 중인 배치·전술은 사라집니다." : ""}`,
+    save: `${what} 에 <b>지금 라인업을 덮어씁니다.</b> 그 칸에 있던 것은 사라집니다.`,
+    del:  `${what} 을 <b>지웁니다.</b> 되돌릴 수 없습니다.`,
+  }[act];
+  const ok = { load: "✔ 불러오기", save: "💾 덮어쓰기", del: "✕ 지우기" }[act];
+  const box = $("#slotAsk");
+  box.style.display = "";
+  box.innerHTML = `${msg}
+    <div class="row" style="margin-top:8px">
+      <button id="askOk" class="on">${ok}</button>
+      <button id="askNo">취소</button>
+    </div>`;
+  $("#askOk").onclick = () => { closeAsk(); doSlot(i, act); };
+  $("#askNo").onclick = closeAsk;
+}
+
+function closeAsk() {
+  $("#slotAsk").style.display = "none";
+  $("#slotAsk").innerHTML = "";
+}
+
+/** 물어본 뒤 실제로 하는 일 */
+function doSlot(i, act) {
+  const list = loadSlots();
+  if (act === "save") {
+    if (!team || xiCount() === 0) { flash("먼저 구단을 고르고 라인업을 짜 주세요."); drawHint(); return; }
+    list[i] = currentPlan();
+    if (saveSlots(list)) { drawSlots(); flash(`${i + 1}번 슬롯에 저장했습니다.`); drawHint(); }
+  } else if (act === "del") {
+    list[i] = null; saveSlots(list); drawSlots();
+  } else if (act === "load" && list[i]) {
+    if (applyPlan(list[i], `${i + 1}번 슬롯`)) drawSlots();
+  }
 }
 
 /** 파일로 내보내기 — 기기를 옮기거나 남에게 줄 때 */

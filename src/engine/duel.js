@@ -12,7 +12,7 @@ import { MatchSim, SIM_SECONDS, MATCH_CLOCK_SCALE, onPitch } from "./kernel.js";
 import { installEngineContext, normalizeTeam } from "./stubs.js";
 import { seedRNG, deriveSeed } from "./rng.js";
 import { installDuelRules } from "./rules.js";
-import { installReplay, takeClips, rosterOf } from "./replay.js";
+import { installReplay, takeClips, rosterOf, frameZero } from "./replay.js";
 
 // 듀얼 규칙(D-3)은 커널을 감싸는 방식이라, 경기를 만들기 전에 한 번 입혀 둔다
 installDuelRules();
@@ -108,7 +108,7 @@ export function runHeadless(home, away, opt = {}) {
     clock: Math.round(sim.clock),
     done: M.done,
   };
-  if (opt.record) { r.clips = takeClips(sim); r.roster = rosterOf(M); }
+  if (opt.record) { r.clips = takeClips(sim); r.roster = rosterOf(M); r.form0 = frameZero(sim); }
   r.fp = fingerprint(r);
   return r;
 }

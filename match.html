@@ -61,8 +61,16 @@ button:disabled{opacity:.45;cursor:default}
      background:linear-gradient(0deg,#000c,#0000);border-radius:0 0 10px 10px}
 .hl .badge{position:absolute;top:8px;left:10px;background:#000a;border:1px solid #ffffff33;
      border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:800}
-.hl .skip{position:absolute;top:8px;right:10px}
+/* 리플레이 중임을 분명히 한다 — KM26 의 🎬 배지와 같은 자리 */
+.hl .badge.rep{border-color:var(--gold);color:var(--gold)}
+.hl .skip{position:absolute;top:8px;right:10px;display:flex;gap:5px}
 .hl .skip button{padding:3px 9px;font-size:11.5px;border-radius:6px}
+/* 장면이 없는 동안 — 정지된 포메이션이라는 걸 알려 준다 */
+.hl.idle canvas{filter:saturate(.75) brightness(.82)}
+.hl.idle #hlSkip{display:none}     /* 정지 중에는 건너뛸 것이 없다 — 다시 보기만 남는다 */
+.scene{display:flex;gap:5px;align-items:center}
+.scene button{padding:4px 9px;font-size:11.5px;border-radius:6px}
+.scene .lb{color:var(--sub);font-size:11.5px;font-weight:700}
 .hlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px;margin-top:8px}
 .hlist button{padding:6px 8px;font-size:12px;text-align:left;font-weight:700}
 .hlist .k{display:block;font-size:11px;color:var(--sub);font-weight:600}
@@ -118,10 +126,13 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div class="hl" id="hl" style="display:none">
+    <div class="hl idle" id="hl" style="display:none">
       <canvas id="cv" width="700" height="440"></canvas>
       <div class="badge" id="hlBadge"></div>
-      <div class="skip"><button id="hlSkip">건너뛰기 ✕</button></div>
+      <div class="skip">
+        <button id="hlReplay" title="이 장면을 느리게 다시 봅니다">↺ 다시 보기</button>
+        <button id="hlSkip">건너뛰기 ✕</button>
+      </div>
       <div class="cap" id="hlCap"></div>
     </div>
     <div class="row" style="justify-content:space-between;margin-bottom:9px">
@@ -131,6 +142,12 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
         <button class="spd on" data-s="2">2배속</button>
         <button class="spd" data-s="4">4배속</button>
         <button id="skip">⏭ 끝까지</button>
+      </div>
+      <div class="scene">
+        <span class="lb">장면</span>
+        <button class="sc on" data-m="all">결정적 장면 전부</button>
+        <button class="sc" data-m="goal">골만</button>
+        <button class="sc" data-m="off">안 보기</button>
       </div>
       <div class="row"><button id="again">다시 대진 고르기</button></div>
     </div>
@@ -148,6 +165,11 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 
 let DB = null, T = null, R = null;      // R = 경기 결과
 let minute = 0, idx = 0, timer = null, speed = 2, playing = false;
+
+/* 어디까지 장면을 보여 줄지. 클립에는 엔진이 매긴 무게가 붙어 있다
+   (결정적 기회 1 · 선방 2 · 퇴장 3 · PK 4 · 골 5 — 커널 HL_W 와 같다). */
+let sceneMode = "all";
+const SCENE_MIN = { all: 1, goal: 5, off: 99 };
 
 /* 1분을 몇 밀리초에 흘려보낼지. 1배속이면 90분 경기가 1분쯤 걸린다.
    경기를 먼저 다 돌려 놓고 재생만 하므로, 배속은 엔진 속도와 아무 상관이 없다. */
@@ -194,7 +216,9 @@ async function boot() {
   }
   $("#start").onclick = start;
   $("#again").onclick = () => {
-    stop(); $("#game").style.display = "none"; $("#setup").style.display = "";
+    stop(); stopClip(); lastClip = null;
+    $("#hl").style.display = "none";
+    $("#game").style.display = "none"; $("#setup").style.display = "";
     // 다른 탭에서 라인업을 새로 저장했을 수 있다 — 목록을 다시 읽는다
     HAND = loadPlan(); SLOTS = loadSlots();
     drawPlanSel("home"); drawPlanSel("away"); describe();
@@ -205,6 +229,10 @@ async function boot() {
     speed = +b.dataset.s;
     document.querySelectorAll(".spd").forEach(x => x.classList.toggle("on", x === b));
     if (playing) { pause(); resume(); }
+  });
+  document.querySelectorAll(".sc").forEach(b => b.onclick = () => {
+    sceneMode = b.dataset.m;
+    document.querySelectorAll(".sc").forEach(x => x.classList.toggle("on", x === b));
   });
 }
 
@@ -328,6 +356,8 @@ function start() {
     paintTeams(R.home, R.away);
     minute = 0; idx = 0;
     $("#log").innerHTML = "";
+    // 킥오프 포메이션을 세워 둔다 — 장면이 나오기 전에도, 0:0 경기에서도 필드가 보인다
+    showIdle(R.form0, "킥오프");
     resume();
   };
   w.onerror = ev => {
@@ -369,21 +399,22 @@ function tick() {
   while (idx < R.events.length && minOf(R.events[idx]) <= minute) {
     const e = R.events[idx++];
     push(e); shown = true;
-    // 골이 나오면 그 장면을 2D 로 보여 준다 — 사람들이 보고 싶은 건 이것이다
-    if (!big && e.type === "goal") big = e;
+    // 골 해설이 있으면 그 문장을 장면 자막으로 쓴다
+    if (!big && (e.type === "goal" || e.type === "big")) big = e;
   }
   $("#clock").textContent = minute >= 90 ? `90+${minute - 90}분` : `${minute}분`;
   $("#prog").style.width = Math.min(100, minute / 90 * 100) + "%";
   if (shown) $("#log").scrollTop = $("#log").scrollHeight;
 
-  if (big) {
-    const c = clipAt(minute, "goal") || clipAt(minute);
-    if (c) {
-      c._seen = true;
-      pause();                       // 장면을 보는 동안 시계는 멈춘다
-      playClip(c, big.txt, () => { $("#hl").style.display = "none"; resume(); });
-      return;
-    }
+  /* 이 분에 볼만한 장면이 있으면 시계를 멈추고 보여 준다.
+     골만 보던 것을 넓혔다 — 선방·결정적 기회도 필드에서 벌어진 일이다. */
+  const c = clipAt(minute);
+  if (c) {
+    c._seen = true;
+    pause();                         // 장면을 보는 동안 시계는 멈춘다
+    playClip(c, big && big.txt ? big.txt : `${c.min}' ${KIND_N[c.kind] || c.kind}`,
+             () => { freezeField(c); resume(); });
+    return;
   }
   if (idx >= R.events.length && minute >= 90) finish();
 }
@@ -401,9 +432,11 @@ function push(e) {
 
 function skipToEnd() {
   if (!R) return;
+  stopClip(); onClipEnd = null;          // 보고 있던 장면은 접는다
   while (idx < R.events.length) push(R.events[idx++]);
   minute = 90;
   $("#log").scrollTop = $("#log").scrollHeight;
+  freezeField(lastClip);
   finish();
 }
 
@@ -445,7 +478,7 @@ function finish() {
 
   $("#result").querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
     const c = R.clips[+b.dataset.c];
-    playClip(c, `${c.min}' ${KIND_N[c.kind] || c.kind}`, () => {});
+    playClip(c, `${c.min}' ${KIND_N[c.kind] || c.kind}`, () => freezeField(c));
     $("#hl").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
   bindReactions();
@@ -458,84 +491,193 @@ const pct = (ok, n) => (n ? Math.round(ok / n * 100) + "%" : "-");
    1분에 150장을 그려야 합니다. 사람이 볼 수 있는 속도가 아닙니다.
    엔진이 markHighlight() 로 짚어 둔 결정적 장면만 앞뒤로 잘라 보여 줍니다. */
 const KIND_N = { goal: "골", miss: "결정적 기회", save: "선방", pen: "페널티킥", red: "퇴장" };
-let clipTimer = null, onClipEnd = null;
+let clipTimer = null, onClipEnd = null, lastClip = null;
 
-function drawFrame(f) {
-  const cv = $("#cv"), g = cv.getContext("2d");
-  const W = cv.width, H = cv.height, PAD = 14;
+/* 리플레이 — KM26 과 같은 규격입니다 (index.html 의 HL_REPLAY_*).
+   골 순간 앞 6초·뒤 2.5초를 0.62배속으로. 느려야 무슨 일이 있었는지 눈이 따라갑니다. */
+const FRAME_MS = 40;                 // 엔진 한 장(0.2초)을 뿌리는 간격
+const REPLAY_PRE = 30, REPLAY_POST = 13, REPLAY_RATE = 0.62;
+
+/* ── 필드 그리기 ───────────────────────────────────────────────
+   선·비율은 KM26 drawPitchBase 를 따릅니다 — 골 에어리어와 골대까지 있어야
+   "골문 앞"이 어디인지 눈에 들어옵니다. */
+function drawPitch(g, W, H, PAD) {
   const X = x => PAD + x * (W - PAD * 2);
   const Y = y => PAD + y * (H - PAD * 2);
+  const pw = X(1) - X(0), ph = Y(1) - Y(0);
 
   g.fillStyle = "#12301b"; g.fillRect(0, 0, W, H);
   // 잔디 줄무늬 — 공이 어디쯤인지 눈으로 가늠하게 해 준다
   g.fillStyle = "#14351e";
-  for (let i = 0; i < 8; i += 2) g.fillRect(X(i / 8), 0, (W - PAD * 2) / 8, H);
-  g.strokeStyle = "#ffffff33"; g.lineWidth = 1.5;
-  g.strokeRect(X(0), Y(0), X(1) - X(0), Y(1) - Y(0));
-  g.beginPath(); g.moveTo(X(.5), Y(0)); g.lineTo(X(.5), Y(1)); g.stroke();
-  g.beginPath(); g.arc(X(.5), Y(.5), (Y(1) - Y(0)) * 0.13, 0, 7); g.stroke();
-  for (const s of [0, 1]) {   // 페널티 박스
-    const bx = s ? X(1) - (X(1) - X(0)) * 0.17 : X(0);
-    g.strokeRect(bx, Y(.21), (X(1) - X(0)) * 0.17, Y(.79) - Y(.21));
-  }
+  for (let i = 0; i < 8; i += 2) g.fillRect(X(i / 8), 0, pw / 8, H);
 
+  g.strokeStyle = "#ffffff44"; g.lineWidth = 1.6;
+  g.strokeRect(X(0), Y(0), pw, ph);
+  g.beginPath(); g.moveTo(X(.5), Y(0)); g.lineTo(X(.5), Y(1)); g.stroke();
+  g.beginPath(); g.arc(X(.5), Y(.5), ph * 0.16, 0, 7); g.stroke();
+  g.beginPath(); g.arc(X(.5), Y(.5), 2.6, 0, 7); g.fillStyle = "#ffffff88"; g.fill();
+
+  for (const right of [false, true]) {
+    const bw = pw * 0.16, gw = pw * 0.06, gd = 6;            // 박스 · 골에어리어 · 골대 깊이
+    const bx = right ? X(1) - bw : X(0), gx = right ? X(1) - gw : X(0);
+    g.strokeRect(bx, Y(.25), bw, ph * 0.5);                   // 페널티 박스
+    g.strokeRect(gx, Y(.38), gw, ph * 0.24);                  // 골 에어리어
+    g.strokeRect(right ? X(1) : X(0) - gd, Y(.43), gd, ph * 0.14);  // 골대
+    // 페널티 스폿
+    g.beginPath(); g.arc(right ? X(1) - pw * 0.105 : X(0) + pw * 0.105, Y(.5), 2, 0, 7); g.fill();
+  }
+}
+
+function drawFrame(f) {
+  const cv = $("#cv"), g = cv.getContext("2d");
+  const W = cv.width, H = cv.height, PAD = 16;
+  const X = x => PAD + x * (W - PAD * 2);
+  const Y = y => PAD + y * (H - PAD * 2);
+
+  drawPitch(g, W, H, PAD);
   if (!f) return;
-  // 선수 — 홈은 왼쪽에서 오른쪽으로 공격한다
+
+  // 선수 — 홈은 왼쪽에서 오른쪽으로 공격한다. 크기는 KM26 바둑알에 맞췄다.
   for (let i = 0; i + 2 < f.a.length; i += 3) {
     const id = f.a[i], x = f.a[i + 1], y = f.a[i + 2];
     const p = R.roster[id] || {};
     const home = p.side === "h";
-    g.beginPath(); g.arc(X(x), Y(y), p.gk ? 7.5 : 8.5, 0, 7);
-    g.fillStyle = p.gk ? "#e3b341" : (home ? R.home.col : R.away.col);
-    g.fill();
-    g.lineWidth = 1.5; g.strokeStyle = "#0009"; g.stroke();
+    const col = p.gk ? "#e3b341" : (home ? R.home.col : R.away.col);
+    const r = p.gk ? 11.5 : 10.5;
+    g.beginPath(); g.arc(X(x), Y(y), r, 0, 7);
+    g.fillStyle = col; g.fill();
+    g.lineWidth = 1.6; g.strokeStyle = "#0009"; g.stroke();
     if (id === f.o) {                    // 공을 가진 선수 — 흰 링
-      g.beginPath(); g.arc(X(x), Y(y), 12, 0, 7);
-      g.strokeStyle = "#fff"; g.lineWidth = 2; g.stroke();
+      g.beginPath(); g.arc(X(x), Y(y), r + 4, 0, 7);
+      g.strokeStyle = "#fff"; g.lineWidth = 2.2; g.stroke();
     }
     if (p.no !== "" && p.no != null) {
-      g.fillStyle = "#fff"; g.font = "bold 9px sans-serif"; g.textAlign = "center";
-      g.fillText(String(p.no), X(x), Y(y) + 3);
+      // 밝은 유니폼에는 검은 글씨 — 등번호가 묻히지 않게 (KM26 과 같은 판정)
+      g.fillStyle = isLight(col) ? "#0b0f14" : "#fff";
+      g.font = "bold 11px system-ui,sans-serif"; g.textAlign = "center";
+      g.fillText(String(p.no), X(x), Y(y) + 4);
     }
   }
   // 심판
-  g.beginPath(); g.arc(X(f.r[0]), Y(f.r[1]), 5, 0, 7);
+  g.beginPath(); g.arc(X(f.r[0]), Y(f.r[1]), 5.5, 0, 7);
   g.fillStyle = "#1c1c1c"; g.fill(); g.strokeStyle = "#ffffff55"; g.lineWidth = 1; g.stroke();
   // 공 — 높이가 있으면 그림자와 함께 띄운다
-  const bz = f.b[2] || 0, lift = Math.min(14, bz * 90);
+  const bz = f.b[2] || 0, lift = Math.min(16, bz * 90);
   if (lift > 1) {
-    g.beginPath(); g.ellipse(X(f.b[0]), Y(f.b[1]), 4, 2, 0, 0, 7);
+    g.beginPath(); g.ellipse(X(f.b[0]), Y(f.b[1]), 4.2, 2.2, 0, 0, 7);
     g.fillStyle = "#0006"; g.fill();
   }
-  g.beginPath(); g.arc(X(f.b[0]), Y(f.b[1]) - lift, 4.5, 0, 7);
+  g.beginPath(); g.arc(X(f.b[0]), Y(f.b[1]) - lift, 5 + lift * 0.08, 0, 7);
   g.fillStyle = "#fff"; g.fill();
   g.strokeStyle = "#0008"; g.lineWidth = 1; g.stroke();
 }
 
-/** 클립 한 편을 재생한다. 끝나면 done() */
-function playClip(c, caption, done) {
-  stopClip();
+/** 유니폼 색이 밝은가 — 등번호 글씨색을 뒤집는 기준 */
+function isLight(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  return (((n >> 16 & 255) * 299 + (n >> 8 & 255) * 587 + (n & 255) * 114) / 1000) > 150;
+}
+
+/* ── 장면 재생 ─────────────────────────────────────────────────
+   장면이 없는 동안에도 필드는 그대로 서 있습니다. 0:0 경기에서 빈 화면만
+   보이던 것을 고친 것이고, 시간이 흐르는 동안은 마지막 장면에서 정지합니다. */
+function showIdle(frame, label) {
   $("#hl").style.display = "";
-  $("#hlBadge").textContent = `${c.min}' ${KIND_N[c.kind] || c.kind}`;
+  $("#hl").classList.add("idle");
+  $("#hlBadge").textContent = label || "";
+  $("#hlBadge").classList.remove("rep");
+  $("#hlCap").textContent = "";
+  // 본 장면이 있으면 손으로 다시 볼 수 있다
+  $("#hlReplay").style.display = lastClip ? "" : "none";
+  drawFrame(frame || null);
+}
+
+/** 장면이 끝났다 — 마지막 프레임을 그대로 세워 둔다 */
+function freezeField(c) {
+  lastClip = c || lastClip;
+  const f = lastClip && lastClip.frames.length ? lastClip.frames[lastClip.frames.length - 1] : null;
+  showIdle(f, lastClip ? `${lastClip.min}' ${KIND_N[lastClip.kind] || lastClip.kind} — 정지` : "");
+}
+
+/**
+ * 클립 한 편을 재생한다. 끝나면 done()
+ * @param {object} o { replay:true } 면 느리게 돌리고 🎬 배지를 단다
+ */
+function playClip(c, caption, done, o = {}) {
+  stopClip();
+  lastClip = c;
+  $("#hl").style.display = "";
+  $("#hl").classList.remove("idle");
+  $("#hl").querySelector(".skip").style.display = "flex";
+  $("#hlBadge").textContent = o.replay ? "🎬 다시보기" : `${c.min}' ${KIND_N[c.kind] || c.kind}`;
+  $("#hlBadge").classList.toggle("rep", !!o.replay);
   $("#hlCap").textContent = caption || "";
   onClipEnd = done;
+  const frames = o.frames || c.frames;
   let i = 0;
   // 엔진 한 장 = 0.2초, 경기 시계로는 0.4초. 40ms 로 뿌리면 실제보다 조금 빠르게 흐른다.
   clipTimer = setInterval(() => {
-    if (i >= c.frames.length) { stopClip(); if (done) done(); return; }
-    drawFrame(c.frames[i++]);
-  }, 40);
+    if (i >= frames.length) {
+      stopClip();
+      // 골은 KM26 처럼 한 번 더 — 골 순간을 가운데 두고 느리게. 리플레이는 되풀이하지 않는다.
+      if (!o.replay && c.kind === "goal") {
+        const rf = replayFrames(c);
+        if (rf) { playClip(c, "🎬 다시 보겠습니다.", done, { replay: true, frames: rf }); return; }
+      }
+      if (done) done();
+      return;
+    }
+    drawFrame(frames[i++]);
+  }, o.replay ? Math.round(FRAME_MS / REPLAY_RATE) : FRAME_MS);
 }
+
+/** 리플레이로 쓸 구간을 잘라 온다 — 너무 짧으면 리플레이를 걸지 않는다 */
+function replayFrames(c) {
+  const t = c.trig != null ? c.trig : Math.floor(c.frames.length * 0.6);
+  const from = Math.max(0, t - REPLAY_PRE), to = Math.min(c.frames.length, t + REPLAY_POST);
+  const rf = c.frames.slice(from, to);
+  return rf.length >= 8 ? rf : null;
+}
+
 function stopClip() {
   if (clipTimer) clearInterval(clipTimer);
   clipTimer = null;
 }
-$("#hlSkip").onclick = () => { const f = onClipEnd; stopClip(); $("#hl").style.display = "none"; onClipEnd = null; if (f) f(); };
 
-/** 해설이 그 분에 닿았을 때 볼만한 장면이 있으면 잡아 온다 */
-function clipAt(min, kind) {
+// 건너뛰기 — 보고 있던 장면을 접고 시계를 다시 흘린다 (필드는 그대로 둔다)
+$("#hlSkip").onclick = () => {
+  const f = onClipEnd;
+  stopClip(); onClipEnd = null;
+  freezeField(lastClip);
+  if (f) f();
+};
+// 손으로 다시 보기 — 골이면 리플레이 구간, 아니면 장면 전체를 다시 돌린다
+$("#hlReplay").onclick = () => {
+  if (!lastClip) return;
+  const wasPlaying = playing;
+  pause();
+  const rf = lastClip.kind === "goal" ? replayFrames(lastClip) : null;
+  playClip(lastClip, "🎬 다시 보겠습니다.", () => { freezeField(lastClip); if (wasPlaying) resume(); },
+           { replay: true, frames: rf || lastClip.frames });
+};
+
+/**
+ * 지금 분까지 아직 안 본 장면 중 가장 볼만한 것.
+ * 분이 정확히 맞지 않아도(엔진 시계와 해설 분이 한 칸 어긋날 수 있다) 지나간 장면은 챙긴다.
+ */
+function clipAt(min) {
   if (!R || !R.clips) return null;
-  return R.clips.find(c => !c._seen && Math.abs(c.min - min) <= 1 && (!kind || c.kind === kind)) || null;
+  const floor = SCENE_MIN[sceneMode] || 1;
+  let best = null;
+  for (const c of R.clips) {
+    if (c._seen || c.min > min || (c.weight || 1) < floor) continue;
+    // 이른 장면부터 순서대로. 같은 분에 겹치면 무게가 큰 쪽(골 > PK > 퇴장 > 선방 > 기회)
+    if (!best || c.min < best.min ||
+        (c.min === best.min && (c.weight || 1) > (best.weight || 1))) best = c;
+  }
+  return best;
 }
 
 function drawHighlightList() {
