@@ -9,7 +9,7 @@
       --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font:14px/1.6 'Segoe UI','Malgun Gothic',sans-serif;
-     padding:16px 12px 60px;max-width:900px;margin:0 auto}
+     }
 a{color:var(--acc);text-decoration:none}
 h1{font-size:18px;color:var(--gold)}
 h3{font-size:14px;color:var(--gold);margin-bottom:8px}
@@ -157,39 +157,155 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 .nav a:hover{border-color:var(--ok);color:var(--ok)}
 .nav .sp{flex:1}
 
+
+/* ── 왼쪽 바 (KM26 #side 구조) ─────────────────────────────────
+   넓은 화면에서는 왼쪽 210px 고정, 좁은 화면에서는 위쪽 가로 탭으로 눕는다.
+   어느 화면에 있든 다른 화면으로 한 번에 갈 수 있어야 한다. */
+#app{display:flex;min-height:100vh}
+#side{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+      padding:14px 10px;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
+#side h1{font-size:17px;color:var(--gold);margin-bottom:2px}
+#side .brand{font-size:11px;color:var(--sub);margin-bottom:14px}
+#navScroll{display:contents}
+.navbtn{display:block;width:100%;text-align:left;background:none;border:none;color:var(--txt);
+        padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;margin-bottom:2px;
+        text-decoration:none;font-weight:600}
+.navbtn:hover{background:var(--bg3)}
+.navbtn.on{background:var(--acc);color:#fff}
+.navbtn .k{display:block;font-size:11px;font-weight:400;opacity:.8}
+#side .navsep{margin:12px 2px 6px;font-size:11px;color:var(--sub);font-weight:700}
+#mainWrap{flex:1;min-width:0}
+#pageMain{padding:20px 22px 60px;max-width:1100px}
+@media (max-width:820px){
+  #app{display:block}
+  #side{width:100%;height:auto;position:sticky;top:0;z-index:900;padding:8px 8px 0;
+        border-right:none;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.5);
+        display:grid;grid-template-columns:1fr;overflow:visible}
+  #side h1{font-size:15px;margin:0}
+  #side .brand,#side .navsep{display:none}
+  /* 탭은 가로로 눕히고 옆으로 스크롤한다 */
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none}
+  #navScroll::-webkit-scrollbar{display:none}
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
+          background:var(--bg3);border-radius:8px 8px 0 0}
+  .navbtn .k{display:none}
+  #pageMain{padding:14px 12px 60px}
+}
+
+/* ── 대진 고르기 ───────────────────────────────────────────────
+   드롭다운을 펼쳐 놓습니다 — 무엇을 고를 수 있는지 한눈에 보이고, 폰에서 두 번 누를 일이
+   없습니다. 값의 주인은 그대로 <select> 이고(화면 로직이 전부 그걸 읽습니다) 여기서는
+   칩만 그립니다. */
+.hidesel{display:none}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){ .sides{grid-template-columns:1fr} }
+.sideBox{background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.sideBox .sh{font-size:13.5px;font-weight:800;color:var(--gold);margin-bottom:7px}
+.sideBox .sh2{font-size:11.5px;font-weight:800;color:var(--sub);margin:11px 0 5px}
+.tabs{display:flex;gap:5px;margin-bottom:6px}
+.tab{background:var(--bg2);border:1px solid var(--line);color:var(--sub);border-radius:7px;
+     padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:5px}
+.chips.src{grid-template-columns:1fr}
+.chip{display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--line);
+      border-radius:7px;padding:6px 8px;font-size:12.5px;font-weight:700;cursor:pointer;
+      color:var(--txt);text-align:left;min-width:0}
+.chip:hover{border-color:var(--acc)}
+.chip.on{border-color:var(--acc);background:#12283d;box-shadow:inset 0 0 0 1px var(--acc)}
+.chip .b{width:4px;height:16px;border-radius:2px;flex:none}
+.chip .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 코드 붙여넣는 칸 — 눌러서 붙여넣기 하는 자리라 넓게 둔다 */
+.codebox{margin-top:8px}
+.codebox .cl{font-size:11.5px;color:var(--sub);font-weight:700;margin-bottom:4px}
+textarea.cin{width:100%;min-height:52px;resize:vertical;background:var(--bg2);color:var(--gold);
+     border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px;
+     font-family:monospace;line-height:1.5}
+textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
+/* 내 코드 — 상대에게 건넬 것. 초록(진행)과 헷갈리지 않게 금색으로 */
+.mycode{background:#1a1608;border:1px solid #5c4a1c;border-left:3px solid var(--gold);
+        border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12.5px}
+.mycode b{color:var(--gold)}
+.mycode .row{margin-top:7px}
+.mycode input{flex:1;min-width:220px;background:var(--bg3);color:var(--gold);border:1px solid var(--line);
+     border-radius:7px;padding:6px 9px;font-size:12.5px;font-family:monospace}
+.spdlb{color:var(--sub);font-size:11.5px;font-weight:700;margin-right:2px}
 </style>
 </head>
 <body>
+<div id="app">
+<nav id="side">
+  <h1>KMD26</h1>
+  <div class="brand">개리그 매니저 듀얼</div>
+  <div id="navScroll">
+    <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
+    <a class="navbtn" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
+    <a class="navbtn on" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
+    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+  </div>
+  <div class="navsep">개발 확인용</div>
+  <div>
+    <a class="navbtn" href="test/determinism.html">🔬 결정론</a>
+    <a class="navbtn" href="test/tactics.html">🔬 전술 반영</a>
+  </div>
+</nav>
+<div id="mainWrap"><div id="pageMain">
+
 
 <div class="top">
   <div><h1>경기</h1><div class="sub" id="meta">불러오는 중…</div></div>
-  <div class="sub"><a href="index.html">← 첫 페이지</a> · <a href="lineup.html">라인업</a></div>
 </div>
 
 <div class="card" id="setup">
   <h3>대진</h3>
-  <div class="mrow"><span class="lb">홈</span>
-    <select id="homeSel"></select><select id="homePlan"></select></div>
-  <div class="mrow"><span class="lb">원정</span>
-    <select id="awaySel"></select><select id="awayPlan"></select>
-    <!-- 연습 상대일 때만 나오는 전술 프리셋 (어려움은 상성으로 자동) -->
-    <select id="awayAi" style="display:none"></select></div>
-  <!-- 대전 코드 (단계 5) — 코드를 고른 쪽만 상자가 나온다 -->
-  <div class="mrow" id="codeRow" style="display:none">
-    <span class="lb">코드</span>
-    <input id="homeCode" class="cin" placeholder="홈 코드 (KM26D1-…)" style="display:none">
-    <input id="awayCode" class="cin" placeholder="원정 코드 (KM26D1-…)" style="display:none">
+  <!-- 값의 주인은 이 select 들이다 (화면 로직이 전부 이걸 읽는다). 눈에는 안 보인다. -->
+  <select id="homeSel" class="hidesel"></select><select id="homePlan" class="hidesel"></select>
+  <select id="awaySel" class="hidesel"></select><select id="awayPlan" class="hidesel"></select>
+  <select id="awayAi" class="hidesel"></select>
+
+  <div class="sides">
+    <div class="sideBox">
+      <div class="sh">🏠 홈 <span class="sub" id="homePick"></span></div>
+      <div class="tabs" id="homeTabs">
+        <button class="tab on" data-lg="k1">K리그1</button>
+        <button class="tab" data-lg="k2">K리그2</button>
+      </div>
+      <div class="chips" id="homeTeams"></div>
+      <div class="sh2">라인업</div>
+      <div class="chips src" id="homeSrc"></div>
+      <div class="codebox" id="homeCodeBox" style="display:none">
+        <div class="cl">코드를 여기에 붙여넣으세요 (Ctrl+V)</div>
+        <textarea id="homeCode" class="cin" rows="2" spellcheck="false"
+                  placeholder="KM26D1-…"></textarea>
+      </div>
+    </div>
+
+    <div class="sideBox">
+      <div class="sh">✈ 원정 <span class="sub" id="awayPick"></span></div>
+      <div class="tabs" id="awayTabs">
+        <button class="tab on" data-lg="k1">K리그1</button>
+        <button class="tab" data-lg="k2">K리그2</button>
+      </div>
+      <div class="chips" id="awayTeams"></div>
+      <div class="sh2">라인업 · 상대</div>
+      <div class="chips src" id="awaySrc"></div>
+      <!-- 연습 상대의 전술 (어려움은 상성으로 자동) -->
+      <div id="aiBox" style="display:none">
+        <div class="sh2">연습 상대 전술</div>
+        <div class="chips src" id="aiChips"></div>
+      </div>
+      <div class="codebox" id="awayCodeBox" style="display:none">
+        <div class="cl">상대가 준 코드를 여기에 붙여넣으세요 (Ctrl+V)</div>
+        <textarea id="awayCode" class="cin" rows="2" spellcheck="false"
+                  placeholder="KM26D1-…"></textarea>
+      </div>
+    </div>
   </div>
   <button id="start" class="go" style="margin-top:11px">▶ 경기 시작
     <span class="s">90분을 먼저 다 치른 뒤 해설로 재생합니다 (준비 8초)</span></button>
   <div class="note" id="setupNote"></div>
-</div>
-
-<div class="nav" id="setupNav">
-  <a href="index.html">← 첫 페이지</a>
-  <a href="squad.html">🔍 선수단</a>
-  <span class="sp"></span>
-  <a href="lineup.html">라인업 짜기 →</a>
+  <!-- 내 코드 — 상대에게 건넬 것. 라인업이 정해지면 바로 뜬다 -->
+  <div class="mycode" id="myCode" style="display:none"></div>
 </div>
 
 <div id="game" style="display:none">
@@ -217,6 +333,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <div class="row" style="justify-content:space-between;margin-bottom:9px">
       <div class="row">
         <button id="play" class="pri">⏸ 일시정지</button>
+        <span class="spdlb">속도</span>
         <button class="spd on" data-s="1">1배속</button>
         <button class="spd" data-s="2">2배속</button>
         <button class="spd" data-s="4">4배속</button>
@@ -289,15 +406,30 @@ async function boot() {
   $("#homeSel").value = hid0;
   // 처음 열었을 때는 다른 구단끼리 — 같은 구단은 골라야 나오게 한다
   $("#awaySel").value = DB.order.k1.find(id => id !== hid0) || DB.order.k1[0];
+  // 고른 팀이 어느 리그인지에 맞춰 탭을 세운다
+  for (const sd of ["home", "away"]) {
+    LG[sd] = DB.order.k1.includes($(`#${sd}Sel`).value) ? "k1" : "k2";
+    drawTeamChips(sd);
+  }
   drawPlanSel("home"); drawPlanSel("away");
-  if (HAND) $("#homePlan").value = "hand";
+  // 라인업 화면에서 넘어왔으면 그 칸을 고른 상태로 둔다 (칩 표시까지 맞춘다)
+  if (HAND) { $("#homePlan").value = "hand"; drawSrcChips("home"); drawCodeRow(); }
   describe();
 
   for (const s of ["home", "away"]) {
-    $(`#${s}Sel`).onchange = () => { drawPlanSel(s); describe(); };
-    $(`#${s}Plan`).onchange = () => { if (s === "away") drawAiSel(); describe(); };
+    $(`#${s}Sel`).onchange = () => { drawTeamChips(s); drawPlanSel(s); describe(); };
+    $(`#${s}Tabs`).querySelectorAll(".tab").forEach(t => t.onclick = () => {
+      LG[s] = t.dataset.lg; drawTeamChips(s);
+    });
+    $(`#${s}Plan`).onchange = () => {
+      // 칸을 바꾸면 칩의 선택 표시 · 코드 상자 · 연습 전술 칩이 모두 따라와야 한다
+      if (s === "away") { drawAiSel(); drawAiChips(); }
+      drawSrcChips(s);
+      drawCodeRow();
+      describe();
+    };
   }
-  $("#awayAi").onchange = describe;
+  $("#awayAi").onchange = () => { drawAiChips(); describe(); };
   $("#homeCode").oninput = describe;
   $("#awayCode").oninput = describe;
 
@@ -386,6 +518,82 @@ function josa(name) {
 const isAi = v => String(v || "").startsWith("ai:");
 const aiLevelOf = v => String(v || "").slice(3) || "normal";
 
+/* ── 펼쳐서 고르기 ─────────────────────────────────────────────
+   드롭다운을 열어 두는 대신 칩을 펼칩니다. <select> 는 값의 주인으로 그대로 두고
+   (describe·start 가 전부 그걸 읽습니다) 칩은 그 값을 바꿔 change 를 흘려보냅니다. */
+const LG = { home: "k1", away: "k1" };   // 각 칸이 지금 보고 있는 리그
+
+function setSel(id, v) {
+  const sel = $(id);
+  if (sel.value === v) return;
+  sel.value = v;
+  sel.dispatchEvent(new Event("change"));
+}
+
+function drawTeamChips(side) {
+  const cur = $(`#${side}Sel`).value;
+  const lg = LG[side];
+  $(`#${side}Teams`).innerHTML = DB.order[lg].map(id => {
+    const t = DB.teams[id];
+    return `<button class="chip${id === cur ? " on" : ""}" data-t="${id}">
+      <span class="b" style="background:${esc(t.col)}"></span>
+      <span class="t">${esc(t.short)}</span></button>`;
+  }).join("");
+  $(`#${side}Teams`).querySelectorAll("[data-t]").forEach(b =>
+    b.onclick = () => setSel(`#${side}Sel`, b.dataset.t));
+  // 고른 팀이 다른 리그에 있으면 탭을 그 리그로 맞춘다
+  $(`#${side}Pick`).textContent = DB.teams[cur] ? DB.teams[cur].short : "";
+  $(`#${side}Tabs`).querySelectorAll(".tab").forEach(t =>
+    t.classList.toggle("on", t.dataset.lg === lg));
+}
+
+function drawSrcChips(side) {
+  const sel = $(`#${side}Plan`), cur = sel.value;
+  $(`#${side}Src`).innerHTML = [...sel.options].map(o =>
+    `<button class="chip${o.value === cur ? " on" : ""}" data-s="${esc(o.value)}">
+       <span class="t">${esc(o.text)}</span></button>`).join("");
+  $(`#${side}Src`).querySelectorAll("[data-s]").forEach(b =>
+    b.onclick = () => setSel(`#${side}Plan`, b.dataset.s));
+}
+
+function drawAiChips() {
+  const sel = $("#awayAi"), on = isAi($("#awayPlan").value);
+  $("#aiBox").style.display = on ? "" : "none";
+  if (!on) return;
+  const cur = sel.value;
+  $("#aiChips").innerHTML = [...sel.options].map(o =>
+    `<button class="chip${o.value === cur ? " on" : ""}" data-a="${esc(o.value)}"
+       ${sel.disabled ? "disabled" : ""}><span class="t">${esc(o.text)}</span></button>`).join("");
+  $("#aiChips").querySelectorAll("[data-a]").forEach(b =>
+    b.onclick = () => setSel("#awayAi", b.dataset.a));
+}
+
+/* 내 코드 — 상대에게 건넬 것. 홈 라인업이 정해지면 바로 띄운다(라인업 화면에서 넘어온 경우 포함).
+   초록(진행)과 헷갈리지 않게 금색으로 둔다. */
+function drawMyCode() {
+  const box = $("#myCode");
+  const hSrc = $("#homePlan").value;
+  if (hSrc === "code") { box.style.display = "none"; return; }   // 코드로 받은 건 내 것이 아니다
+  let code = "";
+  try {
+    code = encodePlan(planFor($("#homeSel").value, hSrc), codeCtx());
+  } catch (e) { box.style.display = "none"; return; }
+  box.style.display = "";
+  box.innerHTML = `<b>🔗 내 대전 코드</b> — 상대에게 건네세요. 상대 코드를 받아 원정 칸에 넣으면
+    둘이 같은 경기를 봅니다.
+    <div class="row">
+      <input id="myCodeTxt" readonly value="${esc(code)}">
+      <button id="myCodeCopy">복사</button>
+    </div>`;
+  $("#myCodeCopy").onclick = () => {
+    const t = $("#myCodeTxt"); t.select();
+    navigator.clipboard?.writeText(t.value).then(
+      () => { $("#myCodeCopy").textContent = "복사됨 ✓";
+              setTimeout(() => { const b = $("#myCodeCopy"); if (b) b.textContent = "복사"; }, 1600); },
+      () => { $("#myCodeCopy").textContent = "Ctrl+C"; });
+  };
+}
+
 /** 그 구단으로 쓸 수 있는 라인업 목록 */
 function planSources(teamId, side) {
   const out = [{ v: "auto", t: "자동 라인업" }];
@@ -404,10 +612,8 @@ function planSources(teamId, side) {
 
 /** 코드 상자를 쓰는 쪽만 보여 준다 */
 function drawCodeRow() {
-  const h = $("#homePlan").value === "code", a = $("#awayPlan").value === "code";
-  $("#homeCode").style.display = h ? "" : "none";
-  $("#awayCode").style.display = a ? "" : "none";
-  $("#codeRow").style.display = (h || a) ? "" : "none";
+  $("#homeCodeBox").style.display = $("#homePlan").value === "code" ? "" : "none";
+  $("#awayCodeBox").style.display = $("#awayPlan").value === "code" ? "" : "none";
 }
 
 /**
@@ -435,6 +641,8 @@ function drawPlanSel(side) {
   if (list.some(o => o.v === keep)) sel.value = keep;
   if (side === "away") drawAiSel();
   drawCodeRow();
+  drawSrcChips(side);
+  if (side === "away") drawAiChips();
 }
 
 /** 연습 상대의 전술 프리셋 칸 — 어려움은 상성으로 고르므로 고를 것이 없다 */
@@ -492,6 +700,7 @@ function describe() {
       (전술: ${esc(tacN)}).<br>${AI_LV_NOTE[lv]}
       <br><span class="sub">난이도는 선수 능력치를 건드리지 않습니다 — 상대 감독의 솜씨만 달라집니다.
       연습은 <b>매 판 새 시드</b>라 같은 라인업으로도 다른 경기가 나오고, 결과 코드는 발급하지 않습니다.</span>`;
+    drawMyCode();
     return;
   }
 
@@ -523,6 +732,7 @@ function describe() {
     note.push(`라인업은 칸마다 따로 고릅니다 — 자동 · 라인업 화면에서 짠 것 ·
       저장 슬롯. 그 구단으로 저장한 것만 목록에 나옵니다.`);
   $("#setupNote").innerHTML = note.join("<br>");
+  drawMyCode();
 }
 
 function start() {
@@ -1072,5 +1282,7 @@ function bindReactions() {
 
 boot();
 </script>
+</div></div>
+</div>
 </body>
 </html>

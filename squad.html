@@ -9,7 +9,7 @@
       --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font:14px/1.6 'Segoe UI','Malgun Gothic',sans-serif;
-     padding:18px 14px 60px;max-width:1080px;margin:0 auto}
+     }
 a{color:var(--acc);text-decoration:none}
 h1{font-size:19px;color:var(--gold)}
 .sub{color:var(--sub);font-size:12.5px}
@@ -89,16 +89,67 @@ tr.p.on{background:#12283d}
     border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700;color:var(--txt);text-decoration:none}
 .nav a:hover{border-color:var(--ok);color:var(--ok)}
 .nav .sp{flex:1}
+
+/* ── 왼쪽 바 (KM26 #side 구조) ─────────────────────────────────
+   넓은 화면에서는 왼쪽 210px 고정, 좁은 화면에서는 위쪽 가로 탭으로 눕는다.
+   어느 화면에 있든 다른 화면으로 한 번에 갈 수 있어야 한다. */
+#app{display:flex;min-height:100vh}
+#side{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+      padding:14px 10px;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
+#side h1{font-size:17px;color:var(--gold);margin-bottom:2px}
+#side .brand{font-size:11px;color:var(--sub);margin-bottom:14px}
+#navScroll{display:contents}
+.navbtn{display:block;width:100%;text-align:left;background:none;border:none;color:var(--txt);
+        padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;margin-bottom:2px;
+        text-decoration:none;font-weight:600}
+.navbtn:hover{background:var(--bg3)}
+.navbtn.on{background:var(--acc);color:#fff}
+.navbtn .k{display:block;font-size:11px;font-weight:400;opacity:.8}
+#side .navsep{margin:12px 2px 6px;font-size:11px;color:var(--sub);font-weight:700}
+#mainWrap{flex:1;min-width:0}
+#pageMain{padding:20px 22px 60px;max-width:1100px}
+@media (max-width:820px){
+  #app{display:block}
+  #side{width:100%;height:auto;position:sticky;top:0;z-index:900;padding:8px 8px 0;
+        border-right:none;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.5);
+        display:grid;grid-template-columns:1fr;overflow:visible}
+  #side h1{font-size:15px;margin:0}
+  #side .brand,#side .navsep{display:none}
+  /* 탭은 가로로 눕히고 옆으로 스크롤한다 */
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none}
+  #navScroll::-webkit-scrollbar{display:none}
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
+          background:var(--bg3);border-radius:8px 8px 0 0}
+  .navbtn .k{display:none}
+  #pageMain{padding:14px 12px 60px}
+}
 </style>
 </head>
 <body>
+<div id="app">
+<nav id="side">
+  <h1>KMD26</h1>
+  <div class="brand">개리그 매니저 듀얼</div>
+  <div id="navScroll">
+    <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
+    <a class="navbtn" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
+    <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
+    <a class="navbtn on" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+  </div>
+  <div class="navsep">개발 확인용</div>
+  <div>
+    <a class="navbtn" href="test/determinism.html">🔬 결정론</a>
+    <a class="navbtn" href="test/tactics.html">🔬 전술 반영</a>
+  </div>
+</nav>
+<div id="mainWrap"><div id="pageMain">
+
 
 <div class="top">
   <div>
     <h1>선수단</h1>
     <div class="sub" id="meta">불러오는 중…</div>
   </div>
-  <div class="sub"><a href="index.html">← 첫 페이지</a></div>
 </div>
 
 <div class="tabs">
@@ -310,12 +361,7 @@ function showPlayer(id) {
 
 boot();
 </script>
-<div class="nav">
-  <a href="index.html">← 첫 페이지</a>
-  <span class="sp"></span>
-  <a href="match.html">경기 화면</a>
-  <a href="lineup.html">라인업 짜기 →</a>
+</div></div>
 </div>
-
 </body>
 </html>

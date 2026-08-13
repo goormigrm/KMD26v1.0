@@ -9,7 +9,7 @@
       --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font:14px/1.6 'Segoe UI','Malgun Gothic',sans-serif;
-     padding:16px 12px 80px;max-width:1180px;margin:0 auto}
+     }
 a{color:var(--acc);text-decoration:none}
 h1{font-size:18px;color:var(--gold)}
 h3{font-size:14px;color:var(--gold);margin-bottom:8px}
@@ -140,6 +140,15 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700;color:var(--txt);text-decoration:none}
 .nav a:hover{border-color:var(--ok);color:var(--ok)}
 .nav .sp{flex:1}
+/* ── 대전 코드 버튼 ────────────────────────────────────────────
+   초록은 "경기 시작", 금색은 "코드 발급" 입니다. 둘이 같은 색이면 헷갈립니다. */
+.go.code{background:var(--gold);color:#2b2000}
+.go.code:hover{filter:brightness(1.08)}
+.codeout{background:#1a1608;border:1px solid #5c4a1c;border-left:3px solid var(--gold);
+     border-radius:8px;padding:11px 13px;margin-top:10px;font-size:12.5px;color:var(--txt)}
+.codeout b{color:var(--gold)}
+.codeout input{flex:1;min-width:220px;background:var(--bg2);color:var(--gold);
+     border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px;font-family:monospace}
 
 /* ── 조건부 지시 ─────────────────────────────── */
 .ord{display:flex;align-items:center;gap:7px;padding:4px 0;flex-wrap:wrap}
@@ -175,13 +184,64 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .pf{background:#161b22;border:1px solid var(--line);border-radius:5px;color:var(--sub);
     padding:1px 6px;font-size:10.5px;font-weight:800;cursor:pointer;flex:none}
 .pf:hover{border-color:var(--acc);color:var(--acc)}
+
+/* ── 왼쪽 바 (KM26 #side 구조) ─────────────────────────────────
+   넓은 화면에서는 왼쪽 210px 고정, 좁은 화면에서는 위쪽 가로 탭으로 눕는다.
+   어느 화면에 있든 다른 화면으로 한 번에 갈 수 있어야 한다. */
+#app{display:flex;min-height:100vh}
+#side{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+      padding:14px 10px;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
+#side h1{font-size:17px;color:var(--gold);margin-bottom:2px}
+#side .brand{font-size:11px;color:var(--sub);margin-bottom:14px}
+#navScroll{display:contents}
+.navbtn{display:block;width:100%;text-align:left;background:none;border:none;color:var(--txt);
+        padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;margin-bottom:2px;
+        text-decoration:none;font-weight:600}
+.navbtn:hover{background:var(--bg3)}
+.navbtn.on{background:var(--acc);color:#fff}
+.navbtn .k{display:block;font-size:11px;font-weight:400;opacity:.8}
+#side .navsep{margin:12px 2px 6px;font-size:11px;color:var(--sub);font-weight:700}
+#mainWrap{flex:1;min-width:0}
+#pageMain{padding:20px 22px 60px;max-width:1100px}
+@media (max-width:820px){
+  #app{display:block}
+  #side{width:100%;height:auto;position:sticky;top:0;z-index:900;padding:8px 8px 0;
+        border-right:none;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.5);
+        display:grid;grid-template-columns:1fr;overflow:visible}
+  #side h1{font-size:15px;margin:0}
+  #side .brand,#side .navsep{display:none}
+  /* 탭은 가로로 눕히고 옆으로 스크롤한다 */
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none}
+  #navScroll::-webkit-scrollbar{display:none}
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
+          background:var(--bg3);border-radius:8px 8px 0 0}
+  .navbtn .k{display:none}
+  #pageMain{padding:14px 12px 60px}
+}
 </style>
 </head>
 <body>
+<div id="app">
+<nav id="side">
+  <h1>KMD26</h1>
+  <div class="brand">개리그 매니저 듀얼</div>
+  <div id="navScroll">
+    <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
+    <a class="navbtn on" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
+    <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
+    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+  </div>
+  <div class="navsep">개발 확인용</div>
+  <div>
+    <a class="navbtn" href="test/determinism.html">🔬 결정론</a>
+    <a class="navbtn" href="test/tactics.html">🔬 전술 반영</a>
+  </div>
+</nav>
+<div id="mainWrap"><div id="pageMain">
+
 
 <div class="top">
   <div><h1>라인업</h1><div class="sub" id="meta">불러오는 중…</div></div>
-  <div class="sub"><a href="index.html">← 첫 페이지</a> · <a href="squad.html">선수단</a></div>
 </div>
 
 <!-- 저장 슬롯이 맨 위 — 짜 둔 라인업이 있으면 구단을 고르기 전에 그것부터 불러오는 게 순서다.
@@ -238,12 +298,11 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
           <select id="formation"></select>
           <button id="auto">자동 배치</button>
           <button id="clear">비우기</button>
-          <button id="mkCode">🔗 대전 코드</button>
         </div>
         <div class="sub" id="count"></div>
       </div>
       <!-- 대전 코드 (단계 5) — 상대에게 건네면 둘이 같은 경기를 본다 -->
-      <div class="note" id="codeBox" style="display:none"></div>
+      <div class="codeout" id="codeBox" style="display:none"></div>
       <div class="pitch" id="pitch">
         <!-- 반코트 배경 — 예전 화면에 있던 코트를 격자 뒤에 다시 깐 것 -->
         <div class="pmark" aria-hidden="true">
@@ -262,6 +321,9 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
       <!-- 이 화면에서 다음으로 가는 길은 이 버튼 하나다 -->
       <button id="go" class="go" style="margin-top:11px">▶ 이 라인업으로 경기
         <span class="s">전술·역할·조건부 지시가 그대로 엔진에 들어갑니다</span></button>
+      <!-- 사람끼리 붙을 때 건네는 것. 초록(경기)과 다른 색이어야 헷갈리지 않는다 -->
+      <button id="mkCode" class="go code" style="margin-top:8px">🔗 대전 코드 발급
+        <span class="s">이 라인업을 51자로 만들어 상대에게 건넵니다</span></button>
     </div>
 
     <div>
@@ -290,13 +352,6 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
       </div>
     </div>
   </div>
-</div>
-
-<div class="nav">
-  <a href="index.html">← 첫 페이지</a>
-  <a href="squad.html">🔍 선수단</a>
-  <span class="sp"></span>
-  <a href="match.html">경기 화면 →</a>
 </div>
 
 <!-- 선수 프로필 — 페이지를 옮기지 않고 이 자리에서 능력치를 본다 -->
@@ -1187,5 +1242,7 @@ function importFile(file) {
 
 boot();
 </script>
+</div></div>
+</div>
 </body>
 </html>
