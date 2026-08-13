@@ -10,7 +10,7 @@
    · D2-01  estimateOvr 의 ±3 난수 제거 — 대전에서 같은 선수가 판마다 다른 능력치면 성립하지 않는다 (설계 결정 D-2)
    ⚠ 이 파일을 직접 부르지 마세요. tools/gendata.html 이 한 번만 돌려 JSON 을 만듭니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "../engine/rng.js?v=9bb4aff70a";
+import { RNG } from "../engine/rng.js?v=1e69f53a50";
 
 const CUR_YEAR = 2026;
 

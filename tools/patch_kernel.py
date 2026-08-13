@@ -245,6 +245,209 @@ PATCHES = [
     ),
   ),
 
+  # ── 교체 ────────────────────────────────────────────────────
+  # 교체 선수는 나간 선수의 자리를 그대로 물려받는다(subIn). 그런데 들어올 사람을 고르는
+  # 기준이 '포지션 묶음(DF/MF/FW)이 같은 사람 중 능력치 최고' 뿐이라, 실제 경기에서
+  # 지고 있는 울산이 센터백을 빼고 스트라이커를 넣어 그 스트라이커가 센터백 자리에 섰다.
+  # 화면이 벤치에 붙여 놓은 S1~S9 번호도 엔진은 한 번도 보지 않았다.
+  # 부상으로 비운 자리는 onPitch 후보에 아예 없어서 끝까지 열 명으로 뛰었다.
+  dict(
+    id="SUB-01",
+    kind="버그",
+    why="교체 투입이 벤치 순서(S1~S9)와 자리 능숙도를 무시한다 — 스트라이커가 센터백 자리에 서고, 부상으로 빈 자리는 끝까지 안 채워진다",
+    count=1,
+    find=r"""
+function aiSubs(M, minNow){
+  const m = (minNow!=null) ? minNow : M.min;
+  if(AI_SUB_WINDOWS.indexOf(m)<0) return;
+  for(const [sd,key,myG,opG] of [[M.h,"h",M.hg,M.ag],[M.a,"a",M.ag,M.hg]]){
+    if(sd.team.isUser) continue;
+    if(!sd.bench || !sd.bench.length) continue;
+    if(RNG()<0.18) continue;          // 이번 창은 그냥 지켜본다
+    let made=0;
+    const cap = RNG()<0.30 ? 2 : 1;    // 한 번에 둘을 바꾸는 건 가끔이다
+    while(sd.subs<5 && made<cap && aiSubOnce(M, sd, key, myG-opG, m)) made++;
+  }
+}
+/* 한 명만 바꾼다. 바꿨으면 true. */
+
+function aiSubOnce(M, sd, key, diff, m){
+  const pitch=onPitch(sd).filter(x=>x.p.pos!=="GK" && !x.red);
+  if(pitch.length<8) return false;                       // 이미 수적 열세면 더 빼지 않는다
+  const bench=sd.bench.filter(p=>p.pos!=="GK");
+  if(!bench.length) return false;
+  // 이 팀의 기둥 — 웬만해선 빼지 않는다
+  const core=[...pitch].sort((a,b)=>b.p.ovr-a.p.ovr).slice(0,2).map(x=>x.p.id);
+  const protectedOut=x=>core.indexOf(x.p.id)>=0 && x.fit>=AI_SUB_URGENT;
+  const best=(list,f)=>{ const c=list.filter(f||(()=>true)); return c.length?c.sort((a,b)=>b.ovr-a.ovr)[0]:null; };
+  const tryPair=(outX, inP)=>{
+    if(!outX||!inP) return false;
+    if(!canEnter(sd, outX, inP)) return false;
+    subIn(M, sd, key, outX, inP);
+    return true;
+  };
+  // ① 경고 + 피로 — 퇴장 나기 전에 뺀다
+  const risky=pitch.filter(x=>x.y>0 && x.fit<72 && !protectedOut(x)).sort((a,b)=>a.fit-b.fit)[0];
+  if(risky){
+    const inP=best(bench, p=>p.pos===risky.p.pos) || best(bench, p=>p.pos!=="GK");
+    if(tryPair(risky, inP)) return true;
+  }
+  // ② 체력이 무너진 선수
+  const tired=pitch.filter(x=>x.fit<AI_SUB_TIRED && (!protectedOut(x)||x.fit<AI_SUB_URGENT))
+                   .sort((a,b)=>a.fit-b.fit)[0];
+  if(tired){
+    const inP=best(bench, p=>p.pos===tired.p.pos) || best(bench, p=>p.pos!=="GK");
+    if(tryPair(tired, inP)) return true;
+  }
+  // ③ 지고 있다 — 수비를 하나 줄이고 공격 자원을 넣는다
+  if(diff<0 && m>=58){
+    const df=pitch.filter(x=>x.p.pos==="DF");
+    const outX=df.length>3 ? df.sort((a,b)=>(a.p.ovr+a.fit*0.3)-(b.p.ovr+b.fit*0.3))[0]
+                           : pitch.filter(x=>x.p.pos==="MF").sort((a,b)=>a.fit-b.fit)[0];
+    const inP=best(bench, p=>p.pos==="FW") || best(bench, p=>p.pos==="MF");
+    if(outX && !protectedOut(outX) && tryPair(outX, inP)) return true;
+  }
+  // ④ 이기고 있다 — 문을 닫는다. 공격수를 빼고 수비·중원을 채운다
+  if(diff>0 && m>=73){
+    const fw=pitch.filter(x=>x.p.pos==="FW");
+    const outX=fw.length>1 ? fw.sort((a,b)=>a.fit-b.fit)[0] : null;
+    const inP=best(bench, p=>p.pos==="DF") || best(bench, p=>p.pos==="MF");
+    if(outX && !protectedOut(outX) && tryPair(outX, inP)) return true;
+  }
+  // ⑤ 그 밖에는 확실한 업그레이드가 있을 때만 (벤치가 더 좋고, 나갈 선수는 지쳐 있을 때)
+  if(m>=66){
+    for(const outX of [...pitch].sort((a,b)=>a.fit-b.fit)){
+      if(protectedOut(outX)) continue;
+      const inP=best(bench, p=>p.pos===outX.p.pos && p.ovr>outX.p.ovr+2 && outX.fit<78);
+      if(inP && tryPair(outX, inP)) return true;
+    }
+  }
+  return false;
+}
+""" + "\n",
+    repl=r"""
+function aiSubs(M, minNow){
+  const m = (minNow!=null) ? minNow : M.min;
+  const win = AI_SUB_WINDOWS.indexOf(m)>=0;
+  for(const [sd,key,myG,opG] of [[M.h,"h",M.hg,M.ag],[M.a,"a",M.ag,M.hg]]){
+    if(sd.team.isUser) continue;
+    if(!sd.bench || !sd.bench.length) continue;
+    /* [KMD26 SUB-01] 부상으로 비운 자리는 교체 창을 기다리지 않는다.
+       KM26 은 이 순간 감독에게 물어보지만(needsSubPause) 듀얼에는 물어볼 사람이 없어,
+       20분에 다치면 남은 70분을 열 명으로 뛰었다. 난수를 쓰지 않으므로 재생도 안 갈린다. */
+    while(sd.subs<5 && aiFillGap(M, sd, key)) ;
+    if(!win) continue;
+    if(RNG()<0.18) continue;          // 이번 창은 그냥 지켜본다
+    let made=0;
+    const cap = RNG()<0.30 ? 2 : 1;    // 한 번에 둘을 바꾸는 건 가끔이다
+    while(sd.subs<5 && made<cap && aiSubOnce(M, sd, key, myG-opG, m)) made++;
+  }
+}
+/* ── [KMD26 SUB-01] 누구를 넣을 것인가 ──────────────────────────────
+   교체 선수는 나간 선수의 자리를 그대로 물려받는다(subIn). 그러므로 "누구를 빼는가"가
+   곧 "누가 어느 자리에 서는가"다. 원본은 들어올 사람을 '포지션 묶음(DF/MF/FW)이 같은
+   사람 중 능력치 최고'로 골랐는데, 듀얼에서는 두 군데가 어긋난다.
+     · 화면은 벤치에 S1~S9 번호를 붙여 놓고, 엔진은 그 순서를 하나도 쓰지 않았다
+     · 지고 있을 때 수비수를 빼고 공격수를 넣으면 그 공격수가 센터백 자리에 선다
+   그래서 "그 자리를 볼 수 있는가"(자리 능숙도)를 먼저 보고, 그중에서 감독이 매겨 둔
+   벤치 순서를 따른다. */
+const AI_SUB_FAM_MIN=50;      // 이 아래면 그 자리를 소화한다고 보지 않는다
+
+const AI_POS_FWD={DF:0, MF:1, FW:2};
+
+function subSlotOf(sd, x){
+  const t=sd.team;
+  return (t && t.tactic && t.tactic.slot && t.tactic.slot[x.p.id]) || null;
+}
+/* 나갈 자리에 세울 사람 — 그 자리를 볼 수 있는 사람 중 벤치 번호가 빠른 순.
+   strict 면 아무도 그 자리를 못 볼 때 아예 넣지 않는다(굳이 안 해도 되는 교체용). */
+function subPickIn(sd, outX, extra, strict){
+  const cand=sd.bench.filter(p=>p.pos!=="GK" && canEnter(sd, outX, p) && (!extra||extra(p)));
+  if(!cand.length) return null;
+  const slot=subSlotOf(sd, outX);
+  if(!slot) return strict ? null : cand[0];
+  const fit=cand.filter(p=>getPosFam(p, slot)>=AI_SUB_FAM_MIN);
+  if(fit.length) return fit[0];                          // 벤치 순서 그대로
+  if(strict) return null;
+  // 아무도 그 자리를 못 보면 그나마 나은 사람 — 열한 명은 채워야 한다
+  return cand.slice().sort((a,b)=>getPosFam(b,slot)-getPosFam(a,slot))[0];
+}
+/* 부상으로 비운 자리 하나를 채운다. 채웠으면 true. */
+function aiFillGap(M, sd, key){
+  const gap=sd.list.find(x=>x.injGap && x.off!==null && !x.red);
+  if(!gap) return false;
+  const inP=subPickIn(sd, gap);
+  gap.injGap=false;                    // 되든 안 되든 이 자리는 다시 보지 않는다
+  return !!(inP && subIn(M, sd, key, gap, inP));
+}
+/* 한 명만 바꾼다. 바꿨으면 true. */
+
+function aiSubOnce(M, sd, key, diff, m){
+  const pitch=onPitch(sd).filter(x=>x.p.pos!=="GK" && !x.red);
+  if(pitch.length<8) return false;                       // 이미 수적 열세면 더 빼지 않는다
+  const bench=sd.bench.filter(p=>p.pos!=="GK");
+  if(!bench.length) return false;
+  // 이 팀의 기둥 — 웬만해선 빼지 않는다
+  const core=[...pitch].sort((a,b)=>b.p.ovr-a.p.ovr).slice(0,2).map(x=>x.p.id);
+  const protectedOut=x=>core.indexOf(x.p.id)>=0 && x.fit>=AI_SUB_URGENT;
+  const tryPair=(outX, extra, strict)=>{
+    if(!outX || protectedOut(outX)) return false;
+    const inP=subPickIn(sd, outX, extra, strict);
+    return !!(inP && subIn(M, sd, key, outX, inP));
+  };
+  // ① 경고 + 피로 — 퇴장 나기 전에 뺀다
+  const risky=pitch.filter(x=>x.y>0 && x.fit<72 && !protectedOut(x)).sort((a,b)=>a.fit-b.fit)[0];
+  if(risky && tryPair(risky)) return true;
+  // ② 체력이 무너진 선수
+  const tired=pitch.filter(x=>x.fit<AI_SUB_TIRED && (!protectedOut(x)||x.fit<AI_SUB_URGENT))
+                   .sort((a,b)=>a.fit-b.fit)[0];
+  if(tired && tryPair(tired)) return true;
+  /* ③ 지고 있다 — 앞으로 민다. 뒷선 자리 가운데 "그 자리를 볼 수 있으면서 더 공격적인"
+       자원이 벤치에 있는 자리를 바꾼다. 원본처럼 수비수를 빼고 무조건 공격수를 넣으면
+       그 공격수가 수비 자리를 물려받아, 지고 있는 팀이 오히려 약해졌다. */
+  if(diff<0 && m>=58){
+    const back=pitch.filter(x=>x.p.pos!=="FW")
+                    .sort((a,b)=>(a.p.ovr+a.fit*0.3)-(b.p.ovr+b.fit*0.3));
+    for(const outX of back)
+      if(tryPair(outX, p=>(AI_POS_FWD[p.pos]||1)>(AI_POS_FWD[outX.p.pos]||1), true)) return true;
+  }
+  // ④ 이기고 있다 — 문을 닫는다. 같은 요령으로 앞선 자리를 더 수비적인 자원으로.
+  if(diff>0 && m>=73){
+    const front=pitch.filter(x=>x.p.pos!=="DF").sort((a,b)=>a.fit-b.fit);
+    for(const outX of front)
+      if(tryPair(outX, p=>(AI_POS_FWD[p.pos]||1)<(AI_POS_FWD[outX.p.pos]||1), true)) return true;
+  }
+  // ⑤ 그 밖에는 확실한 업그레이드가 있을 때만 (벤치가 더 좋고, 나갈 선수는 지쳐 있을 때)
+  if(m>=66){
+    for(const outX of [...pitch].sort((a,b)=>a.fit-b.fit)){
+      if(outX.fit>=78) continue;
+      if(tryPair(outX, p=>p.ovr>outX.p.ovr+2, true)) return true;
+    }
+  }
+  return false;
+}
+""" + "\n",
+  ),
+
+  dict(
+    id="SUB-02",
+    kind="버그",
+    why="부상으로 빈 자리를 45분 전에는 아예 보지 않는다 — 전반에 다치면 남은 시간을 열 명으로 뛴다",
+    count=1,
+    find=(
+      "    this._subMin=m;\n"
+      "    if(m<45) return;\n"
+      "    this.syncClock();\n"
+      "    aiSubs(this.M, m);\n"
+    ),
+    repl=(
+      "    this._subMin=m;\n"
+      "    this.syncClock();\n"
+      "    // [KMD26 SUB-02] 45분 전에도 부른다 — 부상으로 빈 자리는 교체 창을 기다리지 않는다\n"
+      "    aiSubs(this.M, m);\n"
+    ),
+  ),
+
 ]
 
 raw = io.open(SRC, encoding="utf-8").read()
