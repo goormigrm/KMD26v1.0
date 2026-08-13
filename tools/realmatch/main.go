@@ -26,6 +26,7 @@ var modules = []string{
 	"src/engine/kernel.js",
 	"src/engine/stubs.js",
 	"src/engine/rules.js",
+	"src/engine/orders.js",   // 조건부 지시 (단계 8) — duel.js 가 부른다
 	"src/engine/replay.js",
 	"src/engine/duel.js",
 	"src/engine/reactions.js",

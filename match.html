@@ -449,11 +449,12 @@ function planFor(teamId, src) {
              // 포메이션은 시드에도 들어가야 하므로 전술 안에 넣어 둔다
              tac: Object.assign({}, saved.tac,
                   { formation: saved.formation || (saved.tac || {}).formation || formationOf(xiMap) }),
-             roles: saved.roles || {} };
+             roles: saved.roles || {},
+             cond: Array.isArray(saved.cond) ? saved.cond : [] };
   }
   const { xi, bench } = autoLineup(DB.players[teamId], T, "4-3-3");
   return { id: teamId, xiMap: xi, xi: Object.values(xi), bench,
-           tac: { formation: "4-3-3" }, roles: {} };
+           tac: { formation: "4-3-3" }, roles: {}, cond: [] };
 }
 
 /** 지금 고른 대진이 어떤 경기가 될지 한 줄로 알려 준다 */

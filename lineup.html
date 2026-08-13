@@ -125,6 +125,13 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
       border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
 .warn{color:var(--warn)}
+/* ── 조건부 지시 ─────────────────────────────── */
+.ord{display:flex;align-items:center;gap:7px;padding:4px 0;flex-wrap:wrap}
+.ord .on{width:20px;height:20px;flex:none;border-radius:50%;background:var(--bg3);
+     border:1px solid var(--line);color:var(--sub);font-size:11px;font-weight:800;
+     display:flex;align-items:center;justify-content:center}
+.ord .ar{color:var(--sub);font-weight:800}
+.ord select{padding:5px 8px;font-size:12.5px;flex:1;min-width:130px}
 
 /* ── 선수 프로필 ──────────────────────────────────────────────
    선수단 화면으로 넘어가지 않고 이 자리에서 세부 능력치를 본다.
@@ -197,6 +204,15 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <div class="note" id="tacnote"></div>
   </div>
 
+  <!-- 조건부 지시 (단계 8) — 경기 중 개입이 없으므로 여기에 전략이 모인다 -->
+  <div class="card">
+    <h3>📋 조건부 지시 <span class="sub">— 경기 중에는 아무도 버튼을 못 누릅니다</span></h3>
+    <div class="preset" id="opreset"></div>
+    <div id="orders"></div>
+    <div class="note">여섯 칸까지 미리 적어 둘 수 있습니다. 한 칸은 <b>한 번만</b> 발동하고,
+      발동하면 해설에 <code>📋</code> 로 남습니다. 지시는 대전 코드에 함께 담깁니다.</div>
+  </div>
+
   <div class="wrap">
     <div class="card">
       <div class="row" style="justify-content:space-between;margin-bottom:10px">
@@ -261,6 +277,7 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 
 <script type="module">
 import { encodePlan, inviteLink } from "./src/codec/duelcode.js";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -270,6 +287,7 @@ let team = null, formation = "4-3-3";
 let xi = {};                          // 전술판 자리 -> 선수 id. 언제나 11명 이하다.
 let bench = new Array(9).fill(null);  // 교체 명단 S1~S9. 빈 칸은 null — 자리 자체가 아홉 개다.
 let tac = {};
+let orders = [0, 0, 0, 0, 0, 0];   // 조건부 지시 여섯 칸 (8비트씩 — 조건 4 · 행동 4)
 let roles = {};        // 선수 id -> {r:역할키, d:임무키}. 엔진의 tactic.role 과 같은 모양이다.
 let sel = null;         // {kind:"slot", slot} | {kind:"player", id}
 let drag = null;        // 끌고 있는 것 — 마우스용. 손가락은 sel 로 같은 일을 한다.
@@ -349,7 +367,7 @@ async function boot() {
     tac = Object.assign({}, PRESETS[b.dataset.p]); drawTac();
   });
 
-  drawTeams("k1"); drawTac(); drawSlots();
+  drawTeams("k1"); drawTac(); drawOrders(); drawSlots();
   $("#expJson").onclick = exportFile;
   $("#impBtn").onclick = () => $("#impJson").click();
   $("#impJson").onchange = e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ""; };
@@ -368,7 +386,8 @@ async function boot() {
   $("#go").onclick = () => {
     if (xiCount() !== 11) { flash("선발 열한 명을 채워야 경기를 시작할 수 있습니다."); drawHint(); return; }
     // ⚠ formation 을 빼먹으면 경기 화면이 4-3-3 으로 세운다 — 고른 모양이 그대로 가야 한다
-    localStorage.setItem("kmd26.lineup", JSON.stringify({ id: team, formation, xi, bench, tac, roles }));
+    localStorage.setItem("kmd26.lineup",
+      JSON.stringify({ id: team, formation, xi, bench, tac, roles, cond: orders }));
     location.href = "match.html";
   };
 }
@@ -616,7 +635,8 @@ function showCode() {
   if (xiCount() !== 11) { flash("선발 열한 명을 채워야 코드를 만들 수 있습니다."); drawHint(); return; }
   let code;
   try {
-    code = encodePlan({ id: team, xiMap: xi, bench, tac, roles }, codeCtx());
+    // ⚠ 이 화면은 formation 을 tac 밖에 들고 있다 — 빼어먹으면 4-3-3 자리로 담으려다 걸린다
+    code = encodePlan({ id: team, formation, xiMap: xi, bench, tac, roles, cond: orders }, codeCtx());
   } catch (e) {
     flash("코드를 만들지 못했습니다 — " + e.message); drawHint(); return;
   }
@@ -853,6 +873,39 @@ function drawBench() {
   });
 }
 
+/* ── 조건부 지시 ───────────────────────────────────────────────
+   슬라이더 여덟 개도 부담인데 조건까지 짜라면 아무도 안 씁니다 —
+   설계서가 못박은 대로 프리셋을 먼저 보여 주고, 칸은 그 아래에 둡니다. */
+function drawOrders() {
+  $("#opreset").innerHTML = Object.keys(ORDER_PRESETS)
+    .map(k => `<button data-op="${esc(k)}">${esc(k)}</button>`).join("")
+    + `<button data-op="">비우기</button>`;
+  $("#opreset").querySelectorAll("[data-op]").forEach(b => b.onclick = () => {
+    orders = (ORDER_PRESETS[b.dataset.op] || [0, 0, 0, 0, 0, 0]).slice();
+    drawOrders();
+  });
+
+  $("#orders").innerHTML = orders.map((v, i) => {
+    const { cond, act } = unpackOrder(v);
+    return `<div class="ord">
+      <span class="on">${i + 1}</span>
+      <select data-oc="${i}">${CONDS.map(c =>
+        `<option value="${c.k}"${c.k === cond ? " selected" : ""}>${esc(c.n)}</option>`).join("")}</select>
+      <span class="ar">→</span>
+      <select data-oa="${i}">${ACTS.map(a =>
+        `<option value="${a.k}"${a.k === act ? " selected" : ""}>${esc(a.n)}</option>`).join("")}</select>
+    </div>`;
+  }).join("");
+  $("#orders").querySelectorAll("[data-oc]").forEach(s => s.onchange = () => {
+    const i = +s.dataset.oc;
+    orders[i] = packOrder(+s.value, unpackOrder(orders[i]).act);
+  });
+  $("#orders").querySelectorAll("[data-oa]").forEach(s => s.onchange = () => {
+    const i = +s.dataset.oa;
+    orders[i] = packOrder(unpackOrder(orders[i]).cond, +s.value);
+  });
+}
+
 function drawTac() {
   $("#preset").querySelectorAll("button").forEach(b => {
     const p = PRESETS[b.dataset.p];
@@ -928,6 +981,7 @@ function currentPlan() {
   return {
     kind: "kmd26-lineup", ver: FILE_VER,
     id: team, name: DB.teams[team].short, formation,
+    cond: orders.slice(),          // 조건부 지시 (단계 8)
     xi: JSON.parse(JSON.stringify(xi)),
     bench: bench.slice(),
     tac: JSON.parse(JSON.stringify(tac)),
@@ -959,6 +1013,8 @@ function applyPlan(p, where) {
     if (have.has(id)) bench[i] = id; else lost++;
   });
   tac = Object.assign({}, T.tacDef, p.tac || {});
+  orders = Array.isArray(p.cond) ? p.cond.slice(0, 6) : [0, 0, 0, 0, 0, 0];
+  while (orders.length < 6) orders.push(0);
   roles = {};
   for (const k of Object.keys(p.roles || {})) if (have.has(+k)) roles[k] = p.roles[k];
 
@@ -967,7 +1023,7 @@ function applyPlan(p, where) {
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.lg === lg));
   drawTeams(lg);
   $("#main").style.display = "";
-  drawTac(); draw();
+  drawTac(); drawOrders(); draw();
   if (lost) { flash(where + "에서 " + lost + "명을 찾지 못했습니다 — 선수 명단이 바뀌었을 수 있습니다."); drawHint(); }
   return true;
 }

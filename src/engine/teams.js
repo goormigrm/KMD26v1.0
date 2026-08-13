@@ -46,6 +46,8 @@ export function buildTeam(meta, roster, plan = {}) {
   );
 
   return {
+    /* 조건부 지시 (단계 8) — 8비트 여섯 칸. orders.js 가 분 경계에서 읽는다 */
+    orders: (plan.cond || []).slice(0, 6),
     id: meta.id, name: meta.name, short: meta.short,
     col: meta.col, col2: meta.col2, div: meta.div,
     players: clone(roster),
@@ -206,9 +208,19 @@ export function lineupSig(teamId, xi, bench, tac, roles) {
   ].join("|");
 }
 
+/**
+ * 조건부 지시까지 넣은 지문 — 지시가 다르면 다른 경기여야 하므로 시드에 반영한다.
+ * ⚠ 지시가 하나도 없으면 예전과 **한 글자도 같은** 값을 낸다 — 이미 나온 지문이 흔들리지 않게.
+ */
+function withCond(sig, cond) {
+  return (cond && cond.some(Boolean)) ? sig + "|c" + cond.join(",") : sig;
+}
+
 /** 라인업 한 벌의 지문 — 위 lineupSig 을 plan 한 덩어리로 부르는 것 */
 export function planSig(plan) {
-  return lineupSig(plan.id, plan.xiMap || plan.xi, plan.bench, plan.tac, plan.roles);
+  return withCond(
+    lineupSig(plan.id, plan.xiMap || plan.xi, plan.bench, plan.tac, plan.roles),
+    plan.cond);
 }
 
 /* ── 같은 구단끼리의 대전 ────────────────────────────────────────
