@@ -89,6 +89,7 @@ const el = (h) => { const d = document.createElement("div"); d.innerHTML = h.tri
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 let DB = null, curTeam = null, curPlayer = null, sortKey = "pos";
+const SEASON = 2026;   // 나이 표시 기준 — 데이터가 2026 시즌 등록 명단이다
 
 /* 능력치 색 — 낮으면 붉고 높을수록 초록. FM 을 보던 눈에 익숙한 방식이다. */
 function tone(v) {
@@ -170,17 +171,16 @@ function drawSquad() {
         <td class="no">${p.no ?? "-"}</td>
         <td class="nm">${esc(p.name)}${p.frn ? '<span class="frn">외</span>' : ""}</td>
         <td class="pos">${p.pos}</td>
-        <td class="pos">${DB.meta.season ? DB.meta.season - p.by : 2026 - p.by}</td>
+        <td class="pos">${SEASON - p.by}</td>
         <td class="ovr" style="color:${tone(p.ovr)}">${p.ovr}</td>
         <td><span class="pp">${esc(p.prefPos)}</span></td>
         <td class="pos">${p.h}cm</td>
       </tr>`).join("")}
     </tbody></table>`;
 
-  $("#squad").querySelectorAll("th").forEach(th => th.onclick = () => {
-    sortKey = th.dataset.k; drawSquad();
-    if (curPlayer != null) markRow();
-  });
+  // 정렬 가능한 열에만 건다 — data-k 없는 헤더까지 걸면 누르는 순간 정렬이 깨진다
+  $("#squad").querySelectorAll("th[data-k]").forEach(th =>
+    th.onclick = () => { sortKey = th.dataset.k; drawSquad(); });
   $("#squad").querySelectorAll("tr.p").forEach(tr =>
     tr.onclick = () => showPlayer(+tr.dataset.id));
   markRow();
@@ -216,7 +216,7 @@ function showPlayer(id) {
         <div>
           <div style="font-size:17px;font-weight:800">${esc(p.name)}
             ${p.frn ? '<span class="frn">외국인</span>' : ""}</div>
-          <div class="bio">${p.pos} · 선호 ${esc(p.prefPos)} · ${2026 - p.by}세
+          <div class="bio">${p.pos} · 선호 ${esc(p.prefPos)} · ${SEASON - p.by}세
             · ${p.h}cm ${p.w}kg · 등번호 ${p.no ?? "-"}</div>
         </div>
         <div style="font-size:26px;font-weight:800;color:${tone(p.ovr)}">${p.ovr}</div>
