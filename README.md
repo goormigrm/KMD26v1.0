@@ -155,6 +155,8 @@ KM26D1-BhHsDhIjFNJKMvuvABpqsRClrAJGCs8SISgigpwFAAAAAAAAHoA
 없어도 괜찮습니다 — "안양으로 압박을 최대로 놓으면 이상하다" 한 줄이라도 없는 것보다 훨씬 낫습니다.
 이미 알고 있는 문제와 자세한 안내는 **[FEEDBACK.md](FEEDBACK.md)** 에 있습니다.
 
+무엇이 고쳐졌는지는 **[CHANGELOG.md](CHANGELOG.md)** 에 날짜별로 적어 둡니다.
+
 ---
 
 ## 만든 배경
