@@ -39,7 +39,10 @@ const driver = `
 function playReal(homeId, awayId) {
   var mk = function(id) {
     var lu = autoLineup(PLAYERS[id], TABLES, "4-3-3");
-    var t = buildTeam(TEAMS[id], PLAYERS[id], {tac:{}, roles:{}});
+    // 골키퍼 역할을 바꿔 가며 볼 수 있게 — 스위퍼 키퍼 공격 임무는 키퍼를 크게 끌어낸다
+    var rl = {};
+    if (GKROLE) { rl[lu.xi.GK] = {r: GKROLE.split(":")[0], d: GKROLE.split(":")[1] || "D"}; }
+    var t = buildTeam(TEAMS[id], PLAYERS[id], {tac:{}, roles:rl});
     var bad = checkLineup(t, Object.keys(lu.xi).map(function(s){ return lu.xi[s]; }));
     if (bad) throw new Error(id + " 라인업 — " + bad);
     return {team:t, xi:lu.xi, bench:lu.bench};
@@ -61,7 +64,10 @@ function playReal(homeId, awayId) {
     hShot: r.stats.h.shot, aShot: r.stats.a.shot,
     hPass: r.stats.h.pass, aPass: r.stats.a.pass,
     hFoul: r.stats.h.foul, aFoul: r.stats.a.foul,
+    hOn: r.stats.h.shotOn, aOn: r.stats.a.shotOn,
     poss: r.possession.h,
+    // 득점자별 골 수 — 한 명에게 몰리는지 보려면 이게 필요하다
+    scorers: (r.goalLine||[]).reduce(function(o,g){ o[g.n]=(o[g.n]||0)+1; return o; }, {}),
     goals: (r.goalLine||[]).map(function(g){ return g.min + "' " + g.n + " (" + g.side + ")"; }).join(" · "),
     firstLines: r.events.slice(0, 3).map(function(e){ return e.min + "' " + e.txt; })
   };
@@ -73,6 +79,8 @@ func main() {
 	home := flag.String("home", "ulsan", "홈 구단 id")
 	away := flag.String("away", "jeonbuk", "원정 구단 id")
 	n := flag.Int("n", 1, "몇 판")
+	all := flag.Bool("all", false, "여러 대진을 돌려 실제 축구와 견줘 본다")
+	gkRole := flag.String("gkrole", "", "골키퍼 역할 (예: SK:A) — 비우면 기본값")
 	flag.Parse()
 
 	var sb strings.Builder
@@ -103,10 +111,29 @@ func main() {
 	vm.Set("TEAMS", teams.Teams)
 	vm.Set("TABLES", teams.Tables)
 	vm.Set("PLAYERS", players)
+	vm.Set("GKROLE", *gkRole)
 
 	play, ok := goja.AssertFunction(vm.Get("playReal"))
 	if !ok {
 		fail("playReal 을 찾지 못했습니다")
+	}
+
+	if *all {
+		// K리그1 12개 구단을 한 바퀴 돌린다 (i번째 홈 vs i+1번째 원정)
+		var raw struct {
+			Order struct {
+				K1 []string `json:"k1"`
+				K2 []string `json:"k2"`
+			} `json:"order"`
+		}
+		readJSON(filepath.Join(*root, "data", "teams.json"), &raw)
+		ids := append(append([]string{}, raw.Order.K1...), raw.Order.K2[:4]...)
+		pairs := [][2]string{}
+		for i := 0; i < len(ids); i++ {
+			pairs = append(pairs, [2]string{ids[i], ids[(i+1)%len(ids)]})
+		}
+		batch(vm, play, pairs)
+		return
 	}
 
 	fmt.Printf("%s vs %s · %d판\n\n", *home, *away, *n)
@@ -145,6 +172,54 @@ func main() {
 		}
 	}
 	fmt.Printf("\n결과 지문 %s — %d판 모두 동일\n", fps[0], len(fps))
+}
+
+/* ── 여러 대진을 돌려 실제 축구와 견줘 본다 ─────────────────────
+   K리그 실측 기준 (2023~2025 평균):
+     경기당 골 2.6~2.8 · 팀당 슈팅 11~13 · 유효슈팅 비율 33% · 유효슈팅 대비 득점 30% */
+func batch(vm *goja.Runtime, play goja.Callable, pairs [][2]string) {
+	var g, sh, on, n float64
+	hat, maxOne := 0, 0
+	best := ""
+	fmt.Printf("%-22s %-9s %s\n", "대진", "결과", "슈팅 · 유효 · 득점자")
+	for _, p := range pairs {
+		v, err := play(goja.Undefined(), vm.ToValue(p[0]), vm.ToValue(p[1]))
+		if err != nil {
+			fail("경기 중 오류: " + err.Error())
+		}
+		r := v.Export().(map[string]any)
+		hg, ag := num(r["hg"]), num(r["ag"])
+		g += hg + ag
+		sh += num(r["hShot"]) + num(r["aShot"])
+		on += num(r["hOn"]) + num(r["aOn"])
+		n += 2
+
+		top, topN := "", 0
+		if sc, ok := r["scorers"].(map[string]any); ok {
+			for who, c := range sc {
+				if int(num(c)) > topN {
+					topN, top = int(num(c)), who
+				}
+			}
+		}
+		if topN >= 3 {
+			hat++
+		}
+		if topN > maxOne {
+			maxOne, best = topN, top+" ("+p[0]+" vs "+p[1]+")"
+		}
+		fmt.Printf("%-22s %.0f : %-5.0f  %.0f/%.0f · %.0f/%.0f · 최다 %s %d골\n",
+			p[0]+" vs "+p[1], hg, ag,
+			num(r["hShot"]), num(r["aShot"]), num(r["hOn"]), num(r["aOn"]), top, topN)
+	}
+	m := n / 2
+	fmt.Printf("\n── %d경기 합계 ──────────────────────────────\n", int(m))
+	fmt.Printf("  경기당 골      %.2f   (K리그 실측 2.6~2.8)\n", g/m)
+	fmt.Printf("  팀당 슈팅      %.1f    (11~13)\n", sh/n)
+	fmt.Printf("  유효슈팅 비율  %.0f%%    (33%%)\n", on/sh*100)
+	fmt.Printf("  유효슈팅→득점  %.0f%%    (30%%)\n", g/on*100)
+	fmt.Printf("  해트트릭       %d경기 / %d   (실제로는 50~100경기에 한 번)\n", hat, int(m))
+	fmt.Printf("  한 경기 최다   %s\n", best)
 }
 
 func readJSON(path string, v any) {

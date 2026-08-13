@@ -102,6 +102,17 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .stars::before{content:'★★★★★';position:absolute;left:0;top:0;width:var(--pct,0%);
        overflow:hidden;color:var(--gold);white-space:nowrap}
 
+/* ── 저장 슬롯 ─────────────────────────────── */
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+.slot{position:relative;background:var(--bg3);border:1px solid var(--line);border-radius:9px;
+      padding:8px 10px;cursor:pointer;min-height:60px}
+.slot:hover{border-color:var(--acc)}
+.slot.empty{border-style:dashed;color:var(--sub)}
+.slot .n{font-size:11px;color:var(--sub)}
+.slot .t{font-size:13.5px;font-weight:800;margin-top:1px}
+.slot .f{font-size:11.5px;color:var(--sub)}
+.slot .btns{position:absolute;top:5px;right:5px;display:flex;gap:3px}
+.slot .btns button{padding:1px 6px;font-size:11px;border-radius:5px;font-weight:800}
 .note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
       border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
 .warn{color:var(--warn)}
@@ -130,6 +141,17 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <div class="preset" id="preset"></div>
     <div id="tacs"></div>
     <div class="note" id="tacnote"></div>
+  </div>
+
+  <div class="card">
+    <h3>💾 저장 슬롯</h3>
+    <div class="slots" id="slots"></div>
+    <div class="row" style="margin-top:10px">
+      <button id="expJson">📥 파일로 내보내기</button>
+      <button id="impBtn">📤 파일에서 불러오기</button>
+      <input type="file" id="impJson" accept=".json,application/json" style="display:none">
+      <span class="sub">슬롯은 이 브라우저에만 남습니다. 다른 기기로 옮기거나 남에게 주려면 파일로 내보내세요.</span>
+    </div>
   </div>
 
   <div class="wrap">
@@ -261,7 +283,10 @@ async function boot() {
     tac = Object.assign({}, PRESETS[b.dataset.p]); drawTac();
   });
 
-  drawTeams("k1"); drawTac();
+  drawTeams("k1"); drawTac(); drawSlots();
+  $("#expJson").onclick = exportFile;
+  $("#impBtn").onclick = () => $("#impJson").click();
+  $("#impJson").onchange = e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ""; };
   document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === b));
     drawTeams(b.dataset.lg);
@@ -685,6 +710,127 @@ function drawTacNote() {
   $("#tacnote").innerHTML = s.length
     ? "<b>이 지시는</b> — " + s.join(" · ")
     : "무난한 균형 지시입니다. 위 프리셋을 눌러 형태를 잡은 뒤 다듬어도 됩니다.";
+}
+
+/* ── 저장 슬롯 ────────────────────────────────────────────────
+   열 벌까지 이 브라우저에 남긴다. 브라우저 저장소를 비우면 같이 사라지므로,
+   다른 기기로 옮기거나 남에게 줄 때는 파일로 내보낸다. */
+const SLOT_KEY = "kmd26.slots", SLOT_N = 10, FILE_VER = 1;
+
+function loadSlots() {
+  try {
+    const a = JSON.parse(localStorage.getItem(SLOT_KEY) || "[]");
+    return Array.isArray(a) ? a.slice(0, SLOT_N) : [];
+  } catch (e) { return []; }
+}
+function saveSlots(a) {
+  try { localStorage.setItem(SLOT_KEY, JSON.stringify(a.slice(0, SLOT_N))); return true; }
+  catch (e) { flash("저장 공간이 부족합니다 — 슬롯을 몇 개 지워 주세요."); drawHint(); return false; }
+}
+
+/** 지금 편집 중인 것을 한 벌로 묶는다 (파일로 나가는 모양이기도 하다) */
+function currentPlan() {
+  return {
+    kind: "kmd26-lineup", ver: FILE_VER,
+    id: team, name: DB.teams[team].short, formation,
+    xi: JSON.parse(JSON.stringify(xi)),
+    bench: bench.slice(),
+    tac: JSON.parse(JSON.stringify(tac)),
+    roles: JSON.parse(JSON.stringify(roles)),
+    // 선수 명단이 갱신되면 옛 라인업의 선수 id 가 안 맞을 수 있다 — 불러올 때 대조한다
+    dataHash: DB.meta.dataHash,
+    savedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+  };
+}
+
+/** 한 벌을 편집기에 올린다. 없는 선수는 조용히 빼지 않고 몇 명인지 알린다. */
+function applyPlan(p, where) {
+  if (!p || p.kind !== "kmd26-lineup") { flash("이 파일은 KMD26 라인업이 아닙니다."); drawHint(); return false; }
+  if (!DB.teams[p.id]) { flash("모르는 구단입니다 — " + p.id); drawHint(); return false; }
+
+  team = p.id;
+  formation = T.formation[p.formation] ? p.formation : formation;
+  $("#formation").value = formation;
+
+  const have = new Set(DB.players[team].map(q => q.id));
+  let lost = 0;
+  xi = {};
+  for (const s of Object.keys(p.xi || {})) {
+    if (have.has(p.xi[s])) xi[s] = p.xi[s]; else lost++;
+  }
+  bench = new Array(9).fill(null);
+  (p.bench || []).slice(0, 9).forEach((id, i) => {
+    if (id == null) return;
+    if (have.has(id)) bench[i] = id; else lost++;
+  });
+  tac = Object.assign({}, T.tacDef, p.tac || {});
+  roles = {};
+  for (const k of Object.keys(p.roles || {})) if (have.has(+k)) roles[k] = p.roles[k];
+
+  sel = null;
+  const lg = DB.order.k1.includes(team) ? "k1" : "k2";
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.lg === lg));
+  drawTeams(lg);
+  $("#main").style.display = "";
+  drawTac(); draw();
+  if (lost) { flash(where + "에서 " + lost + "명을 찾지 못했습니다 — 선수 명단이 바뀌었을 수 있습니다."); drawHint(); }
+  return true;
+}
+
+function drawSlots() {
+  const a = loadSlots();
+  $("#slots").innerHTML = Array.from({ length: SLOT_N }, (_, i) => {
+    const s = a[i];
+    if (!s) return `<div class="slot empty" data-i="${i}" data-act="save">
+      <div class="n">${i + 1}번</div><div class="t">비어 있음</div>
+      <div class="f">눌러서 지금 라인업 저장</div></div>`;
+    return `<div class="slot" data-i="${i}" data-act="load">
+      <div class="btns">
+        <button data-i="${i}" data-act="save" title="이 슬롯에 덮어쓰기">💾</button>
+        <button data-i="${i}" data-act="del" title="지우기">✕</button>
+      </div>
+      <div class="n">${i + 1}번 · ${esc(s.savedAt || "")}</div>
+      <div class="t">${esc(s.name || s.id)}</div>
+      <div class="f">${esc(s.formation || "")} · 선발 ${Object.keys(s.xi || {}).length}명</div>
+    </div>`;
+  }).join("");
+
+  $("#slots").querySelectorAll("[data-act]").forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const i = +el.dataset.i, act = el.dataset.act, list = loadSlots();
+    if (act === "save") {
+      if (!team || xiCount() === 0) { flash("먼저 라인업을 짜 주세요."); drawHint(); return; }
+      list[i] = currentPlan();
+      if (saveSlots(list)) { drawSlots(); flash(`${i + 1}번 슬롯에 저장했습니다.`); drawHint(); }
+    } else if (act === "del") {
+      list[i] = null; saveSlots(list); drawSlots();
+    } else if (act === "load" && list[i]) {
+      if (applyPlan(list[i], `${i + 1}번 슬롯`)) drawSlots();
+    }
+  });
+}
+
+/** 파일로 내보내기 — 기기를 옮기거나 남에게 줄 때 */
+function exportFile() {
+  if (!team || xiCount() === 0) { flash("먼저 라인업을 짜 주세요."); drawHint(); return; }
+  const p = currentPlan();
+  const blob = new Blob([JSON.stringify(p, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `kmd26-${p.id}-${p.formation}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function importFile(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    let p = null;
+    try { p = JSON.parse(fr.result); } catch (e) { flash("JSON 을 읽지 못했습니다."); drawHint(); return; }
+    applyPlan(p, "파일");
+  };
+  fr.onerror = () => { flash("파일을 읽지 못했습니다."); drawHint(); };
+  fr.readAsText(file);
 }
 
 boot();
