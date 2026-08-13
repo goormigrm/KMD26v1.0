@@ -166,7 +166,8 @@ KM26D1-BhHsDhIjFNJKMvuvABpqsRClrAJGCs8SISgigpwFAAAAAAAAHoA
 서버 없이 링크로 주고받는 형태로 다시 만들었습니다.
 
 엔진은 옮겨 적지 않고 원본 코드를 그대로 실행합니다. 원본이 갱신되면 다시 뽑아 올립니다.
-작업 과정과 구조는 [DEVELOPMENT.md](DEVELOPMENT.md) 에 있습니다.
+작업 과정과 구조는 [DEVELOPMENT.md](DEVELOPMENT.md), 고칠 때 지킬 것은
+[CONTRIBUTING.md](CONTRIBUTING.md) 에 있습니다.
 
 원본에 있던 버그도 몇 개 고쳤습니다 — 킥오프 직후 페널티킥이 실행되지 않던 것,
 VAR 취소된 득점이 점수에 남던 것, 전술 슬라이더 하나(패스 길이)가 경기에 아예 반영되지
