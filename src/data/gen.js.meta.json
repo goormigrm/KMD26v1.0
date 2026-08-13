@@ -1,7 +1,7 @@
 {
  "srcHash": "d18fe0dfc09c",
- "declCount": 69,
- "lineCount": 1143,
+ "declCount": 83,
+ "lineCount": 1241,
  "rngSites": 18,
  "exports": [
   "mkTeam",
@@ -18,7 +18,11 @@
   "TECH_ORDER",
   "MENT_ORDER",
   "PHYS_ORDER",
-  "GK_ORDER"
+  "GK_ORDER",
+  "starGrade",
+  "starRefLevel",
+  "playerLevel",
+  "STAR_GAIN"
  ],
  "patches": [
   {
@@ -288,8 +292,64 @@
    "srcLine": 2988
   },
   {
+   "name": "ATTR_MEAN",
+   "srcLine": 3573
+  },
+  {
+   "name": "attrMeans",
+   "srcLine": 3574
+  },
+  {
+   "name": "playerLevel",
+   "srcLine": 3595
+  },
+  {
+   "name": "STAR_MID",
+   "srcLine": 3618
+  },
+  {
+   "name": "STAR_SPAN",
+   "srcLine": 3619
+  },
+  {
+   "name": "STAR_GAIN",
+   "srcLine": 3623
+  },
+  {
+   "name": "STAR_LEAGUE_OFF",
+   "srcLine": 3626
+  },
+  {
+   "name": "STAR_CTX",
+   "srcLine": 3629
+  },
+  {
+   "name": "starRefLevel",
+   "srcLine": 3661
+  },
+  {
+   "name": "leagueLevel",
+   "srcLine": 3671
+  },
+  {
    "name": "rawCA",
    "srcLine": 6271
+  },
+  {
+   "name": "SILVER_TOP",
+   "srcLine": 11085
+  },
+  {
+   "name": "SILVER_DEPTH",
+   "srcLine": 11086
+  },
+  {
+   "name": "starRawFromScore",
+   "srcLine": 11087
+  },
+  {
+   "name": "starGrade",
+   "srcLine": 11091
   },
   {
    "name": "AFF_DEF",

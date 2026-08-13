@@ -50,6 +50,7 @@ function RNG(){
 var playerKeep = []string{
 	"id", "name", "pos", "prefPos", "no", "by", "bd", "h", "w", "frn", "foot",
 	"ovr", "pers", "traits", "attr", "gkA", "gk", "posFam",
+	"star", "silver", // 화면에 띄우는 별점 — 숫자 대신 이걸 보여 준다
 }
 
 var teamKeep = []string{"id", "name", "short", "col", "col2", "div"}
@@ -85,9 +86,27 @@ func main() {
 	driver := fmt.Sprintf(`
     var G = { season: CUR_YEAR };
     seedRNG(%d);
+    var _k1 = D1.map(function(d){ return mkTeam(d, 1); });
+    var _k2 = D2.map(function(d){ return mkTeam(d, 2); });
+
+    /* 별점 — 화면에 능력치 숫자를 그대로 띄우면 라인업을 짤 때 고민이 사라진다.
+       KM26 과 같은 눈금을 써야 하므로 계산식을 베끼지 않고 원본 함수를 그대로 돌린다.
+       기준(starRefLevel)이 **리그 전체 평균**이라 29개 구단이 다 만들어진 뒤에 매겨야 한다. */
+    G.teams = {};
+    _k1.concat(_k2).forEach(function(t){ G.teams[t.id] = t; });
+    var _ref = starRefLevel();
+    _k1.concat(_k2).forEach(function(t){
+      t.players.forEach(function(p){
+        var gr = starGrade(62 + (playerLevel(p) - _ref) * STAR_GAIN);
+        p.star = gr.v;              // 0.5~5, 0.5 단위
+        p.silver = !!gr.silver;     // 1군 눈금 미달 — 은색으로 표시한다
+      });
+    });
+
     JSON.stringify({
-      k1: D1.map(function(d){ return mkTeam(d, 1); }),
-      k2: D2.map(function(d){ return mkTeam(d, 2); }),
+      starRef: _ref,
+      k1: _k1,
+      k2: _k2,
       // 화면이 쓸 이름표 — 한글 라벨을 UI 에 베껴 두면 원본이 바뀔 때 어긋난다
       labels: {
         attr: ATTR_LABEL_FM, fam: FAM_LABEL, famOrder: FAM_POS,
@@ -101,9 +120,10 @@ func main() {
 	check(err, "구단 생성 중 오류")
 
 	var built struct {
-		K1     []map[string]any `json:"k1"`
-		K2     []map[string]any `json:"k2"`
-		Labels map[string]any   `json:"labels"`
+		K1      []map[string]any `json:"k1"`
+		K2      []map[string]any `json:"k2"`
+		Labels  map[string]any   `json:"labels"`
+		StarRef float64          `json:"starRef"`
 	}
 	check(json.Unmarshal([]byte(v.String()), &built), "생성 결과를 읽지 못했습니다")
 
@@ -140,6 +160,11 @@ func main() {
 		}
 	}
 
+	// 별점 기준선이 말이 되는지 본다. 캐시가 빈 리그로 잡혔거나 순서가 틀어지면 여기서 걸린다.
+	if built.StarRef < 55 || built.StarRef > 85 {
+		fail(fmt.Sprintf("별점 기준선이 %.1f 입니다 — 리그 전체가 아니라 빈 목록으로 계산됐을 수 있습니다", built.StarRef))
+	}
+
 	verify(players, total)
 
 	check(os.MkdirAll(outDir, 0o755), "data 폴더를 만들지 못했습니다")
@@ -157,6 +182,7 @@ func main() {
 		"seed":       *seed,
 		"teamCount":  len(teams),
 		"playerCount": total,
+		"starRef":    built.StarRef,
 		"dataHash":   dataHash,
 		"note": "tools/gendata 가 만든 파일입니다. 손으로 고치지 마세요 — " +
 			"원본이 갱신되면 extract_data.py 를 다시 돌린 뒤 이 도구를 실행하세요.",

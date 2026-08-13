@@ -3,7 +3,7 @@
    생성: tools/extract_data.py
    원본: KM26 v2.0 (KleagueM2026/KM26v2.0) — 원저작자 허락 하에 사용
    원본 해시: sha256:d18fe0dfc09c
-   추출 선언 69개 / 1143줄
+   추출 선언 83개 / 1241줄
    난수 시드화: Math.random() 18곳 → RNG()
 
    ── 듀얼 패치 ─────────────────────────────────────────────
@@ -1132,6 +1132,84 @@ function estimateOvr(base, by, no, frn, pos){
   return clamp(v, 50, base+8);
 }
 
+let ATTR_MEAN=null, ATTR_MEAN_AT=-1;
+
+function attrMeans(){
+  // 시즌이 바뀌거나 선수단이 크게 달라지면 다시 계산한다
+  if(ATTR_MEAN && ATTR_MEAN_AT===G.season) return ATTR_MEAN;
+  const sum={}, cnt={}, gsum={}, gcnt={};
+  for(const id in G.teams) for(const q of G.teams[id].players){
+    if(q.attr) for(const k in q.attr){ sum[k]=(sum[k]||0)+q.attr[k]; cnt[k]=(cnt[k]||0)+1; }
+    if(q.gkA)  for(const k in q.gkA){ gsum[k]=(gsum[k]||0)+q.gkA[k]; gcnt[k]=(gcnt[k]||0)+1; }
+  }
+  const m={}, gm={};
+  for(const k in sum) m[k]=sum[k]/Math.max(1,cnt[k]);
+  for(const k in gsum) gm[k]=gsum[k]/Math.max(1,gcnt[k]);
+  ATTR_MEAN={m, gm}; ATTR_MEAN_AT=G.season;
+  return ATTR_MEAN;
+}
+
+function playerLevel(p){
+  const a=p.attr; if(!a) return 62;
+  // 골키퍼는 필드 능력치가 원래 낮게 생성된다. 그걸로 수준을 재면 최고의 키퍼도
+  // 후보 수준으로 깔려버리므로, GK 는 전용 능력치를 주로 보고 정신·신체를 곁들인다.
+  if(p.pos==="GK" && p.gkA){
+    let g=0,gn=0; for(const k in p.gkA){ if(typeof p.gkA[k]==="number"){ g+=p.gkA[k]; gn++; } }
+    let m=0,mn=0;
+    for(const k of MENT_ATTRS.concat(PHYS_ATTRS)){ if(typeof a[k]==="number"){ m+=a[k]; mn++; } }
+    const gv=gn?g/gn:62, mv=mn?m/mn:62;
+    return gv*0.75 + mv*0.25;
+  }
+  let s=0,n=0; for(const k in a){ if(typeof a[k]==="number"){ s+=a[k]; n++; } }
+  return n?s/n:62;
+}
+/* ── 별점의 기준선 ────────────────────────────────────────────────
+   FM처럼 별점은 절대 기준이 아니다. "우리 팀 수준"과 "우리가 뛰는 리그 수준"을
+   섞은 값을 기준으로, 그보다 얼마나 나은 선수인지를 보여준다.
+   그래서 같은 선수라도 강팀에서 보면 별이 적고, 약팀에서 보면 많다. */
+/* FM은 "우리 팀 주전 XI 평균"을 기준으로 본다. 주전들이 평균 3~3.5★가 되도록 맞추고,
+   그보다 처지는 후보는 2★ 이하, 핵심은 4★ 이상으로 나오게 한다.
+   월드클래스를 영입해 주전 수준이 올라가면 기존 후보들의 별은 자동으로 떨어진다. */
+
+const STAR_MID=3.25;      // 주전 평균 선수가 받는 별
+
+const STAR_SPAN=13.2;     // 별 한 칸에 해당하는 실력 차이
+/* 기량 차이를 별점 점수로 바꾸는 배율.
+   이 값이 곧 "은색이 언제 뜨는가"를 정한다 — 주전 평균보다 약 13.5 낮으면 1군 눈금(금색 0.5)의
+   바닥에 닿고, 그 아래부터 은색이다. 우리 리그 기준으로는 유스 콜업과 하부 리그 하위권이 여기 걸린다. */
+
+const STAR_GAIN=2.70;
+/* 리그 전체 평균에는 벤치·유스까지 다 들어가서 그대로 쓰면 별이 전반적으로 후해진다.
+   "리그 평균 선수 = 2.5★" 가 되도록 기준선을 조금 올려 둔다. */
+
+const STAR_LEAGUE_OFF=7.6;
+
+let STAR_CTX=null, STAR_CTX_KEY="";
+
+function starRefLevel(){
+  const key="LEAGUE|"+G.season+"|"+(G.r1||0)+"_"+(G.r2||0);
+  if(STAR_CTX && STAR_CTX_KEY===key) return STAR_CTX;
+  let s=0,n=0;
+  for(const id in G.teams){ const t=G.teams[id];
+    for(const q of (t.players||[])){ s+=playerLevel(q); n++; } }
+  STAR_CTX = n ? s/n + STAR_LEAGUE_OFF : leagueLevel();
+  STAR_CTX_KEY = key;
+  return STAR_CTX;
+}
+
+function leagueLevel(){
+  const MM=attrMeans();
+  if(MM.lv!==undefined) return MM.lv;
+  let s=0,n=0; for(const k in MM.m){ s+=MM.m[k]; n++; }
+  MM.lv = n? s/n : 62;
+  return MM.lv;
+}
+/* ⚠ slotRating 은 가중합이 여러 번 도는 무거운 함수다. bestXI 가 (선수 × 자리) 전 조합을
+   훑기 때문에 캐시가 없으면 한 번 부를 때마다 수백 번 계산된다(실측: 라운드당 20초 추가).
+   능력치가 바뀌지 않는 한 값도 그대로이므로 선수 객체에 붙여 둔다. */
+/* 캐시는 선수 객체가 아니라 바깥 Map 에 둔다 — 객체에 붙이면 세이브(JSON)에 딸려 나가고,
+   그걸 막으려고 저장 직전에 지우면 매 라운드 전부 다시 계산하게 된다(실측: 경기당 2.4초). */
+
 function rawCA(p, fb){
   const W=POS_WEIGHT[p.pos]||POS_WEIGHT.MF, a=p.attr||{}, g=p.gkA||{};
   let sum=0, wt=0;
@@ -1143,6 +1221,26 @@ function rawCA(p, fb){
   return wt ? sum/wt : (fb||p.ovr||65);
 }
 /* 그 선수가 요즘 얼마나 뛰고 있는가 (0 = 전혀 못 뜀, 1.2 = 붙박이 주전) */
+
+const SILVER_TOP=0.5;    // 은색 5개가 뜻하는 금색 별 수
+
+const SILVER_DEPTH=2.5;  // 은색 눈금이 훑는 폭 (금색 별 단위) — 이보다 더 아래는 은색 0.5개로 바닥
+
+function starRawFromScore(score){ return STAR_MID + (score-62)/STAR_SPAN; }  // 반올림 전 연속값
+/* 점수 → {은색 여부, 표시할 별 수, 금색 환산값}. 표시·정렬·비교는 전부 이걸 거친다.
+   forceSilver를 주면 눈금을 강제로 고른다 — 어느 눈금을 쓸지는 "선수의 기량"이 정하고,
+   포지션 적성이나 능숙도는 그 눈금 안에서 별 수만 깎게 하기 위해서다. */
+
+function starGrade(score, forceSilver){
+  const raw=starRawFromScore(score);
+  const silver = (forceSilver===undefined) ? (raw<SILVER_TOP) : !!forceSilver;
+  if(!silver) return {silver:false, v:clamp(Math.round(raw*2)/2, 0.5, 5), gold:clamp(raw, 0.5, 5)};
+  // 1군 눈금 밑 — 은색 눈금으로 갈아탄다. raw가 SILVER_TOP이면 은색 5개, 더 내려갈수록 줄어든다.
+  const s=5*(1-(SILVER_TOP-raw)/SILVER_DEPTH);
+  return {silver:true, v:clamp(Math.round(s*2)/2, 0.5, 5), gold:clamp(raw, 0, SILVER_TOP)};
+}
+/* 어느 눈금을 쓸지는 오직 기량으로 정한다.
+   1군 수준인 선수가 낯선 자리에 섰다고 은색이 되면 안 된다 — 그건 금색 반 개짜리 배치일 뿐이다. */
 
 const AFF_DEF=50;
 
@@ -1172,5 +1270,9 @@ export {
   TECH_ORDER,
   MENT_ORDER,
   PHYS_ORDER,
-  GK_ORDER
+  GK_ORDER,
+  starGrade,
+  starRefLevel,
+  playerLevel,
+  STAR_GAIN
 };

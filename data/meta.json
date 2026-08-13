@@ -1,9 +1,10 @@
 {
- "dataHash": "c891945b799e4bed",
+ "dataHash": "65a57038adbde08e",
  "genFrom": "src/data/gen.js",
  "note": "tools/gendata 가 만든 파일입니다. 손으로 고치지 마세요 — 원본이 갱신되면 extract_data.py 를 다시 돌린 뒤 이 도구를 실행하세요.",
  "playerCount": 1024,
  "seed": 1263354930,
  "source": "KM26 v2.0 (KleagueM2026/KM26v2.0)",
+ "starRef": 67.1323308771307,
  "teamCount": 29
 }
