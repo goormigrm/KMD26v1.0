@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 GitHub 계정 없이 제보하기
+    url: https://github.com/goormigrm/KMD26v1.0/blob/main/FEEDBACK.md
+    about: 공개글 댓글로 남기는 복붙 양식이 있습니다. GitHub 가입 없이도 됩니다.
+  - name: 📖 게임 설명서
+    url: https://github.com/goormigrm/KMD26v1.0/blob/main/README.md
+    about: 대전 방법·연습 모드·화면 설명. 제보 전에 한 번 보시면 좋습니다.

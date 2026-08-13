@@ -1,0 +1,67 @@
+name: ⚖️ 밸런스 · 전술이 이상합니다
+description: 특정 전술만 유리하다, 슬라이더를 밀어도 경기가 안 바뀐다, 숫자가 안 맞는다
+title: "[밸런스] "
+labels: ["밸런스"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **오픈베타에서 가장 받고 싶은 제보입니다.** 단계 9(개발 전용 밸런스 검증)를 건너뛰고
+        실제 플레이로 잡기로 했기 때문에, 이 칸이 사실상 유일한 자료입니다.
+
+        아래 **대전 코드**나 **결과 링크**를 붙여 주시면 그 경기를 그대로 재현해서 볼 수 있습니다.
+        그게 있으면 확인이 몇 시간에서 몇 분으로 줄어듭니다.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 무엇이 이상했나요
+      description: 한두 문장이면 됩니다.
+      placeholder: |
+        압박을 최대로 올렸는데 상대 패스 성공률이 오히려 올라갔습니다.
+    validations:
+      required: true
+
+  - type: input
+    id: team
+    attributes:
+      label: 어느 구단으로 하셨나요
+      placeholder: 안양 (상대는 울산)
+    validations:
+      required: true
+
+  - type: textarea
+    id: tactic
+    attributes:
+      label: 전술을 어떻게 두셨나요
+      description: |
+        슬라이더 여덟 개 값과 역습 여부. **라인업 화면의 `🔗 대전 코드 발급` 으로 나온 51자 코드를
+        붙여 주시면 이 칸은 안 채우셔도 됩니다** — 코드 안에 전부 들어 있습니다.
+      placeholder: |
+        KM26D1-BhHsDhIjFNJKMvuvABpqsRClrAJGCs8SISgigpwFAAAAAAAAHoA
+
+        또는: 4-2-3-1 · 압박 5 · 수비라인 4 · 패스길이 1 · 템포 5 · 역습 켬
+    validations:
+      required: true
+
+  - type: input
+    id: link
+    attributes:
+      label: 결과 링크 또는 결과 지문 (있으면)
+      description: 경기가 끝나면 나오는 `🔗 결과 링크`, 또는 여덟 자리 지문.
+      placeholder: https://goormigrm.github.io/KMD26v1.0/match.html#m=... (또는 deaca9c0)
+
+  - type: textarea
+    id: expect
+    attributes:
+      label: 어떻게 되어야 맞다고 보셨나요 (있으면)
+      placeholder: |
+        압박을 올렸으면 상대 패스가 끊겨야 하고, 대신 우리 뒷공간이 열려야 한다고 봤습니다.
+
+  - type: checkboxes
+    id: mode
+    attributes:
+      label: 어느 모드였나요
+      options:
+        - label: 사람과 대전 (코드를 주고받음)
+        - label: 연습 모드 (AI 감독)
