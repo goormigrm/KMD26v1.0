@@ -126,6 +126,10 @@ button:disabled{opacity:.45;cursor:default}
 .rmsg.riv{background:#10131c;border-color:#2b2440}
 .rmsg.troll{background:#1b1113;border-color:#5a2b2b}
 .rmsg.troll .nick{color:var(--bad)}
+/* 차짬 — 이 게임 만든 사람. 안양 팬이다 */
+.rmsg .tag.dev{color:var(--gold);border-color:#6b5520}
+.rmsg.dev{background:#191509;border-color:#5c4a1c}
+.rmsg.dev .nick{color:var(--gold)}
 .rside{padding:5px 12px;font-size:12.5px}
 
 /* ── 통계 ─────────────────────────────────── */
@@ -151,7 +155,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
   <div class="mrow"><span class="lb">홈</span>
     <select id="homeSel"></select><select id="homePlan"></select></div>
   <div class="mrow"><span class="lb">원정</span>
-    <select id="awaySel"></select><select id="awayPlan"></select></div>
+    <select id="awaySel"></select><select id="awayPlan"></select>
+    <!-- 연습 상대일 때만 나오는 전술 프리셋 (어려움은 상성으로 자동) -->
+    <select id="awayAi" style="display:none"></select></div>
   <div class="row" style="margin-top:9px"><button id="start" class="pri">▶ 경기 시작</button></div>
   <div class="note" id="setupNote"></div>
 </div>
@@ -255,8 +261,9 @@ async function boot() {
 
   for (const s of ["home", "away"]) {
     $(`#${s}Sel`).onchange = () => { drawPlanSel(s); describe(); };
-    $(`#${s}Plan`).onchange = describe;
+    $(`#${s}Plan`).onchange = () => { if (s === "away") drawAiSel(); describe(); };
   }
+  $("#awayAi").onchange = describe;
   $("#start").onclick = start;
   $("#again").onclick = () => {
     stop(); stopClip(); lastClip = null;
@@ -304,21 +311,62 @@ function loadSlots() {
   } catch (e) { return []; }
 }
 
+/* ── 연습 모드 (단계 A) ────────────────────────────────────────
+   상대가 없어도 혼자 전술을 시험한다. 난이도는 **선수 능력치가 아니라 상대 감독의
+   유능함**이다 — 라인업을 짜는 솜씨, 후반에 지시를 바꾸는가, 내 전술을 보고
+   상성으로 고르는가. 연습은 매 판 새 시드이고 결과 코드를 발급하지 않는다. */
+const AI_LV = { easy: "쉬움", normal: "보통", hard: "어려움" };
+const AI_TAC = { press: "높은 압박", counter: "역습", wing: "측면 공략" };
+const AI_LV_NOTE = {
+  easy: "명단 순서대로 세웁니다 — 자리에 안 맞는 선수가 섞입니다. 후반에도 가만히 있습니다.",
+  normal: "자리마다 어울리는 선수를 세우고, 후반에 점수를 보고 지시를 바꿉니다.",
+  hard: "자리 적합도로 조합 전체를 최적화하고, <b>내 전술을 보고 상성으로</b> 나옵니다.",
+};
+
+/** "안양를" 이 되지 않게 — 마지막 글자에 받침이 있으면 을, 없으면 를 */
+function josa(name) {
+  const c = String(name || "").slice(-1).charCodeAt(0);
+  if (!(c >= 0xac00 && c <= 0xd7a3)) return "을";
+  return ((c - 0xac00) % 28) !== 0 ? "을" : "를";
+}
+
+const isAi = v => String(v || "").startsWith("ai:");
+const aiLevelOf = v => String(v || "").slice(3) || "normal";
+
 /** 그 구단으로 쓸 수 있는 라인업 목록 */
-function planSources(teamId) {
+function planSources(teamId, side) {
   const out = [{ v: "auto", t: "자동 라인업" }];
   if (HAND && HAND.id === teamId) out.push({ v: "hand", t: "라인업 화면에서 짠 것" });
   SLOTS.forEach((s, i) => {
     if (s.id === teamId) out.push({ v: "slot:" + i, t: `저장 ${i + 1}번 · ${s.formation || ""}`.trim() });
   });
+  // 원정 쪽에만 연습 상대를 둔다 — 홈은 언제나 내가 짠 팀이다
+  if (side === "away") {
+    for (const k of ["easy", "normal", "hard"]) out.push({ v: "ai:" + k, t: `🤖 연습 · ${AI_LV[k]}` });
+  }
   return out;
 }
 
 function drawPlanSel(side) {
   const sel = $(`#${side}Plan`), keep = sel.value;
-  const list = planSources($(`#${side}Sel`).value);
+  const list = planSources($(`#${side}Sel`).value, side);
   sel.innerHTML = list.map(o => `<option value="${esc(o.v)}">${esc(o.t)}</option>`).join("");
   if (list.some(o => o.v === keep)) sel.value = keep;
+  if (side === "away") drawAiSel();
+}
+
+/** 연습 상대의 전술 프리셋 칸 — 어려움은 상성으로 고르므로 고를 것이 없다 */
+function drawAiSel() {
+  const box = $("#awayAi"), src = $("#awayPlan").value;
+  if (!isAi(src)) { box.style.display = "none"; return; }
+  box.style.display = "";
+  const hard = aiLevelOf(src) === "hard";
+  const keep = box.value;
+  box.innerHTML = hard
+    ? `<option value="auto">상성으로 자동</option>`
+    : Object.keys(AI_TAC).map(k => `<option value="${k}">${esc(AI_TAC[k])}</option>`).join("");
+  box.disabled = hard;
+  if (!hard && Object.keys(AI_TAC).includes(keep)) box.value = keep;
 }
 
 /* 옛 저장본에는 포메이션이 안 담겨 있다 — 자리 이름 묶음으로 되찾는다.
@@ -350,7 +398,21 @@ function planFor(teamId, src) {
 /** 지금 고른 대진이 어떤 경기가 될지 한 줄로 알려 준다 */
 function describe() {
   const hid = $("#homeSel").value, aid = $("#awaySel").value;
-  const hp = planFor(hid, $("#homePlan").value), ap = planFor(aid, $("#awayPlan").value);
+  const aSrc = $("#awayPlan").value;
+
+  // 연습 경기 — 상대는 AI 감독이 짠다. 라인업 지문을 견줄 것이 없으므로 따로 안내한다
+  if (isAi(aSrc)) {
+    const lv = aiLevelOf(aSrc);
+    const tacN = lv === "hard" ? "내 전술을 보고 고릅니다" : AI_TAC[$("#awayAi").value] || "높은 압박";
+    $("#setupNote").innerHTML = `
+      <b>🤖 연습 경기</b> — ${esc(DB.teams[aid].short)}${josa(DB.teams[aid].short)} <b>${esc(AI_LV[lv])}</b> AI 감독이 맡습니다
+      (전술: ${esc(tacN)}).<br>${AI_LV_NOTE[lv]}
+      <br><span class="sub">난이도는 선수 능력치를 건드리지 않습니다 — 상대 감독의 솜씨만 달라집니다.
+      연습은 <b>매 판 새 시드</b>라 같은 라인업으로도 다른 경기가 나오고, 결과 코드는 발급하지 않습니다.</span>`;
+    return;
+  }
+
+  const hp = planFor(hid, $("#homePlan").value), ap = planFor(aid, aSrc);
   const same = hid === aid;
   const note = [];
   if (same) {
@@ -371,11 +433,19 @@ function describe() {
 
 function start() {
   const hid = $("#homeSel").value, aid = $("#awaySel").value;
-  const hp = planFor(hid, $("#homePlan").value), ap = planFor(aid, $("#awayPlan").value);
+  const aSrc = $("#awayPlan").value;
+  const hp = planFor(hid, $("#homePlan").value);
+  const practice = isAi(aSrc);
+
+  /* 연습이면 상대 라인업은 일꾼이 짠다(AI 감독). "어려움"이 쓰는 slotRating 이
+     커널 함수라 화면에서는 부를 수 없기 때문이다. */
+  const ap = practice
+    ? { id: aid, tables: T, ai: { id: aid, level: aiLevelOf(aSrc), preset: $("#awayAi").value } }
+    : planFor(aid, aSrc);
 
   /* 같은 구단끼리는 붙을 수 있다 — 선수와 전술이 다르면 다른 팀이다.
      다만 라인업 지문까지 똑같으면 두 팀을 가릴 것이 없다(일꾼도 같은 이유로 막는다). */
-  if (planSig(hp) === planSig(ap)) { describe(); return; }
+  if (!practice && planSig(hp) === planSig(ap)) { describe(); return; }
 
   stopClip(); $("#hl").style.display = "none";
   $("#setup").style.display = "none";
@@ -411,6 +481,8 @@ function start() {
   w.postMessage({
     teams: DB.teams, players: DB.players, reactions: DB.react,
     home: hp, away: ap,
+    // 연습은 매 판 새 시드 — 같은 판만 반복되면 연습이 되지 않는다(설계서 단계 A)
+    seed: practice ? (Math.floor(Math.random() * 0xffffffff) >>> 0) || 1 : 0,
   });
 }
 
@@ -523,8 +595,12 @@ function finish() {
     <div class="note">
       주심 ${esc(R.referee || "-")} · 계산 ${R.elapsedMs}ms
       <br>시드 <code>${R.seed.toString(16)}</code> · 결과 지문 <code>${esc(R.fp)}</code>
-      <br><span class="sub">같은 라인업끼리 붙으면 언제 어디서 돌려도 이 지문이 나옵니다.
-      단계 5에서 이 값이 대전 코드에 담깁니다.</span>
+      <br><span class="sub">${R.practice
+        ? `🤖 <b>연습 경기</b>입니다 — 상대는 ${esc((R.ai && AI_LV[R.ai.level]) || "")} AI 감독이
+           ${esc((R.ai && R.ai.presetName) || "")}(으)로 맡았습니다.
+           연습은 매 판 새 시드라 다시 누르면 다른 경기가 나옵니다. 결과 코드는 발급하지 않습니다.`
+        : `같은 라인업끼리 붙으면 언제 어디서 돌려도 이 지문이 나옵니다.
+           단계 5에서 이 값이 대전 코드에 담깁니다.`}</span>
     </div>
     ${drawHighlightList()}
     ${drawReactions()}`;
@@ -831,10 +907,11 @@ function reactHTML() {
         ${x.rival ? `<span class="tag riv">${esc(them)} 팬</span>` : ""}</div>
       <div class="tx">${esc(x.txt)}</div></div>`;
 
-  const brd = x => `<div class="rmsg ${tone(x.tone)}${x.rival ? " riv" : ""}${x.troll ? " troll" : ""}">
+  const brd = x => `<div class="rmsg ${tone(x.tone)}${x.rival ? " riv" : ""}${x.troll ? " troll" : ""}${x.dev ? " dev" : ""}">
       <div class="who"><b class="nick">${esc(x.emoji || "")}${esc(x.nick || "")}</b>
         ${x.rival ? `<span class="tag riv">타팬</span>` : ""}
         ${x.troll ? `<span class="tag troll">상주</span>` : ""}
+        ${x.dev ? `<span class="tag dev">만든 사람</span>` : ""}
         <span class="vote">👍 ${nOf(x.up || 0)} · 👎 ${nOf(x.dn || 0)}
           <span class="sub">· 조회 ${nOf(x.views || 0)}</span></span></div>
       <div class="tx">${esc(x.txt)}</div></div>`;

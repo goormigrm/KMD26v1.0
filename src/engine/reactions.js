@@ -60,6 +60,41 @@ function handle(tbl, rival) {
   return { nick: "팬" + rnd(9999), emoji: "💬" };
 }
 
+/* ── 차짬 — 이 게임을 만든 사람 ─────────────────────────────────
+   원본에 없는 KMD26 쪽 추가입니다. 안양 팬이라 안양이 나오는 경기에는 무슨 일이 있어도
+   안양을 편들고, 안양이 없는 경기에는 무슨 일이 있어도 심드렁한 소리를 합니다.
+   원본의 상주 악플러(시모·독고)처럼 **펨코에만** 나타나고 한 경기에 한 번 옵니다.
+   문구의 {an} 은 안양, {vs} 는 안양의 상대입니다 — 보는 쪽이 어디든 같은 말을 하게. */
+const DEV = { nick: "차짬", emoji: "🎮", team: "anyang" };
+
+const DEV_ANYANG = [
+  "안양 경기력 봤냐? 이게 축구지 ㅋㅋ 오늘 기분 좋다",
+  "{vs} 팬들 미안하다 ㅋㅋ 안양은 원래 이런 팀이다",
+  "이 게임 만든 사람이 안양 팬인 거 티나도 어쩔 수 없다 ㅇㅇ",
+  "안양 선수들 몸 아끼지 말고 뛰어라 내가 다 보고 있다",
+  "{vs} 상대로 이 정도면 잘한 거다. 인정할 건 인정하자 (안양 기준)",
+  "안양 유니폼 오늘 왜 이렇게 잘생겼냐",
+  "{vs} 얘기는 그만하고 안양 얘기 좀 하자",
+  "심판 눈에 안양만 안 보이는 거 나만 느끼냐",
+  "안양 지면 내가 밸런스 패치한다 ㅋㅋㅋ 농담이다 (진심)",
+  "안양 선수 이름 스물여섯 명 다 외운다 나는 ㅇㅇ",
+  "{an} 화이팅. 이 한 줄 쓰려고 게임 만들었다",
+];
+
+const DEV_OTHER = [
+  "{t} {o} 경기 볼 시간에 안양 하이라이트 세 번 봤다",
+  "이 경기 왜 봄? 안양 안 나오는데",
+  "{t} 팬들 화이팅... 안양이랑 붙을 때 봅시다",
+  "둘 다 안양한테는 못 이긴다 ㅇㅇ 내가 안다",
+  "{o} 수비 저러면 안양이 다섯 골 넣는다",
+  "재미없다 진짜. 안양 경기 다시보기 갈게요",
+  "{t} 승점 3점 챙겼네. 안양은 6점 챙길 거다 (계산상)",
+  "이 경기 하이라이트 30초로 요약된다 ㅋㅋ",
+  "지금 이 시간에 안양 갤이 더 재밌다",
+  "둘이 싸우는 거 구경만 하는 게 제일 편하다 🍿",
+  "{t} 이겼다고 좋아하지 마라. 안양이 기다린다",
+];
+
 /** 그 팀에서 가장 많이 넣은 선수 — 문구의 {p} 자리에 들어간다 */
 function topScorer(goalLine, side) {
   const c = {};
@@ -113,12 +148,18 @@ export function makeReactions(r, tbl, side = "h") {
 
   /* 문구가 요구하는 자리를 전부 채운다. 하나라도 비면 "슈팅 개" 처럼 어색하게 찍힌다.
      (원본 표에 쓰인 키를 세어 맞춘 것: t · o · p · s · sh · sog · shO · d) */
+  // 차짬이 편드는 팀이 이 경기에 나오는가 — 나오면 어느 쪽인지도 알아 둔다
+  const devSide = r.homeId === DEV.team ? "h" : r.awayId === DEV.team ? "a" : null;
+  const devTeam = devSide === "h" ? r.home : devSide === "a" ? r.away : "";
+  const devOpp = devSide === "h" ? r.away : devSide === "a" ? r.home : "";
+
   const vars = {
     t: us, o: them,
     s: Math.abs(gf - ga), n: gf + ga,
     sh: myS, sog: myT, shO: ost ? ost.shot : 0,
     p: topScorer(r.goalLine, side) || topScorer(r.goalLine, side === "h" ? "a" : "h") || "우리 선수",
     d: derby ? derby.n : "",
+    an: devTeam, vs: devOpp,
   };
 
   const social = [], board = [], keys = [];
@@ -204,8 +245,24 @@ export function makeReactions(r, tbl, side = "h") {
   }
   if (ga === 0 && gf > 0 && RNG() < 0.7) soc("clean", 1 + rnd(2), 1);
 
-  // 최신순처럼 보이게 섞는다 — 우리 팬 글만 위에 뭉쳐 있으면 피드로 안 읽힌다
-  return { social: shuffle(social).slice(0, 16), fmk: shuffle(board).slice(0, 14), keys };
+  /* 차짬 — 한 경기에 한 번. 안양이 나오면 안양 편, 안 나오면 심드렁하게.
+     어조는 "보고 있는 쪽에 좋은 소식인가"로 매긴다 — 안양 팬 시선에서는 좋은 글이고
+     안양의 상대 팬 시선에서는 거슬리는 글이다. */
+  {
+    const forAnyang = devSide !== null;
+    const txt = one(forAnyang ? DEV_ANYANG : DEV_OTHER);
+    const tone = forAnyang ? (devSide === side ? 1 : -1) : -1;
+    board.push({
+      txt: F_(txt, vars), tone, nick: DEV.nick, emoji: DEV.emoji, dev: true,
+      up: 40 + rnd(600), dn: 10 + rnd(90), views: 500 + rnd(5000),
+    });
+  }
+
+  /* 최신순처럼 보이게 섞는다 — 우리 팬 글만 위에 뭉쳐 있으면 피드로 안 읽힌다.
+     차짬은 상한에 걸려 잘려 나가면 안 되므로 따로 떼어 두고 마지막에 다시 섞어 넣는다. */
+  const dev = board.filter(x => x.dev);
+  const rest = shuffle(board.filter(x => !x.dev)).slice(0, 13);
+  return { social: shuffle(social).slice(0, 16), fmk: shuffle(rest.concat(dev)), keys };
 }
 
 function shuffle(a) {

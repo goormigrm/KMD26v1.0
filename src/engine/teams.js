@@ -109,6 +109,86 @@ export function autoLineup(roster, tables, formation = "4-3-3") {
   return { xi, bench };
 }
 
+/* ── 연습 모드의 AI 감독 (설계 결정 D-7) ──────────────────────────
+   난이도는 **선수 능력치를 건드리지 않습니다.** 전력이 떨어져도 전술로 이기는 게
+   재미라는 D-4 판단이 여기서도 유효하므로, 조절하는 것은 "상대 감독이 얼마나
+   유능한가"입니다. 라인업을 짜는 솜씨가 그 첫 번째입니다.
+
+     쉬움   — 명단 순서대로 세운다. 자리에 안 맞는 선수가 섞인다
+     보통   — 자리별로 능숙도 × 별점이 가장 높은 선수부터 (사람이 자동 배치를 누른 것과 같다)
+     어려움 — 커널 slotRating(선수 × 자리 적합도)으로 조합 전체를 본다
+
+   ⚠ slotRating 은 커널 함수라 화면에서 부를 수 없습니다(6천 줄을 페이지에 올리게 됩니다).
+     쓰는 쪽(일꾼)이 함수를 넘겨 줍니다.
+   ──────────────────────────────────────────────────────────── */
+export const AI_LEVELS = { easy: "쉬움", normal: "보통", hard: "어려움" };
+
+export function aiLineup(roster, tables, formation = "4-3-3", level = "normal", rating = null) {
+  if (level === "normal" || (level === "hard" && !rating)) return autoLineup(roster, tables, formation);
+
+  const slots = ["GK", ...(tables.formation[formation] || []).map(s => s[1])];
+  const xi = {}, used = new Set();
+
+  if (level === "easy") {
+    // 명단 순서대로 — 골키퍼 자리에만 키퍼를 세운다(필드 플레이어를 골문에 두면 경기가 안 된다)
+    const gk = roster.find(p => p.pos === "GK");
+    if (gk) { xi.GK = gk.id; used.add(gk.id); }
+    for (const slot of slots) {
+      if (slot === "GK") continue;
+      const p = roster.find(q => !used.has(q.id) && q.pos !== "GK");
+      if (p) { xi[slot] = p.id; used.add(p.id); }
+    }
+  } else {
+    /* 어려움 — 자리 하나씩 최고점을 뽑으면 앞자리가 좋은 선수를 다 먹는다.
+       (선수 × 자리) 쌍을 전부 만들어 점수 순으로 훑으며 배정한다. 커널
+       computeRenderSlots 가 자동 배치를 정하는 방식과 같다. */
+    const pairs = [];
+    for (const p of roster) for (const slot of slots) pairs.push({ p, slot, v: rating(p, slot) });
+    pairs.sort((a, b) => (b.v - a.v) || (a.p.id - b.p.id));
+    const taken = new Set();
+    for (const c of pairs) {
+      if (taken.size >= slots.length) break;
+      if (taken.has(c.slot) || used.has(c.p.id)) continue;
+      xi[c.slot] = c.p.id; used.add(c.p.id); taken.add(c.slot);
+    }
+  }
+
+  // 교체 명단 — 자리 순서와 무관하게 남은 선수 중에서. 키퍼 한 명은 반드시 넣는다
+  const bench = new Array(9).fill(null);
+  const rest = roster.filter(p => !used.has(p.id));
+  let i = 0;
+  const gk2 = rest.find(p => p.pos === "GK");
+  if (gk2) { bench[i++] = gk2.id; used.add(gk2.id); }
+  const order = level === "easy" ? rest : rest.slice().sort((a, b) => (b.star || 0) - (a.star || 0));
+  for (const p of order) {
+    if (i >= 9) break;
+    if (!used.has(p.id)) { bench[i++] = p.id; used.add(p.id); }
+  }
+  return { xi, bench };
+}
+
+/* 상대 전술 프리셋 3종 (설계서 단계 A). 한 팀에 3난이도 × 3전술 = 아홉 가지 연습 상대. */
+export const AI_PRESETS = {
+  press:   { n: "높은 압박", tac: { press: 4, line: 4, tempo: 3, pass: 1 },
+             hint: "뒤에서 볼을 돌리면 잡아먹힙니다. 대신 라인 뒤가 빕니다" },
+  counter: { n: "역습", tac: { counter: true, line: 1, press: 1, pass: 3, tempo: 4 },
+             hint: "밀어붙이면 한 방에 뒤집힙니다" },
+  wing:    { n: "측면 공략", tac: { width: 4, mentality: 3, longShot: 1 },
+             hint: "크로스가 계속 올라옵니다. 중앙 수비 높이가 시험대입니다" },
+};
+
+/**
+ * "어려움"의 상성 선택 — 내 슬라이더를 읽고 무엇으로 나올지 고른다.
+ * 내가 라인을 올리면 역습, 좁게 서면 측면 공략, 짧게 돌리면 높은 압박.
+ */
+export function counterPreset(myTac = {}) {
+  const t = Object.assign({ line: 2, width: 2, pass: 2 }, myTac);
+  if (t.line >= 3) return "counter";
+  if (t.width <= 1) return "wing";
+  if (t.pass <= 1) return "press";
+  return "press";
+}
+
 /**
  * 라인업 한 벌을 한 줄로 만든다 — 시드를 뽑는 재료다.
  * 단계 5 에서 진짜 대전 코드가 이 자리를 대신한다. 지금은 "같은 라인업이면

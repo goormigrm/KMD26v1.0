@@ -52,13 +52,13 @@ export function redStaminaK(reds) {
    55분이 넘고 점수가 벌어지면 성향·라인·압박을 알아서 바꿉니다.
    시즌 모드에서는 좋은 기능입니다. AI 팀 감독이 가만히 있으면 이상하니까요.
 
-   ⚠ 지금은 **호출되지 않습니다.** 원본에서 이 함수를 부르는 곳이 UI 계층이라
-     커널 추출 범위 밖입니다. 그래서 아래 래퍼는 오늘 아무것도 바꾸지 않습니다.
+   ✅ **단계 A 에서 되살렸습니다.** 원본은 이 함수를 UI 계층에서 부르므로 커널 추출
+     범위 밖이었습니다. 여기서 분 경계(syncClock)에 붙여 줍니다.
 
-   그럼 왜 두는가 — 연습 모드(단계 A)에서 이걸 되살릴 것이기 때문입니다.
    되살리는 순간 원본 기준(isUser 인 팀만 건너뜀)이 그대로 적용되는데,
    듀얼은 양 팀 다 isUser=false 라 **두 사람이 짠 전술이 후반에 덮어써집니다.**
-   나중에 호출부를 붙이는 사람이 이걸 모르고 지나가지 않도록 미리 막아 둡니다.
+   그래서 판단 기준을 autoTactic 으로 바꿔 둡니다 —
+   연습 모드의 AI 팀만 스스로 움직이고, 대전 양 팀은 지시한 그대로 갑니다.
 
      team.autoTactic === true  → 엔진이 알아서 바꾼다 (연습 모드의 AI 팀)
      그 외                     → 감독이 지시한 그대로 (대전 양 팀 · 기본값)
@@ -114,10 +114,24 @@ export function installDuelRules() {
   const _aiTacticCheck = MatchSim.prototype.aiTacticCheck;
   MatchSim.prototype.aiTacticCheck = function () {
     const teams = [this.M && this.M.h && this.M.h.team, this.M && this.M.a && this.M.a.team];
+    // 스스로 움직일 팀이 하나도 없으면 원본을 부를 필요조차 없다 (대전이 그렇다)
+    if (!teams.some(t => t && t.autoTactic)) return;
     const saved = teams.map(t => t && t.isUser);
     teams.forEach(t => { if (t) t.isUser = !t.autoTactic; });
     try { _aiTacticCheck.call(this); }
     finally { teams.forEach((t, i) => { if (t) t.isUser = saved[i]; }); }
+  };
+
+  /* 4. 호출부 — 원본은 UI 계층에서 분마다 불러 주므로 커널에 없다.
+     경기 시계를 M 에 맞추는 자리(syncClock)가 분 경계마다 지나가므로 여기에 붙인다.
+     aiTacticCheck 는 자기 안에서 "이번 분에 이미 봤나"(_aiMin)를 확인하므로
+     자주 불려도 한 분에 한 번만 움직인다.
+     ⚠ 난수를 뽑지 않는다 — 대전(autoTactic 없음)에서는 위 래퍼가 곧바로 돌아나가므로
+       경기 결과가 한 글자도 달라지지 않는다. */
+  const _syncClock = MatchSim.prototype.syncClock;
+  MatchSim.prototype.syncClock = function () {
+    _syncClock.call(this);
+    try { this.aiTacticCheck(); } catch (e) { /* 지시 변경이 실패해도 경기는 계속된다 */ }
   };
 }
 

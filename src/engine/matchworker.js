@@ -11,20 +11,53 @@
    ───────────────────────────────────────────────────────────── */
 
 import { runHeadless, deriveSeed } from "./duel.js";
-import { checkLineup, planSig, prepareSides } from "./teams.js";
+import { checkLineup, planSig, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js";
 import { makeReactions } from "./reactions.js";
+import { slotRating } from "./kernel.js";
+import { installEngineContext } from "./stubs.js";
+
+/* 연습 모드의 상대를 여기서 짠다 — 화면이 아니라 일꾼에서.
+   "어려움"이 쓰는 slotRating 은 커널 함수라 화면에 올릴 수 없다(6천 줄). */
+function aiPlan(ai, teamsMeta, playersDB, myTac) {
+  const level = ai.level || "normal";
+  const key = level === "hard" ? counterPreset(myTac) : (ai.preset || "press");
+  const P = AI_PRESETS[key] || AI_PRESETS.press;
+  const form = ai.formation || "4-3-3";
+  const lu = aiLineup(playersDB[ai.id], ai.tables, form, level, slotRating);
+  return {
+    id: ai.id, xiMap: lu.xi, xi: Object.values(lu.xi), bench: lu.bench,
+    tac: Object.assign({ formation: form }, P.tac), roles: {},
+    // 보통·어려움은 후반에 스스로 지시를 바꾼다 (쉬움은 가만히 있는다)
+    autoTactic: level !== "easy",
+    aiInfo: { level, preset: key, presetName: P.n, hint: P.hint, formation: form },
+  };
+}
 
 self.onmessage = (e) => {
-  const { teams, players, home: homePlan, away: awayPlan, reactions } = e.data;
+  const { teams, players, home: homePlan, reactions } = e.data;
+  let awayPlan = e.data.away;
   try {
+    // 연습 경기 — 상대 라인업·전술을 AI 감독이 짠다
+    if (awayPlan && awayPlan.ai) {
+      /* ⚠ "어려움"이 쓰는 slotRating 은 리그 평균(attrMeans)을 보고, 그 함수는 전역 G 를
+         읽는다. runHeadless 가 문맥을 세우기 **전**이라 여기서 먼저 세워 준다.
+         경기 시작 때 같은 두 팀으로 다시 세우므로 평균값은 달라지지 않는다. */
+      installEngineContext([
+        { id: homePlan.id, players: players[homePlan.id] },
+        { id: awayPlan.id, players: players[awayPlan.id] },
+      ], 0);
+      awayPlan = aiPlan(Object.assign({ tables: awayPlan.tables }, awayPlan.ai),
+                        teams, players, homePlan.tac);
+    }
     /* 시드는 양쪽 라인업에서 함께 유도한다 (설계 결정 D-1).
        ⚠ 선수 id 를 옮기기 **전** 라인업으로 뽑는다 — 단계 5 의 대전 코드와 값이 어긋나면
          두 사람의 재생이 갈라진다. */
     const hSig = planSig(homePlan), aSig = planSig(awayPlan);
+    const practice = !!(e.data.away && e.data.away.ai);
 
     /* 같은 구단끼리는 붙을 수 있다. 단, 선수·전술까지 한 글자도 다르지 않으면
        두 팀을 가릴 것이 없다(지문도 대칭이라 승자가 시드 운으로만 갈린다). */
-    if (hSig === aSig) {
+    if (hSig === aSig && !practice) {
       throw new Error("양 팀의 선수·전술이 완전히 같습니다 — 한쪽 라인업을 바꿔 주세요.");
     }
 
@@ -36,7 +69,13 @@ self.onmessage = (e) => {
       if (bad) throw new Error(`${side} 팀(${t.short}) 라인업 — ${bad}`);
     }
 
-    const seed = deriveSeed(hSig, aSig);
+    /* 연습은 매 판 새 시드다. 대전의 "같은 라인업이면 한 판만 성립"은 결과를 골라
+       보낼 수 없게 하려는 규칙이라 대전에만 해당한다(설계서 단계 A). */
+    const seed = practice ? ((e.data.seed >>> 0) || 1) : deriveSeed(hSig, aSig);
+
+    // 연습 상대만 스스로 지시를 바꾼다 (rules.js 의 aiTacticCheck 래퍼가 이 스위치를 본다)
+    A.autoTactic = !!awayPlan.autoTactic;
+    H.autoTactic = false;
 
     const r = runHeadless(H, A, {
       seed, record: true,        // 2D 하이라이트 좌표를 함께 모은다
@@ -70,6 +109,7 @@ self.onmessage = (e) => {
           { home: H.short, away: A.short, homeId: H.id, awayId: A.id, seed });
         return { h: makeReactions(ctx, reactions, "h"), a: makeReactions(ctx, reactions, "a") };
       })(),
+      practice, ai: awayPlan.aiInfo || null,
       possession: r.possession, referee: r.referee,
       clock: r.clock, elapsedMs: r.elapsedMs, nameOf,
     });
