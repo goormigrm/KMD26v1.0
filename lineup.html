@@ -143,12 +143,16 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 
     <div>
       <div class="card">
-        <h3 id="listTitle">선수단</h3>
-        <div class="plist" id="plist"></div>
+        <h3 id="xiTitle">선발</h3>
+        <div class="plist" id="xilist" style="max-height:none"></div>
       </div>
       <div class="card">
-        <h3>후보 (최대 9명)</h3>
-        <div class="plist" id="bench" style="max-height:180px"></div>
+        <h3 id="bnTitle">교체 명단</h3>
+        <div class="plist" id="bench" style="max-height:none"></div>
+      </div>
+      <div class="card">
+        <h3 id="listTitle">그 외 명단</h3>
+        <div class="plist" id="plist"></div>
       </div>
     </div>
   </div>
@@ -160,8 +164,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 
 let DB = null, T = null;
 let team = null, formation = "4-3-3";
-let xi = {};            // slot -> playerId
-let bench = [];         // playerId[]
+let xi = {};                          // 전술판 자리 -> 선수 id. 언제나 11명 이하다.
+let bench = new Array(9).fill(null);  // 교체 명단 S1~S9. 빈 칸은 null — 자리 자체가 아홉 개다.
 let tac = {};
 let sel = null;         // {kind:"slot", slot} | {kind:"player", id}
 let drag = null;        // 끌고 있는 것 — 마우스용. 손가락은 sel 로 같은 일을 한다.
@@ -209,6 +213,9 @@ const famLv = v => T.famLv.find(l => v >= l.min) || T.famLv[T.famLv.length - 1];
 const slotsOf = f => ["GK", ...T.formation[f].map(s => s[1])];
 const byId = id => DB.players[team].find(p => p.id === id);
 const slotOfPlayer = id => Object.keys(xi).find(s => xi[s] === id) || null;
+const benchIdxOf = id => { const i = bench.indexOf(id); return i < 0 ? null : i; };
+const xiCount = () => Object.keys(xi).length;
+const isFree = id => !slotOfPlayer(id) && benchIdxOf(id) === null;
 
 async function boot() {
   try {
@@ -244,7 +251,7 @@ async function boot() {
   // 전술판이 모든 자리를 보여 주므로, 포메이션은 "이 모양으로 다시 세워 줘"라는 뜻이다
   $("#formation").onchange = () => { formation = $("#formation").value; autoFill(); sel = null; draw(); };
   $("#auto").onclick = () => { autoFill(); sel = null; draw(); };
-  $("#clear").onclick = () => { xi = {}; bench = []; sel = null; draw(); };
+  $("#clear").onclick = () => { xi = {}; bench = new Array(9).fill(null); sel = null; draw(); };
 }
 
 function drawTeams(lg) {
@@ -254,14 +261,14 @@ function drawTeams(lg) {
       <span class="chip" style="background:${esc(t.col)}"></span>${esc(t.short)}</button>`;
   }).join("");
   $("#teams").querySelectorAll(".team").forEach(b => b.onclick = () => {
-    team = b.dataset.id; xi = {}; bench = []; sel = null;
+    team = b.dataset.id; xi = {}; bench = new Array(9).fill(null); sel = null;
     drawTeams(lg); autoFill(); $("#main").style.display = ""; draw();
   });
 }
 
 function autoFill() {
   if (!team) return;
-  xi = {}; bench = [];
+  xi = {}; bench = new Array(9).fill(null);
   const pool = DB.players[team].slice();
   const used = new Set();
   const score = (p, slot) => {
@@ -279,62 +286,131 @@ function autoFill() {
     if (best && bs >= 0) { xi[slot] = best.id; used.add(best.id); }
   }
   const rest = pool.filter(p => !used.has(p.id));
-  const gk = rest.find(p => p.pos === "GK");          // 키퍼가 다치면 필드 플레이어를 세워야 한다
-  if (gk) { bench.push(gk.id); used.add(gk.id); }
+  let i = 0;
+  const gk = rest.find(p => p.pos === "GK");   // 키퍼가 다치면 필드 플레이어를 골문에 세워야 한다
+  if (gk) { bench[i++] = gk.id; used.add(gk.id); }
   for (const p of rest.slice().sort((a, b) => rank(b) - rank(a))) {
-    if (bench.length >= 9) break;
-    if (!used.has(p.id)) { bench.push(p.id); used.add(p.id); }
+    if (i >= 9) break;
+    if (!used.has(p.id)) { bench[i++] = p.id; used.add(p.id); }
   }
 }
 
-/* ── 배치 — 자리와 선수 어느 쪽을 먼저 골라도 된다 ────────────── */
+/* ── 배치 — 자리와 선수 어느 쪽을 먼저 골라도 된다 ──────────────
+   선발은 열한 명을 넘을 수 없다. 자리 자체가 열한 개인 게 아니라 전술판이
+   모든 자리를 보여 주기 때문에, 여기서 막지 않으면 열두 명이 들어간다(실제로 그랬다). */
 function place(slot, id) {
-  const from = slotOfPlayer(id);
+  const from = slotOfPlayer(id);   // 이미 선발이면 자리만 옮기는 것 — 인원은 그대로다
   const cur = xi[slot];
-  bench = bench.filter(b => b !== id);
+  if (!from && cur == null && xiCount() >= 11) {
+    flash("선발은 열한 명까지입니다. 먼저 한 명을 빼 주세요.");
+    sel = null;
+    return;
+  }
+  const bi = benchIdxOf(id);
+  if (bi !== null) bench[bi] = null;
   if (from) delete xi[from];
   xi[slot] = id;
-  // 원래 그 자리에 있던 선수는 빈자리로 옮기거나(자리 맞바꿈) 후보로 내린다
+  // 원래 그 자리에 있던 선수는 맞바꾸거나(자리 이동) 교체 명단 빈칸으로 내린다
   if (cur != null && cur !== id) {
     if (from) xi[from] = cur;
-    else if (bench.length < 9) bench.push(cur);
+    else {
+      const free = bi !== null ? bi : bench.indexOf(null);
+      if (free >= 0) bench[free] = cur;
+    }
   }
   sel = null;
 }
 
+/** 교체 명단의 한 칸에 넣는다 */
+function putBench(i, id) {
+  const from = slotOfPlayer(id);
+  const bi = benchIdxOf(id);
+  const cur = bench[i];
+  if (from) delete xi[from];
+  if (bi !== null) bench[bi] = cur ?? null;   // 명단 안에서 옮기면 서로 맞바뀐다
+  else if (cur != null && from) xi[from] = cur;
+  bench[i] = id;
+  sel = null;
+}
+
+/* 경고는 안내문 자리에 잠깐 띄운다.
+   ⚠ 곧바로 draw() 가 이어지므로 화면에 직접 쓰면 그 자리에서 덮인다 — 상태로 들고 있어야 한다. */
+let flashMsg = null, flashT = null;
+function flash(msg) {
+  flashMsg = msg;
+  clearTimeout(flashT);
+  flashT = setTimeout(() => { flashMsg = null; drawHint(); }, 2600);
+}
+
 function tapSlot(slot) {
-  if (sel && sel.kind === "player") { place(slot, sel.id); }
-  else if (sel && sel.kind === "slot" && sel.slot === slot) { sel = null; }
-  else if (sel && sel.kind === "slot") {
-    // 자리 → 자리 : 둘을 맞바꾼다
-    const a = xi[sel.slot], b = xi[slot];
-    if (a != null) xi[slot] = a; else delete xi[slot];
-    if (b != null) xi[sel.slot] = b; else delete xi[sel.slot];
-    sel = null;
+  if (sel && sel.kind === "player") place(slot, sel.id);
+  else if (sel && sel.kind === "bench") {              // 교체 명단에서 고른 선수를 투입한다
+    if (bench[sel.i] != null) place(slot, bench[sel.i]); else sel = null;
   }
+  else if (sel && sel.kind === "slot" && sel.slot === slot) sel = null;
+  else if (sel && sel.kind === "slot") { swapSlots(sel.slot, slot); sel = null; }
   else sel = { kind: "slot", slot };
   draw();
 }
 
 function tapPlayer(id) {
-  if (sel && sel.kind === "slot") { place(sel.slot, id); }
-  else if (sel && sel.kind === "player" && sel.id === id) { sel = null; }
+  if (sel && sel.kind === "slot") place(sel.slot, id);
+  else if (sel && sel.kind === "bench") putBench(sel.i, id);
+  else if (sel && sel.kind === "player" && sel.id === id) sel = null;
   else sel = { kind: "player", id };
   draw();
 }
 
 function draw() {
-  drawPitch(); drawList(); drawBench(); drawHint();
-  const n = Object.keys(xi).length;
+  drawPitch(); drawXI(); drawBench(); drawList(); drawHint();
+  const n = xiCount(), b = bench.filter(Boolean).length;
   $("#count").innerHTML = n === 11
-    ? `<span style="color:var(--ok)">선발 11명 · 후보 ${bench.length}명</span>`
-    : `<span class="warn">선발 ${n}/11명</span> · 후보 ${bench.length}명`;
+    ? `<span style="color:var(--ok)">선발 11명</span> · 교체 ${b}명`
+    : `<span class="warn">선발 ${n}/11명</span> · 교체 ${b}명`;
+  $("#xiTitle").innerHTML = `선발 <span class="sub">(${n}/11)</span>`;
+  $("#bnTitle").innerHTML = `교체 명단 <span class="sub">(${b}/9)</span>`;
+}
+
+/* ── 선발 — KM26 처럼 자리·역할·임무를 한 줄로 보여 준다 ────────── */
+function drawXI() {
+  const rows = [];
+  for (const r of ROW_ORDER.concat(["GK"])) {
+    const cells = r === "GK" ? ["GK"] : T.rowSlots[r];
+    for (const slot of cells) {
+      if (!slot || xi[slot] == null) continue;
+      rows.push([slot, byId(xi[slot])]);
+    }
+  }
+  $("#xilist").innerHTML = rows.length ? rows.map(([slot, p]) => {
+    const lv = famLv(famOf(p, slot)), ro = roleOf(slot);
+    const isSel = sel && sel.kind === "slot" && sel.slot === slot;
+    return `<div class="prow${isSel ? " sel" : ""}" data-slot="${slot}" data-id="${p.id}" draggable="true">
+      <span class="at xi" style="min-width:38px;text-align:center">${esc(slot)}</span>
+      <span class="nm">${esc(p.name)}</span>
+      <span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${famOf(p, slot)}</span>
+      ${ro ? `<span class="pp">${esc(ro.k)}·${esc(ro.duty)}</span>` : ""}
+      ${stars(p)}
+    </div>`;
+  }).join("") : `<div style="padding:12px;text-align:center" class="sub">아직 아무도 세우지 않았습니다</div>`;
+
+  $("#xilist").querySelectorAll(".prow").forEach(el => {
+    const slot = el.dataset.slot;
+    el.onclick = () => tapSlot(slot);
+    el.ondragstart = e => {
+      drag = { from: "slot", slot, id: +el.dataset.id };
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", el.dataset.id);
+    };
+    el.ondragend = () => { drag = null; };
+  });
 }
 
 function drawHint() {
   let h;
+  if (flashMsg) { $("#hint").innerHTML = `<span class="warn">⚠ ${esc(flashMsg)}</span>`; return; }
   if (sel && sel.kind === "slot") h = `<b>${sel.slot}</b> 자리에 세울 선수를 고르세요. 오른쪽 목록이 그 자리 <b>능숙도 순</b>으로 정렬됩니다.`;
   else if (sel && sel.kind === "player") h = `<b>${esc(byId(sel.id).name)}</b> 선수를 세울 자리를 고르세요.`;
+  else if (sel && sel.kind === "bench") h = `교체 <b>S${sel.i + 1}</b> — 투입할 자리를 누르거나, 다른 선수를 눌러 이 칸에 넣으세요.`;
   else h = `<b>끌어서 옮기거나</b>, 자리와 선수를 차례로 누르면 됩니다. 전술판 안에서 끌면 두 선수가 <b>맞바뀝니다</b>.
     <br>능숙도가 낮은 자리에도 세울 수 있습니다 — 지고 있을 때 센터백을 최전방에 올리는 것처럼요.`;
   $("#hint").innerHTML = h;
@@ -402,29 +478,32 @@ function swapSlots(a, b) {
   if (pa != null) xi[b] = pa; else delete xi[b];
 }
 
+/* ── 그 외 명단 ───────────────────────────────────────────────
+   자리를 고른 상태에서는 "그 자리에 세울 만한 사람"을 봐야 하므로,
+   선발·교체에 들어간 선수까지 전부 능숙도 순으로 펼쳐 준다. */
 function drawList() {
   const slot = sel && sel.kind === "slot" ? sel.slot : null;
-  $("#listTitle").textContent = slot ? `${slot} 자리 — 능숙도 순` : "선수단";
+  const all = DB.players[team];
+  const list = (slot ? all.slice() : all.filter(p => isFree(p.id)))
+    .sort(slot ? (a, b) => (famOf(b, slot) - famOf(a, slot)) || (rank(b) - rank(a))
+               : (a, b) => rank(b) - rank(a));
 
-  // 자리를 골랐으면 그 자리 능숙도 순으로. **아무도 걸러내지 않는다** —
-  // 어울리지 않는 자리에 세우는 것도 감독의 선택이다.
-  const list = DB.players[team].slice().sort(
-    slot ? (a, b) => (famOf(b, slot) - famOf(a, slot)) || (rank(b) - rank(a))
-         : (a, b) => rank(b) - rank(a));
+  $("#listTitle").innerHTML = slot
+    ? `<b>${esc(slot)}</b> 자리에 세울 선수 <span class="sub">— 능숙도 순 · 전체</span>`
+    : `그 외 명단 <span class="sub">(${list.length}명)</span>`;
 
-  $("#plist").innerHTML = list.map(p => {
-    const at = slotOfPlayer(p.id);
-    const onBench = bench.includes(p.id);
+  $("#plist").innerHTML = list.length ? list.map(p => {
+    const at = slotOfPlayer(p.id), bi = benchIdxOf(p.id);
     const fv = slot ? famOf(p, slot) : 0, lv = slot ? famLv(fv) : null;
     const isSel = sel && sel.kind === "player" && sel.id === p.id;
     return `<div class="prow${isSel ? " sel" : ""}" data-id="${p.id}" draggable="true">
       <span class="no">${p.no ?? "-"}</span>
       <span class="nm">${esc(p.name)}</span>
       ${slot ? `<span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${fv}</span>` : ""}
-      ${at ? `<span class="at xi">${esc(at)}</span>` : onBench ? `<span class="at bn">후보</span>` : ""}
+      ${at ? `<span class="at xi">${esc(at)}</span>` : bi !== null ? `<span class="at bn">S${bi + 1}</span>` : ""}
       <span class="pp">${esc(p.prefPos)}</span>${stars(p)}
     </div>`;
-  }).join("");
+  }).join("") : `<div style="padding:12px;text-align:center" class="sub">남은 선수가 없습니다</div>`;
   $("#plist").querySelectorAll(".prow").forEach(el => bindRow(el));
 }
 
@@ -440,24 +519,51 @@ function bindRow(el) {
   el.ondragend = () => { drag = null; };
 }
 
+/* ── 교체 명단 — 자리가 아홉 개다 (S1~S9). KM26 과 같다 ────────── */
 function drawBench() {
-  $("#bench").innerHTML = bench.length
-    ? bench.map(id => {
-        const p = byId(id);
-        const isSel = sel && sel.kind === "player" && sel.id === id;
-        return `<div class="prow${isSel ? " sel" : ""}" data-id="${id}" draggable="true">
-          <span class="no">${p.no ?? "-"}</span><span class="nm">${esc(p.name)}</span>
-          <span class="pp">${esc(p.prefPos)}</span>${stars(p)}</div>`;
-      }).join("")
-    : `<div style="padding:12px;text-align:center" class="sub">후보가 없습니다</div>`;
+  $("#bench").innerHTML = bench.map((id, i) => {
+    const p = id != null ? byId(id) : null;
+    const isSel = sel && sel.kind === "bench" && sel.i === i;
+    return `<div class="prow${isSel ? " sel" : ""}" data-i="${i}"${p ? ` data-id="${id}" draggable="true"` : ""}>
+      <span class="at bn" style="min-width:30px;text-align:center">S${i + 1}</span>
+      ${p ? `<span class="nm">${esc(p.name)}</span>
+             <span class="pp">${esc(p.prefPos)}</span>${stars(p)}`
+          : `<span class="nm sub" style="font-weight:400">비어 있음</span>`}
+    </div>`;
+  }).join("");
+
   $("#bench").querySelectorAll(".prow").forEach(el => {
-    bindRow(el);
-    // 후보 목록에서는 "자리를 고른 상태"면 투입, 아니면 후보에서 뺀다
+    const i = +el.dataset.i;
     el.onclick = () => {
-      const id = +el.dataset.id;
-      if (sel && sel.kind === "slot") { place(sel.slot, id); draw(); }
-      else tapPlayer(id);
+      if (sel && sel.kind === "player") { putBench(i, sel.id); draw(); }
+      else if (sel && sel.kind === "slot") {
+        // 선발 자리를 고른 채 교체 칸을 누르면 — 그 칸의 선수를 투입한다
+        if (bench[i] != null) place(sel.slot, bench[i]);
+        else { sel = null; }
+        draw();
+      }
+      else if (bench[i] != null) {
+        sel = (sel && sel.kind === "bench" && sel.i === i) ? null : { kind: "bench", i };
+        draw();
+      }
     };
+    if (bench[i] == null) return;
+    el.ondragstart = e => {
+      drag = { from: "bench", i, id: bench[i] };
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(bench[i]));
+    };
+    el.ondragend = () => { drag = null; };
+    el.ondragover = e => { if (drag) e.preventDefault(); };
+    el.ondrop = e => { e.preventDefault(); if (drag) { putBench(i, drag.id); drag = null; draw(); } };
+  });
+
+  // 빈 칸에도 끌어다 놓을 수 있어야 한다
+  $("#bench").querySelectorAll(".prow").forEach(el => {
+    const i = +el.dataset.i;
+    if (bench[i] != null) return;
+    el.ondragover = e => { if (drag) e.preventDefault(); };
+    el.ondrop = e => { e.preventDefault(); if (drag) { putBench(i, drag.id); drag = null; draw(); } };
   });
 }
 
