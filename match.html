@@ -83,8 +83,11 @@ button:disabled{opacity:.45;cursor:default}
      지금 막 무슨 일이 벌어졌는지는 바로 아래 한 줄(.tick)이 말해 주고,
      장면 조작(다시 보기 · 건너뛰기)은 아래 버튼 줄로 내렸습니다.
      득점자 패널(.gp)만 남깁니다 — 그건 공이 골망에 꽂힌 **뒤에** 뜨므로 미리 알려 주지 않습니다. */
-.hl{position:relative;margin-bottom:12px}
-.hl canvas{width:100%;display:block;border-radius:10px;background:#0f2415;border:1px solid #24402a}
+/* ⚠ 아래 .tick 이 여기에 **붙습니다.** 둘이 한 덩어리로 보여야 하므로 사이를 띄우지 않고
+     캔버스 아래 모서리도 둥글리지 않습니다. */
+.hl{position:relative;margin-bottom:0}
+.hl canvas{width:100%;display:block;border-radius:10px 10px 0 0;background:#0f2415;
+     border:1px solid #24402a;border-bottom:0}
 /* 결정적 장면이 아닌 동안 — 경기는 계속 흐르지만 눈여겨볼 대목은 아니라는 뜻.
    KM26 이 하이라이트 밖에서 캔버스를 어둡게 덮는 것과 같은 표시다(#pitch2d.dim). */
 .hl.idle canvas{filter:saturate(.62) brightness(.72)}
@@ -97,10 +100,14 @@ button:disabled{opacity:.45;cursor:default}
    KM26 은 필드 아래 자막 한 줄로 문자중계를 흘립니다. 아래 기록은 그대로 쌓아 두고,
    여기는 **가장 새 줄 하나**만 크게 보여 줍니다 — 눈이 필드에 있는 동안
    무슨 일이 벌어졌는지 아래까지 내려가 찾지 않아도 되게.
-   ⚠ 두 줄까지만 보이게 잘라 둡니다(line-clamp). 안 자르면 긴 해설에서 높이가 출렁여
-     바로 아래 재생 버튼이 밀립니다. */
-.tick{margin-top:8px;padding:9px 12px;background:var(--bg3);border:1px solid var(--line);
-     border-radius:9px;font-size:14px;line-height:1.5;min-height:62px;
+
+   ⚠ **필드에 붙이고 버튼과는 떼어 놓습니다.** 예전에는 위아래로 8px·0px 이라
+     필드보다 아래 재생 버튼 줄에 가까웠고, 폰에서는 둘이 겹쳐 보인다는 제보를 받았습니다.
+     이건 필드에서 벌어진 일을 말하는 자막이므로 **필드 쪽**에 붙어야 합니다.
+   ⚠ 기본은 **한 줄**이고, 길면 두 줄까지만 늘어납니다(line-clamp). 안 자르면 긴 해설에서
+     높이가 계속 출렁여 아래가 통째로 밀립니다. */
+.tick{margin:0 0 15px;padding:8px 12px;background:var(--bg3);border:1px solid #24402a;
+     border-top:0;border-radius:0 0 10px 10px;font-size:14px;line-height:1.5;min-height:38px;
      display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .tick .m{color:var(--gold);font-weight:800;font-variant-numeric:tabular-nums}
 .tick .tm{font-weight:800;font-size:12px;padding:1px 6px;border-radius:4px;background:#161b22}
@@ -108,7 +115,7 @@ button:disabled{opacity:.45;cursor:default}
 /* 바뀔 때 한 번 번쩍 — 안 그러면 글자만 조용히 갈려서 놓친다 */
 .tick.hit{animation:tickIn .45s ease-out}
 @keyframes tickIn{from{background:#1d2b3a;border-color:var(--acc)}
-                  to{background:var(--bg3);border-color:var(--line)}}
+                  to{background:var(--bg3);border-color:#24402a}}
 
 /* ── 전술 게시판 ─────────────────────────────────────────────
    남이 남겨 둔 라인업 목록. 페이지를 옮기지 않고 이 자리에서 골라 바로 붙는다. */
@@ -311,7 +318,7 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
   .scene button{padding:4px 7px;font-size:11px}
   .scene .lb,.spdlb{font-size:10.5px}
   /* 지금 막 벌어진 일 · 해설 */
-  .tick{font-size:12.5px;min-height:52px;padding:7px 10px}
+  .tick{font-size:12.5px;min-height:34px;padding:7px 10px;margin-bottom:13px}
   .tick .tm{font-size:11px}
   .log{height:230px}
   .ev{font-size:12px;padding:3px 6px;gap:7px}
@@ -603,8 +610,10 @@ async function boot() {
   document.querySelectorAll(".spd").forEach(b => b.onclick = () => {
     speed = +b.dataset.s;
     document.querySelectorAll(".spd").forEach(x => x.classList.toggle("on", x === b));
-    if (playing) { pause(); resume(); }
-    startClipTimer();     // 장면을 보고 있었다면 그 자리에서 새 배속으로 이어 돌린다
+    // 멈춰 있으면 건드리지 않는다 — 재생을 누르는 순간 새 배속으로 걸린다
+    if (!playing) return;
+    if (cur) startClipTimer();            // 보고 있던 장면을 그 자리에서 새 배속으로 이어 돌린다
+    else { stopClock(); startClock(); }
   });
   document.querySelectorAll(".sc").forEach(b => b.onclick = () => {
     sceneMode = b.dataset.m;
@@ -969,7 +978,11 @@ function start() {
      다만 라인업 지문까지 똑같으면 두 팀을 가릴 것이 없다(일꾼도 같은 이유로 막는다). */
   if (!practice && planSig(hp) === planSig(ap)) { describe(); return; }
 
-  stopClip(); $("#hl").style.display = "none";
+  /* 계산하는 8초 동안에도 필드는 세워 둔다 — 아래 한 줄(.tick)이 필드에 붙어 있어서
+     필드를 감추면 자막만 덩그러니 남는다. 빈 필드를 그려 둔다(drawFrame(null)). */
+  stopClip();
+  $("#hl").style.display = ""; $("#hl").classList.add("idle");
+  drawFrame(null);
   $("#setup").style.display = "none";
   $("#game").style.display = "";
   $("#result").style.display = "none";
@@ -991,7 +1004,8 @@ function start() {
     }
     R = e.data;
     paintTeams(R.home, R.away);
-    minute = 0; idx = 0; held = null;
+    minute = 0; idx = 0; held = null; over = false;
+    $("#play").disabled = false; $("#skip").disabled = false;
     logSet(""); tickSay("킥오프");
     // 킥오프부터 관전 화면을 흘린다 — 장면이 하나도 없는 0:0 경기에서도 필드가 움직인다
     watchSec = 0; backToWatch();
@@ -1020,20 +1034,42 @@ function paintTeams(h, a) {
 }
 
 /* ── 재생 ─────────────────────────────────────────────────────
-   경기는 이미 다 끝나 있다. 여기서는 이벤트를 분 단위로 풀어놓기만 한다. */
-function resume() {
-  if (!R || playing) return;
-  playing = true;
-  $("#play").textContent = "⏸ 일시정지";
+   경기는 이미 다 끝나 있다. 여기서는 이벤트를 분 단위로 풀어놓기만 한다.
+
+   ⚠ **"시계"와 "재생 중"은 다른 것이다.** 예전에는 둘을 `pause()`/`resume()` 하나로
+     묶어 두어서, 장면을 트느라 시계를 멈출 때마다 버튼이 `▶ 재생` 으로 바뀌었다.
+     그래서 **장면이 돌아가는 중인데 버튼은 "멈춤" 이라고 말하고**, 거기서 재생을 눌러도
+     이미 돌아가고 있으니 아무 일도 안 일어나 보였다("버튼이 안 먹는다" 제보).
+
+     지금은 이렇게 나눈다.
+       playing  — 사용자가 "돌아가라"고 해 둔 상태. 장면을 보는 동안에도 **참**이다
+       시계     — 분을 세는 타이머. 장면을 보는 동안에는 멈춘다(startClock/stopClock)
+       장면     — clipTimer. `pause()` 는 이것도 함께 멈춘다 — 화면이 실제로 서야 한다 */
+let over = false;                  // 경기가 끝났다 — 시계를 다시 걸지 않는다
+
+function startClock() {
+  if (!R || over || timer) return;
   tickMs = msPerMin() / speed;
   timer = setInterval(tick, tickMs);
+}
+function stopClock() { clearInterval(timer); timer = null; }
+
+function resume() {
+  if (!R || playing) return;
+  if (over && !cur) return;        // 끝난 경기에서 누를 것이 없다 (다시 보기 중이면 이어 돌린다)
+  playing = true;
+  $("#play").textContent = "⏸ 일시정지";
+  if (cur) startClipTimer();       // 장면을 보다 멈춘 것 — 그 장면부터 이어 돌린다
+  else startClock();
 }
 function pause() {
   playing = false;
   $("#play").textContent = "▶ 재생";
-  clearInterval(timer); timer = null;
+  stopClock();
+  // 장면을 보는 중에 멈췄으면 **화면도 서야 한다.** 안 그러면 눌러도 안 먹는 것으로 보인다
+  if (clipTimer) { clearInterval(clipTimer); clipTimer = null; }
 }
-function stop() { pause(); stopWatch(); held = null; R = null; }
+function stop() { pause(); stopWatch(); held = null; R = null; over = false; }
 
 function tick() {
   if (!R) return pause();
@@ -1054,12 +1090,18 @@ function tick() {
   let shown = false;
   while (idx < R.events.length && minOf(R.events[idx]) <= minute) {
     const e = R.events[idx++];
-    /* 골 해설이 2D 보다 먼저 나오면 어떻게 들어갔는지 보기도 전에 결과를 알게 된다.
-       그 골을 보여 줄 장면이 있으면 **골 줄부터** 붙들어 두었다가, 공이 골망에 꽂히는
-       프레임(clip.trig)에서 한꺼번에 푼다. KM26 의 SCENE_CAPTION_AT 과 같은 생각이다.
-       ⚠ 골 뒤에 오는 줄도 함께 붙들어야 한다 — 전광판이 e.hg 를 따라가므로
-         뒷줄 하나만 먼저 나가도 점수가 올라가 버린다. */
-    if (!held && e.type === "goal") {
+    /* 해설이 2D 보다 먼저 나오면 어떻게 된 일인지 보기도 전에 결과를 알게 된다.
+       "크로스바를 강타합니다!" 를 읽고 나서 그 슛을 보는 것은 거꾸로다.
+
+       그래서 **그 줄이 말하는 장면이 곧 재생될 것이면 줄을 붙들어 둔다.**
+       공이 실제로 그 일을 하는 프레임(clip.trig)에서 한꺼번에 푼다.
+       KM26 의 SCENE_CAPTION_AT 과 같은 생각인데, 거기서는 골만 그렇게 합니다 —
+       여기서는 **장면이 잡힌 모든 대목**(골 · PK · 퇴장 · 선방 · 결정적 기회)에 겁니다.
+
+       ⚠ 한 줄만 붙들면 안 된다. 뒤에 오는 줄도 함께 붙들어야 한다 —
+         전광판이 `e.hg` 를 따라가므로 뒷줄 하나만 먼저 나가도 점수가 올라가 버리고,
+         "골!" 다음 줄이 "실점에 격분한…" 이라 문장 자체가 결과를 말한다. */
+    if (!held) {
       const hc = holdingClip(minOf(e));
       if (hc) held = { c: hc, evs: [] };
     }
@@ -1075,14 +1117,18 @@ function tick() {
   const c = clipAt(minute);
   if (c) {
     c._seen = true;
-    pause();                         // 장면을 보는 동안 시계는 멈춘다
-    playClip(c, () => { backToWatch(); resume(); });
+    /* 붙들어 둔 줄이 다른 장면을 기다리고 있었으면 **지금 트는 장면으로 갈아 끼운다.**
+       같은 분의 이야기이고, 이 장면의 trig 에서 함께 풀려야 순서가 맞는다.
+       안 그러면 기다리던 장면이 끝내 안 나와 한 분 뒤에 뒤늦게 풀린다. */
+    if (held) held.c = c;
+    stopClock();                     // 장면을 보는 동안 시계만 멈춘다 (버튼은 "재생 중" 그대로)
+    playClip(c, () => { backToWatch(); if (playing) startClock(); });
     return;
   }
   if (idx >= R.events.length && minute >= 90) finish();
   syncWatchLook();                   // 초반 구간을 벗어나면 다시 어둡게 덮는다
   // 초반 구간을 벗어났으면 그 자리에서 새 간격으로 다시 건다
-  if (playing && tickMs !== msPerMin() / speed) { pause(); resume(); }
+  if (playing && timer && tickMs !== msPerMin() / speed) { stopClock(); startClock(); }
 }
 
 /* 로그는 안쪽 상자(.in)에 쌓는다. 새 줄은 맨 위에 붙고 지나간 줄이 아래로 밀려 내려간다 —
@@ -1138,8 +1184,11 @@ function skipToEnd() {
 }
 
 function finish() {
+  over = true;                // 시계를 다시 걸지 않는다 (다시 보기는 그대로 됩니다)
   pause();
   releaseHold(null);          // 붙들어 둔 해설이 남아 있으면 여기서 반드시 푼다
+  // 끝난 경기에서 누를 것이 없는 버튼은 꺼 둔다 — 눌러도 안 먹는 것처럼 보이지 않게
+  $("#play").disabled = true; $("#skip").disabled = true;
   watchToEnd();               // 관전 화면은 마지막 장에서 멈추고 배지를 "경기 종료"로
   tickSay("🏁 경기 종료 — 아래에 경기 기록과 팬 반응이 있습니다.");
   $("#clock").textContent = "경기 종료";
@@ -1230,20 +1279,22 @@ function drawOrderLog() {
 const KIND_N = { goal: "골", miss: "결정적 기회", save: "선방", pen: "페널티킥", red: "퇴장" };
 let clipTimer = null, onClipEnd = null, lastClip = null;
 
-/* ── 골 해설을 2D 보다 앞세우지 않는다 ─────────────────────────
-   예전에는 그 분의 해설을 먼저 다 풀고 나서 장면을 틀었다. 그래서 "골!" 을 읽은 뒤에
-   어떻게 들어갔는지를 보게 돼, 정작 볼거리인 2D 가 김이 새 버렸다.
-   이제 골 줄부터는 붙들어 두었다가 공이 골망에 꽂히는 프레임에서 함께 푼다. */
+/* ── 해설을 2D 보다 앞세우지 않는다 ────────────────────────────
+   예전에는 그 분의 해설을 먼저 다 풀고 나서 장면을 틀었다. 그래서 "크로스바를
+   강타합니다!" 를 읽은 뒤에 그 슛을 보게 돼, 정작 볼거리인 2D 가 김이 새 버렸다.
+   이제 **장면이 잡힌 대목의 해설은 전부** 붙들어 두었다가, 공이 실제로 그 일을 하는
+   프레임(clip.trig)에서 함께 푼다. 골만 그러던 것을 모든 장면으로 넓혔다. */
 let held = null;      // {c: 붙들게 한 장면, evs: 붙든 해설들}
 
-/** 이 분의 골을 보여 줄 장면 — 없으면 붙들 이유가 없다 */
+/** 이 분의 해설이 말하는 장면 — 곧 재생될 것이 있으면 그때까지 붙든다.
+    없으면(장면 보기를 껐거나 문턱이 높거나 애초에 장면이 없는 대목이면) 붙들 이유가 없다. */
 function holdingClip(min) {
   if (!R || !R.clips) return null;
-  // 장면 보기를 껐으면(또는 골 무게보다 문턱이 높으면) 어차피 안 나온다
-  if ((SCENE_MIN[sceneMode] || 1) > 5) return null;
+  const floor = SCENE_MIN[sceneMode] || 1;
   for (const c of R.clips) {
+    if (c._seen || (c.weight || 1) < floor) continue;
     // 엔진 시계와 해설 분이 한 칸 어긋날 수 있다 — 앞뒤 1분까지 같은 장면으로 본다
-    if (!c._seen && c.kind === "goal" && Math.abs((c.min || 0) - min) <= 1) return c;
+    if (Math.abs((c.min || 0) - min) <= 1) return c;
   }
   return null;
 }
@@ -1502,10 +1553,11 @@ function startClipTimer() {
       return;
     }
     drawFrame(s.frames[s.i]);
-    // 골이 들어가는 순간부터 득점자를 띄운다 — 빌드업 중에 띄우면 결과를 미리 알려 준다
-    if (!s.replay && s.c.kind === "goal" && s.i === (s.c.trig != null ? s.c.trig : 0)) {
-      showGoalPanel(s.c);
-      releaseHold(s.c);      // 붙들어 둔 골 해설도 바로 이 순간에 푼다
+    /* 공이 실제로 그 일을 하는 프레임(trig) — 여기가 해설을 푸는 자리다.
+       빌드업 중에 풀면 무슨 일이 벌어질지 미리 알려 주는 꼴이 된다. */
+    if (!s.replay && s.i === (s.c.trig != null ? s.c.trig : 0)) {
+      if (s.c.kind === "goal") showGoalPanel(s.c);   // 득점자 패널은 골에만
+      releaseHold(s.c);                              // 붙들어 둔 해설을 바로 이 순간에 푼다
     }
     s.i++;
   }, ms);
@@ -1578,10 +1630,9 @@ $("#hlSkip").onclick = () => {
 // 손으로 다시 보기 — 골이면 리플레이 구간, 아니면 장면 전체를 다시 돌린다
 $("#hlReplay").onclick = () => {
   if (!lastClip) return;
-  const wasPlaying = playing;
-  pause();
+  stopClock();                 // 다시 보는 동안 분이 흐르지 않게 — 재생 상태(playing)는 그대로 둔다
   const rf = lastClip.kind === "goal" ? replayFrames(lastClip) : null;
-  playClip(lastClip, () => { resumeWatch(); if (wasPlaying) resume(); },
+  playClip(lastClip, () => { resumeWatch(); if (playing) startClock(); },
            { replay: true, frames: rf || lastClip.frames });
 };
 
