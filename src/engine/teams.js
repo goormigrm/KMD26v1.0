@@ -9,6 +9,9 @@
      넘기면 두 번째 경기가 첫 경기의 흔적을 안고 시작해 재생이 갈라집니다.
    ───────────────────────────────────────────────────────────── */
 
+/* 역습 단계(0~4) 판정은 코덱과 **한 곳**에서 온다 — 두 벌을 두면 반드시 어긋난다 */
+import { ctrLevel } from "../codec/duelcode.js?v=15be9f283f";
+
 /** 깊은 복사 — 능력치·능숙도까지 새 객체로 (JSON 데이터라 이걸로 충분합니다) */
 const clone = o => JSON.parse(JSON.stringify(o));
 
@@ -38,8 +41,10 @@ export function buildTeam(meta, roster, plan = {}) {
   // 포메이션은 tac 안에 있을 수도(경기 화면), 한 칸 밖에 있을 수도(저장 슬롯 파일) 있다
   const formation = (plan.tac && plan.tac.formation) || plan.formation || "4-3-3";
   const tac = Object.assign(
+    /* 역습은 0~4 단계다 (예전에는 켬/끔이었다). 기본은 0 — 옛 false 와 같다.
+       커널 ctrLv 가 옛 true/false 도 3/0 으로 읽어 주므로 낡은 라인업도 그대로 산다. */
     { mentality: 2, pass: 2, tempo: 2, press: 2,
-      line: 2, width: 2, counter: false, tackle: 2, longShot: 2 },
+      line: 2, width: 2, counter: 0, tackle: 2, longShot: 2 },
     plan.tac || {},
     // 역할은 선수 id 로 저장된다 — 커널 getRole() 이 이 모양을 읽는다
     { formation, role: clone(plan.roles || {}), benchSel: [], slot: slotMapOf(plan), zone: {} }
@@ -173,7 +178,7 @@ export function aiLineup(roster, tables, formation = "4-3-3", level = "normal", 
 export const AI_PRESETS = {
   press:   { n: "높은 압박", tac: { press: 4, line: 4, tempo: 3, pass: 1 },
              hint: "뒤에서 볼을 돌리면 잡아먹힙니다. 대신 라인 뒤가 빕니다" },
-  counter: { n: "역습", tac: { counter: true, line: 1, press: 1, pass: 3, tempo: 4 },
+  counter: { n: "역습", tac: { counter: 3, line: 1, press: 1, pass: 3, tempo: 4 },
              hint: "밀어붙이면 한 방에 뒤집힙니다" },
   wing:    { n: "측면 공략", tac: { width: 4, mentality: 3, longShot: 1 },
              hint: "크로스가 계속 올라옵니다. 중앙 수비 높이가 시험대입니다" },
@@ -202,8 +207,10 @@ export function lineupSig(teamId, xi, bench, tac, roles) {
     teamId,
     slots.map(s => s + ":" + xi[s]).join(","),
     (bench || []).map(b => b ?? "-").join(","),
+    /* 역습은 0~4 단계다 — 켬/끔으로 접으면 1·2·3·4 단계가 전부 같은 전술로 잡힌다.
+       이 지문은 "양 팀 라인업이 완전히 같은가"를 볼 때만 쓰므로 시드·기록에는 영향이 없다. */
     ["formation", "mentality", "pass", "tempo", "press", "line", "width", "tackle", "longShot"]
-      .map(k => (tac || {})[k]).join(",") + "," + ((tac || {}).counter ? 1 : 0),
+      .map(k => (tac || {})[k]).join(",") + "," + ctrLevel((tac || {}).counter),
     Object.keys(roles || {}).sort().map(id => id + ":" + roles[id].r + roles[id].d).join(","),
   ].join("|");
 }

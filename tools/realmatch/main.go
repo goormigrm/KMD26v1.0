@@ -22,6 +22,7 @@ import (
 
 // 의존 순서 — 이어 붙이는 순서가 곧 실행 순서다
 var modules = []string{
+	"src/codec/duelcode.js",  // teams.js 가 ctrLevel(역습 단계 판정)을 가져다 쓴다 — 앞에 와야 한다
 	"src/engine/rng.js",
 	"src/engine/kernel.js",
 	"src/engine/stubs.js",
@@ -48,7 +49,12 @@ function tacOf(id) {
     var p = kv.split("=");
     if (p.length !== 2) return;
     var k = p[0].trim(), v = p[1].trim();
-    out[k] = (k === "counter") ? (v === "1" || v === "true") : (+v);
+    /* ⚡ 역습은 0~4 단계다(켬/끔이 아니다). 옛 표기도 받아 준다 — true=3, false=0.
+       ⚠ 예전에는 counter=1 이 '켬'이었다. 지금은 1단계(가끔)다. 옛 켬은 counter=3 이다.
+       ⚠ 이 파일의 JS 는 Go 원시 문자열(백틱) 안에 있다 — 주석에 백틱을 쓰면 문자열이 끊긴다. */
+    out[k] = (k === "counter")
+      ? (v === "true" ? 3 : (v === "false" ? 0 : Math.max(0, Math.min(4, Math.round(+v) || 0))))
+      : (+v);
   });
   return out;
 }
@@ -180,7 +186,7 @@ func main() {
 	record := flag.Bool("record", false, "2D 하이라이트 클립도 모은다")
 	form := flag.String("form", "4-3-3", "포메이션")
 	awayForm := flag.String("awayform", "", "원정 포메이션 — 비우면 -form 과 같게. 같은 구단끼리 붙일 때 필요하다")
-	hTac := flag.String("tac", "", "홈 전술 (press=4,line=3,counter=1 …)")
+	hTac := flag.String("tac", "", "홈 전술 (press=4,line=3,counter=3 …) — counter 는 0~4 단계, 옛 '켬'은 3")
 	aTac := flag.String("atac", "", "원정 전술")
 	series := flag.String("series", "", "이 구단을 여러 상대와 홈·원정으로 붙인다 (-tac 을 이 구단에 적용)")
 	oppo := flag.String("oppo", "", "상대 목록 (쉼표) — 비우면 K리그1 앞 여섯 팀")

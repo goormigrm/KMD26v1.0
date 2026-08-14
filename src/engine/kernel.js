@@ -9,7 +9,7 @@
    ⚠ 이건 원본 그대로입니다. 듀얼 버그 수정은 tools/patch_kernel.py 가 붙입니다.
 
    ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────
-   원본(kernel.raw.js) 해시: sha256:0e6a5baac6a7
+   원본(kernel.raw.js) 해시: sha256:24bc146ae5f1
    · [전술] PASS-01   2D 엔진이 팀 전술 '패스 길이'를 읽지 않는다 — 패스 목표 선택에 연결
    · [전술] PASS-02   같은 슬라이더를 패스 실행(길게 띄우는 문턱)에도 연결 — 목표만 바꾸면 걷어차는 모양이 안 따라온다
    · [전술] PASS-03   '몇 m부터 길게 차는가' 문턱도 팀 전술을 따르게 — 원본은 선수 특성만 읽는다
@@ -23,10 +23,22 @@
    · [버그] SUB-01    교체 투입이 벤치 순서(S1~S9)와 자리 능숙도를 무시한다 — 스트라이커가 센터백 자리에 서고, 부상으로 빈 자리는 끝까지 안 채워진다
    · [버그] SUB-02    부상으로 빈 자리를 45분 전에는 아예 보지 않는다 — 전반에 다치면 남은 시간을 열 명으로 뛴다
    · [버그] SUB-03    부상 교체가 다음 '분'까지 밀린다 — 실려 나간 뒤 최대 1분을 열 명으로 뛴다
+   · [전술] CTR-01    역습이 켬/끔이라 원본 신판의 0~4 단계를 받을 수 없다 — 5단계로 넓힌다
+   · [전술] CTR-02    전술 서명이 역습을 켬/끔으로만 봐서 단계를 바꿔도 같은 전술로 잡힌다
+   · [전술] CTR-03    역습 창의 '앞을 보는 패스 선택'이 단계와 무관하게 언제나 같은 세기였다
+   · [전술] CTR-04    스루패스 시도율·상한도 역습 단계를 따라야 한다
+   · [전술] CTR-05    패스 선택에 넘기는 역습 표시가 0/1 이라 단계가 전달되지 않는다
+   · [전술] CTR-06    몰고 갈 때 볼을 덜 쥐는 정도가 역습 단계를 따라야 한다
+   · [전술] CTR-07    역습 창의 세기를 꺼내 볼 방법이 없다 — 창에 계수를 실어 둔다
+   · [전술] CTR-08    역습 창이 열리는 조건과 길이가 단계와 무관하게 고정이다
+   · [전술] CTR-09    볼 터치 후 지체하는 정도도 역습 단계를 따라야 한다
+   · [전술] CTR-10    벤치가 경기 중에 켜고 끄는 역습이 아직 참/거짓이다 — 단계로 바꾼다(값은 같게)
+   · [전술] CTR-11    같은 자리 — 잠글 때 켜던 역습을 3단계로 (옛 true 와 같은 세기)
+   · [전술] CTR-12    같은 자리 — 한 골 차 리드에서 켜던 역습을 3단계로
    · [보류] WIDTH-01  크로스 판단 문턱이 팀 '폭'을 읽지 않는다 (수정안이 역효과라 보류)
    ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "./rng.js?v=da9413b7fe";
+import { RNG } from "./rng.js?v=15be9f283f";
 
 const R = (n)=>Math.floor(RNG()*n);
 
@@ -537,10 +549,27 @@ const TAC_DEF={pass:2,tempo:2,press:2,line:2,width:2,counter:false,mentality:2,t
 function tacVal(v){ return clamp((v==null?2:+v),0,TAC_STEPS-1)/2; }   // 0~4 → 0.0~2.0
 /* 팀(또는 tactic 객체)의 전술을 엔진용 실수 스케일로 변환 */
 
+/* [KMD26 CTR-01] 역습 강도 0~4.
+   옛 값도 그대로 읽는다 — true(켬)=3, false(끔)=0, **미지정도 0**.
+   ⚠ false 를 2 로 읽으면 안 된다. 역습을 안 쓰기로 한 옛 라인업이 보통 역습으로 뛰게 되어
+     이미 나눠 가진 코드가 조용히 다른 경기를 낸다.
+   ⚠ 미지정도 0 이다. 원본 신판은 미지정을 2 로 보지만 그건 그쪽 TAC_DEF 가 2 이기
+     때문이고, 여기 TAC_DEF 는 false(끔)다. 2 로 두면 전술을 안 넘긴 경기가 달라진다.
+   ⚠ src/codec/duelcode.js 의 ctrLevel 과 **같은 규칙**이어야 한다. */
+function ctrLv(T){
+  const v=T&&T.counter;
+  if(v===true) return 3;
+  if(v===false||v==null) return 0;
+  return clamp(Math.round(+v)||0, 0, TAC_STEPS-1);
+}
+/* 엔진이 쓰는 계수 — **3단계가 1.0** 이라 옛 '켬'과 정확히 같다. 4단계만 그보다 세다. */
+function ctrW(T){ return ctrLv(T)/3; }
 function TAC(src){
   const raw=Object.assign({}, TAC_DEF, (src && src.tactic) ? src.tactic : (src||{}));
-  const o={counter:!!raw.counter, formation:raw.formation, raw};
+  const o={counter:ctrLv(raw), formation:raw.formation, raw};
   for(const k of TAC_KEYS) o[k]=tacVal(raw[k]);
+  /* ⚠ counter 는 0~4 정수를 그대로 쓴다. TAC_KEYS 루프 안에 넣으면 tacVal 이
+     0~2 스케일로 덮어써 5단계가 3단계로 뭉개진다(원본 신판 주석에도 '실측'으로 적혀 있다). */
   return o;
 }
 
@@ -1314,7 +1343,7 @@ function aiSubOnce(M, sd, key, diff, m){
 
 function tacticSig(t){
   const T=TAC(t);
-  return [T.formation,T.mentality,T.pass,T.tempo,T.press,T.line,T.width,T.tackle,T.longShot,T.counter?1:0].join("|");
+  return [T.formation,T.mentality,T.pass,T.tempo,T.press,T.line,T.width,T.tackle,T.longShot,T.counter].join("|");
 }
 
 const FAM_PENALTY={formation:20, mentality:5, pass:6, tempo:4, press:5, line:5, width:4, tackle:3, longShot:2, counter:4};
@@ -2173,7 +2202,9 @@ function findBestPass(carrier, mates, opps, ctx){
   if(!opts.length) return null;
   /* ⚡ 역습 — 옆으로 돌리는 안전한 패스보다 전진 옵션이 크게 가산된다.
      수비가 대형을 갖추기 전 몇 초가 역습 전술의 존재 이유다. */
-  if(ctx.counter) opts.sort((x,y)=>(y.score+(y.forward||0)*0.65)-(x.score+(x.forward||0)*0.65));
+  /* [KMD26 CTR-03] 전진 가산을 역습 강도에 비례시킨다. ctx.counter 는 이제 0/1 이 아니라
+     0~1.333 의 계수다(CTR-05). 3단계면 1.0 이라 아래 식은 예전과 한 글자도 다르지 않다. */
+  if(ctx.counter) opts.sort((x,y)=>(y.score+(y.forward||0)*0.65*ctx.counter)-(x.score+(x.forward||0)*0.65*ctx.counter));
   const opt=ctx.pick ? ctx.pick(opts) : opts[0];
   if(!opt) return null;
 
@@ -2197,7 +2228,8 @@ function findBestPass(carrier, mates, opps, ctx){
   /* 제보: 1대1이 너무 자주 나온다(측정 경기당 10회) — 스루패스가 사실상 상한(0.9)에 붙어 살았다.
      기본 시도율을 낮추고 상한을 절반으로. 대신 성공한 1대1의 마무리는 resolveShot 에서 현실화했다. */
   const thruP = thru ? clamp((0.10 + skill*0.26)*spaceK*runFast*(1 + FX(carrier,"killer")) * (1 - thru.crowd*0.22)
-                             * (ctx.counter?1.8:1), 0, ctx.counter?0.62:0.45) : 0;   // ⚡ 역습 창에는 찔러 본다
+                             * (1+0.8*ctx.counter), 0, 0.45+0.17*ctx.counter) : 0;   // ⚡ 역습 창에는 찔러 본다
+  /* [KMD26 CTR-04] 3단계(ctx.counter=1)면 1.8배·상한 0.62 로 예전과 같다. 0단계면 1배·0.45. */
   /* 긴 패스 / 짧은 패스 선호 — "몇 m부터 길게 차는가"의 문턱 자체를 움직인다.
      예전에는 특성만 읽었고(TP.longPass), 게다가 shortPass 가지는 아래 기본 분기와
      조건이 완전히 같아 아무 일도 하지 않는 죽은 줄이었다. 역할(딥라잉 플레이메이커의
@@ -3395,16 +3427,16 @@ class MatchSim{
       const gd=(key==="h" ? this.M.hg-this.M.ag : this.M.ag-this.M.hg);
       const T=t.tactic; let want=null, msg=null;
       if(gd<=-1 && min>=75){                     // 지고 있고 시간이 없다 — 총공세
-        want={mentality:4, line:4, press:4, tempo:4, counter:false};
+        want={mentality:4, line:4, press:4, tempo:4, counter:0};   // [KMD26 CTR-10] false → 0
         msg=`${t.short} 벤치가 움직입니다 — 라인을 끌어올려 총공세로 나섭니다!`;
       } else if(gd<=-1 && min>=58){              // 지고 있다 — 공격적으로
         want={mentality:3, line:Math.min(4,(T.line||2)+1), press:Math.min(4,(T.press||2)+1)};
         msg=`${t.short}, 공격적으로 전환합니다. 압박을 올립니다.`;
       } else if(gd>=2 && min>=78){               // 넉넉히 이기고 있다 — 잠근다
-        want={mentality:0, line:0, press:1, counter:true};
+        want={mentality:0, line:0, press:1, counter:3};   // [KMD26 CTR-11] true → 3 (같은 세기)
         msg=`${t.short}, 완전히 내려앉습니다. 승부를 굳히려 합니다.`;
       } else if(gd>=1 && min>=70){               // 한 골 차 리드 — 실리로
-        want={mentality:1, line:Math.max(0,(T.line||2)-1), counter:true};
+        want={mentality:1, line:Math.max(0,(T.line||2)-1), counter:3};   // [KMD26 CTR-12] true → 3
         msg=`${t.short}, 무게중심을 뒤로 옮깁니다. 역습을 노립니다.`;
       }
       if(!want) continue;
@@ -4290,7 +4322,7 @@ class MatchSim{
     const T=TAC(carrier.team);
     const selfPress=pressureOn(carrier, opps, T.press);
     const pctx={dir:carrier.dir, press:T.press, passSkill:carrier.passSkill, selfPress, defs:opps,
-                counter:this.counterOn(key)?1:0};   // ⚡ 역습 창 — 패스 선택이 앞을 본다
+                counter:this.ctrWOn(key)};   // ⚡ 역습 창 — 앞을 보는 정도가 단계를 따른다 [KMD26 CTR-05]
     const opts=evaluatePassOptions(carrier, mates, opps, pctx);
     // 골키퍼 배급 — 짧은 횡패스로 돌리지 않고 전방으로 길게 연결한다
     if(carrier.slot==="GK"){
@@ -4383,7 +4415,7 @@ class MatchSim{
     const oneOnOne = shot && shot.clear && shot.g.distM<18;
     // 특성: 공을 가지면 멈춤 / 공을 오래 소유 / 템포 조절 — 볼을 더 오래 쥔다
     const holdTr = 1 + FX(carrier,"hold");
-    if(!oneOnOne && (!best || (best.score<-0.45 && selfPress<0.4))){ this.ball.hold=(0.6+RNG()*0.7)*TEMPO*holdTr*this.tempoK(key)*(this.counterOn(key)?0.55:1); return; } // 몰고 간다
+    if(!oneOnOne && (!best || (best.score<-0.45 && selfPress<0.4))){ this.ball.hold=(0.6+RNG()*0.7)*TEMPO*holdTr*this.tempoK(key)*(1-0.45*this.ctrWOn(key)); return; } // 몰고 간다 [KMD26 CTR-06]
     // 압박이 극심하고 옵션도 나쁘면 걷어낸다(롱볼)
     // 역할: 안정형 수비수/안정형 풀백/인버티드 풀백은 애매하면 그냥 걷어낸다
     const cf=FX(carrier,"clearFirst");
@@ -4789,6 +4821,9 @@ class MatchSim{
   }
   /* ⚡ 역습 창 — 소유권을 빼앗은 순간부터 몇 초간, 역습 전술 팀은 앞만 본다 */
   counterOn(side){ return this._cw && this._cw.side===side && this.t<this._cw.until; }
+  /* [KMD26 CTR-07] 역습 창이 열려 있으면 그 세기(0~1.333), 아니면 0.
+     창을 열 때 계수를 함께 넣어 두므로(CTR-08) 여기서 팀 전술을 다시 읽지 않는다. */
+  ctrWOn(side){ return (this._cw && this._cw.side===side && this.t<this._cw.until) ? (this._cw.w||1) : 0; }
   giveTo(a){
     const b=this.ball;
     // 공을 선수 발밑으로 순간이동시키지 않는다. 소유권만 넘기고, 공은 rollBall 이
@@ -4805,12 +4840,14 @@ class MatchSim{
       try{
         const T=TAC(a.team);
         const own=a.dir>0?a.x:1-a.x;
-        this._cw = (T.counter && own<0.55) ? {side:a.side, until:this.t+7} : null;
+        /* [KMD26 CTR-08] 창 길이도 단계를 따른다. 3단계면 7초로 예전과 같다. */
+        const _cwW=ctrW(T);
+        this._cw = (_cwW>0 && own<0.55) ? {side:a.side, until:this.t+7*_cwW, w:_cwW} : null;
       }catch(e){ this._cw=null; }
     }
     this.lastTouch=a.side;                       // 마지막으로 볼에 손댄 팀
     b.ownerId=a.id; b.state="SETTLED"; b.x=a.x; b.y=a.y;
-    b.hold=(1.8+RNG()*1.6)*TEMPO*this.tempoK(a.side)*(this.counterOn(a.side)?0.55:1);   // 볼 터치 후 다음 행동까지
+    b.hold=(1.8+RNG()*1.6)*TEMPO*this.tempoK(a.side)*(1-0.45*this.ctrWOn(a.side));   // 볼 터치 후 다음 행동까지 [KMD26 CTR-09]
     this.possSide=a.side;
   }
   /* 매 틱 경기 규칙을 점검하고 상태를 갱신한다.

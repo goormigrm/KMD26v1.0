@@ -11,7 +11,7 @@
    · GK-01  골키퍼에게 필드 자리가 선호로 붙는다 — 선호 자리 표를 이름으로만 찾아서 동명이인의 자리가 넘어온다
    ⚠ 이 파일을 직접 부르지 마세요. tools/gendata.html 이 한 번만 돌려 JSON 을 만듭니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "../engine/rng.js?v=da9413b7fe";
+import { RNG } from "../engine/rng.js?v=15be9f283f";
 
 const CUR_YEAR = 2026;
 

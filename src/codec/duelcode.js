@@ -15,9 +15,24 @@
    | 역할 | 44 | 11 × 4비트 — 그 자리의 역할 묶음 안에서의 번호 |
    | 임무 | 22 | 11 × 2비트 — 그 역할이 고를 수 있는 임무 안에서의 번호 |
    | 슬라이더 | 24 | 8 × 3비트 (0~4) |
-   | 역습 | 1 | |
+   | 역습 | 3 | 0~4 단계 (**v1 은 1비트 켬/끔**) |
    | 조건부 지시 | 48 | 6개 × 8비트 (단계 8) |
-   | 체크섬 | 10 | 나머지 290비트의 FNV-1a 하위 10비트 |
+   | 체크섬 | 10 | 앞의 292비트(v1 은 290)의 FNV-1a 하위 10비트 |
+
+   ── 판 번호가 둘인 이유 ────────────────────────────────────────
+   접두어의 숫자(`KM26D1-`)와 안에 담기는 6비트 판 번호는 **다른 것**입니다.
+
+   접두어는 채팅에서 알아보라고 붙인 표시이고(설계서 4-2), 게시판 DB 의 검사식
+   `code ~ '^KM26D1-…'` 과 이미 나눠 가진 코드들이 여기 묶여 있습니다. 그래서 **고정**입니다.
+   규격이 바뀌면 안쪽 6비트만 올립니다 — 그래야 옛 코드도 계속 읽고, 게시판도 안 막힙니다.
+
+   ── v2 에서 바뀐 것 — 역습 1비트 → 3비트 ──────────────────────
+   원본 신판이 역습을 0~4 단계로 바꿨고 실제 세이브도 그 값을 담고 있어(19팀이 2) 따라갑니다.
+   38바이트 = 304비트 중 **4비트가 비어 있어** 2비트를 더 써도 51자 그대로입니다.
+
+   ⚠ v1 코드는 계속 읽습니다 — 1비트가 1이면 **3단계**, 0이면 0단계입니다.
+     3단계는 엔진에서 옛 '켬'과 완전히 같은 경기를 냅니다(커널 CTR-01 참고).
+     0 을 2(보통)로 읽으면 안 됩니다 — 역습을 안 쓰기로 한 옛 라인업이 조용히 달라집니다.
 
    ── 왜 선수 id 가 아니라 명단 번호인가 ─────────────────────────
    선수 id 는 1~1024 라 10비트가 필요합니다. 한 구단 명단은 최대 51명이므로
@@ -28,13 +43,40 @@
      무겁지 않습니다(6천 줄짜리 커널을 끌고 오지 않습니다).
    ───────────────────────────────────────────────────────────── */
 
-export const CODE_VER = 1;          // 규격 판 번호 (6비트)
+export const CODE_VER = 2;          // 규격 판 번호 (6비트) — v2 부터 역습이 3비트
 export const CODE_PREFIX = "KM26D"; // 채팅에서 바로 알아보게 (설계서 4-2)
-export const CODE_BITS = 300;
-export const CODE_BYTES = 38;       // 300비트 → 38바이트 (뒤 4비트는 0)
+/* 접두어에 찍는 숫자. **판 번호와 따로 간다** — 게시판 DB 검사식과 이미 나눠 가진
+   코드가 여기 묶여 있어 고정이다. 머리말 "판 번호가 둘인 이유" 참고. */
+export const CODE_GEN = 1;
+export const CODE_BYTES = 38;       // 38바이트 = 304비트 (v2 는 302비트를 쓴다)
 export const CODE_CHARS = 51;       // Base64url 51자
 const BENCH_EMPTY = 63;             // 빈 교체 칸 (명단이 51명이라 63과 겹치지 않는다)
 export const COND_SLOTS = 6;        // 조건부 지시 칸 수 (단계 8)
+
+/** 그 판에서 역습이 차지하는 비트 수 */
+const ctrBits = ver => (ver >= 2 ? 3 : 1);
+/** 그 판에서 체크섬이 시작하는 비트 자리 — 역습 비트 수만큼 밀린다 */
+const chkPos = ver => 6 + 16 + 5 + 4 + 66 + 54 + 44 + 22 + 24 + ctrBits(ver) + 8 * COND_SLOTS;
+/** 총 비트 수 (체크섬 포함) */
+export const codeBits = (ver = CODE_VER) => chkPos(ver) + 10;
+
+/**
+ * 역습 값을 0~4 단계로 고른다. 커널 `ctrLv` 와 **같은 규칙**이어야 한다.
+ * 옛 켬/끔도 받는다 — `true`=3(옛 켬과 같은 세기) · `false`=0 · **미지정=0**.
+ *
+ * ⚠ `false` 를 2 로 읽지 말 것. 역습을 안 쓰기로 한 옛 라인업이 조용히 달라진다.
+ * ⚠ **미지정도 0 이다.** 원본 KM26 은 미지정을 2(보통)로 보지만, 그건 그쪽 기본값이
+ *   2 이기 때문이다. KMD26 의 기본값은 `tacDef.counter = false`(끔)라 0 이 맞다.
+ *   여기서 2 로 두면 전술을 안 넘긴 경기의 지문이 통째로 달라진다 — 실제로 겪었다
+ *   (realmatch 가 planSig 로 시드를 뽑는데 미지정이 0→2 로 바뀌어 aaa6474d 가 깨졌다).
+ *   KM26 세이브에서 값이 빠져 있을 때만 부르는 쪽에서 2 로 채운다.
+ */
+export function ctrLevel(v) {
+  if (v === true) return 3;
+  if (v === false || v == null) return 0;
+  const n = Math.round(+v);
+  return Number.isFinite(n) ? Math.max(0, Math.min(4, n)) : 0;
+}
 
 /* ── 비트 쓰기·읽기 ─────────────────────────────────────────── */
 class BitOut {
@@ -57,6 +99,16 @@ class BitIn {
     }
     return v >>> 0;
   }
+}
+
+/** 바이트열의 임의 자리에서 비트를 읽는다 (체크섬 자리가 판마다 달라서 필요하다) */
+function readBits(b, pos, bits) {
+  let v = 0;
+  for (let k = 0; k < bits; k++) {
+    const p = pos + k;
+    v = (v << 1) | ((b[p >> 3] >> (7 - (p & 7))) & 1);
+  }
+  return v >>> 0;
 }
 
 /* ── Base64url ───────────────────────────────────────────────
@@ -211,15 +263,15 @@ export function encodePlan(plan, ctx) {
     const v = (plan.tac || {})[k];
     w.put(Math.max(0, Math.min(7, v == null ? 2 : v | 0)), 3);
   }
-  w.put((plan.tac || {}).counter ? 1 : 0, 1);
+  w.put(ctrLevel((plan.tac || {}).counter), ctrBits(CODE_VER));
 
   // 조건부 지시 (단계 8) — 여섯 칸 × 8비트
   const cond = plan.cond || [];
   for (let k = 0; k < COND_SLOTS; k++) w.put((cond[k] | 0) & 0xff, 8);
 
-  // 체크섬 — 여기까지(290비트)를 담은 바이트열에서 뽑는다
+  // 체크섬 — 여기까지를 담은 바이트열에서 뽑는다 (뒤쪽은 아직 전부 0이다)
   w.put(fnv(w.b) & 0x3ff, 10);
-  return CODE_PREFIX + CODE_VER + "-" + toB64(w.b);
+  return CODE_PREFIX + CODE_GEN + "-" + toB64(w.b);
 }
 
 /**
@@ -234,26 +286,34 @@ export function decodePlan(code, ctx) {
   s = s.replace(/\s+/g, "");
   const px = new RegExp("^" + CODE_PREFIX + "(\\d+)-", "i").exec(s);
   if (!px) throw new Error(`${CODE_PREFIX} 로 시작하는 코드가 아닙니다`);
-  const ver = +px[1];
+  const gen = +px[1];
+  if (gen !== CODE_GEN) {
+    throw new Error(`${CODE_PREFIX}${CODE_GEN}- 로 시작하는 코드가 아닙니다 (받은 것은 ${CODE_PREFIX}${gen}-)`);
+  }
   s = s.slice(px[0].length);
   if (s.length !== CODE_CHARS) {
     throw new Error(`코드가 잘렸거나 손상되었습니다 — ${CODE_CHARS}자여야 하는데 ${s.length}자입니다`);
   }
 
   const b = fromB64(s, CODE_BYTES);
-  /* 체크섬은 290~299비트다 — 36번 바이트의 아래 6비트 + 37번 바이트의 위 4비트.
-     그 자리를 0으로 되돌려 다시 계산한다 (만들 때도 0인 상태에서 뽑았다). */
-  const chk = ((b[36] & 0x3f) << 4) | (b[37] >> 4);
-  const b2 = b.slice(); b2[36] &= 0xc0; b2[37] = 0;
+  /* ⚠ 체크섬 자리가 **판마다 다르다** (v2 는 역습이 2비트 더 넓어 그만큼 밀린다).
+     그래서 판 번호(맨 앞 6비트)를 먼저 읽고 나서 체크섬을 본다. 판 번호는 체크섬
+     앞쪽에 있으므로, 아직 검사하지 않은 값을 읽는 것이 아니다. */
+  const vBits = (b[0] >> 2) & 0x3f;
+  if (vBits !== 1 && vBits !== CODE_VER) {
+    throw new Error(`상대와 버전이 다릅니다 — 코드는 v${vBits}, 이 화면은 v${CODE_VER} 입니다`);
+  }
+  const cpos = chkPos(vBits);
+  /* 그 자리를 0으로 되돌려 다시 계산한다 (만들 때도 뒤쪽이 전부 0인 상태에서 뽑았다) */
+  const chk = readBits(b, cpos, 10);
+  const b2 = b.slice();
+  for (let k = cpos; k < CODE_BYTES * 8; k++) b2[k >> 3] &= ~(0x80 >> (k & 7));
   if ((fnv(b2) & 0x3ff) !== (chk & 0x3ff)) {
     throw new Error("코드가 잘렸거나 손상되었습니다 (체크섬 불일치)");
   }
 
   const r = new BitIn(b);
-  const vBits = r.get(6);
-  if (vBits !== CODE_VER || ver !== CODE_VER) {
-    throw new Error(`상대와 버전이 다릅니다 — 코드는 v${vBits}, 이 화면은 v${CODE_VER} 입니다`);
-  }
+  r.get(6);                                    // 판 번호 — 위에서 이미 읽었다
   const dh = r.get(16);
   // 지금 판이 아니면 호환 목록을 본다 (명단이 그대로였음을 확인해 둔 옛 판)
   const oldData = dh === hash16(ctx.dataHash) ? null
@@ -295,7 +355,9 @@ export function decodePlan(code, ctx) {
 
   const tac = { formation };
   for (const k of ctx.tables.tacKeys) tac[k] = r.get(3);
-  tac.counter = !!r.get(1);
+  /* v1 은 켬/끔 1비트다 — 켬은 **3단계**로 읽는다(엔진에서 옛 켬과 같은 세기).
+     끔은 0 이다. 여기서 2(보통)로 읽으면 이미 나눠 가진 코드가 다른 경기를 낸다. */
+  tac.counter = vBits >= 2 ? r.get(3) : (r.get(1) ? 3 : 0);
 
   const cond = [];
   for (let k = 0; k < COND_SLOTS; k++) cond.push(r.get(8));

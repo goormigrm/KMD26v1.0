@@ -234,16 +234,23 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
         display:grid;grid-template-columns:1fr;overflow:visible}
   #side h1{font-size:15px;margin:0}
   #side .brand,#side .navsep{display:none}
-  /* 탭 줄 — **두 줄로 접는다.**
-     ⚠ 예전에는 옆으로 굴리는 줄(overflow-x)이었는데, 탭이 여섯 개가 되면서
-       뒤쪽 탭이 항상 숨었다. 게다가 PC 브라우저의 모바일 보기에서는 마우스로
-       끌어도 굴러가지 않아 아예 닿을 수가 없었다. 접으면 **전부 보이고**
-       밀 일도 없다 — 세로로 34px 더 쓰는 값으로는 싸다(사용자 판단). */
-  #navScroll{display:flex;flex-wrap:wrap;gap:4px;padding-bottom:6px}
-  /* 두 줄로 접히므로 아래쪽도 둥글려 둔다 — 칸에 붙은 탭 모양이 아니다 */
-  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:7px 11px;
-          background:var(--bg3);border:1px solid var(--line);border-radius:8px;font-size:13px}
-  .navbtn.on{border-color:var(--acc)}
+  /* 탭 줄 — **한 줄로 두고 옆으로 굴린다.**
+     ⚠ 한때 두 줄로 접었다(flex-wrap). 탭이 여섯일 때는 그게 나았지만, KM26 갈래가
+       붙어 아홉이 되면서 접으면 **세 줄**이 되어 첫 화면을 덮는다. 한 줄로 되돌린다.
+     ⚠ PC 브라우저의 모바일 보기에서는 마우스로 끌어도 굴러가지 않는다 —
+       src/ui/navscroll.js 가 끌기·휠을 붙여 준다(손가락은 원래 된다). */
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none;
+             -webkit-overflow-scrolling:touch;position:relative}
+  #navScroll.drag{cursor:grab}
+  #navScroll.grabbing{cursor:grabbing;user-select:none}
+  /* 더 있다는 표시 — 오른쪽 끝을 흐리게 말아 둔다.
+     ⚠ 흐림은 **굴러가는 칸 밖**(#side)에 붙인다 — 안 그러면 내용과 함께 밀려 나간다.
+     ⚠ position 을 다시 잡지 말 것 — #side 는 sticky 라 이미 기준이 된다. */
+  #side.hasmore::after{content:'';position:absolute;right:0;top:0;bottom:0;width:26px;
+       pointer-events:none;background:linear-gradient(90deg,#161b2200,#161b22)}
+  #navScroll::-webkit-scrollbar{display:none}
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
+          background:var(--bg3);border-radius:8px 8px 0 0;font-size:13px}
   .navbtn .k{display:none}
   #pageMain{padding:14px 12px 60px}
 }
@@ -398,11 +405,11 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=da9413b7fe";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=da9413b7fe";
+import { encodePlan, inviteLink, ctrLevel } from "./src/codec/duelcode.js?v=15be9f283f";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=15be9f283f";
 import { boardOn, postPlan, NICK_MAX, NOTE_MAX, myNick, rememberNick }
-  from "./src/board/board.js?v=da9413b7fe";
-import { teamStar } from "./src/ui/teamstar.js?v=da9413b7fe";
+  from "./src/board/board.js?v=15be9f283f";
+import { teamStar } from "./src/ui/teamstar.js?v=15be9f283f";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -449,16 +456,23 @@ const SLIDER = {
   longShot: { n: "중거리 슛", s: ["아주 자제", "자제", "보통", "적극", "아주 적극"],
     e: "자제 = 박스 밖에서는 때리지 않고 한 번 더 만든다 · 적극 = 각이 열리면 박스 밖에서도 과감하게 때린다. 중거리 능력치가 낮으면 슈팅만 늘고 유효 슈팅은 안 는다.",
     m: "중거리 슛 0.9 → 7.3회" },
+  /* 역습은 `T.tacKeys` 에 없다 — 코드에서도 따로 담기고(3비트) 엔진에서도 따로 읽는다.
+     그래서 여기 함께 적어 두되 그리는 곳에서만 따로 붙인다. */
+  counter: { n: "역습", s: ["안 함", "가끔", "보통", "적극", "극단적"],
+    e: "볼을 뺏은 즉시 앞만 보고 내달린다. 세게 걸수록 창이 길어지고 전진 패스를 더 고른다. 상대가 공격적이거나 라인을 높이 올렸을 때 위력적이고, 내려앉은 상대에게는 오히려 손해다.",
+    m: "0·3 단계는 예전 끄기·켜기와 완전히 같은 경기" },
 };
 
 /* 프리셋 — 슬라이더 여덟 개를 처음부터 맞추는 건 부담이다. 한 번에 형태를 잡아 준다. */
 const PRESETS = {
-  "기본":        { pass:2, tempo:2, press:2, line:2, width:2, mentality:2, tackle:2, longShot:2, counter:false },
-  "티키타카":     { pass:0, tempo:3, press:3, line:3, width:1, mentality:3, tackle:1, longShot:1, counter:false },
-  "강한 압박":    { pass:1, tempo:3, press:4, line:4, width:2, mentality:3, tackle:3, longShot:2, counter:false },
-  "롱볼 역습":    { pass:4, tempo:4, press:1, line:1, width:3, mentality:2, tackle:2, longShot:2, counter:true },
-  "선수비 역습":  { pass:3, tempo:3, press:1, line:0, width:2, mentality:1, tackle:2, longShot:1, counter:true },
-  "측면 공략":    { pass:2, tempo:2, press:2, line:2, width:4, mentality:3, tackle:2, longShot:1, counter:false },
+  /* 역습은 0~4 단계다. 옛 켬은 3, 끔은 0 — 프리셋이 내는 경기를 바꾸지 않으려고 그대로 옮겼다. */
+  "기본":        { pass:2, tempo:2, press:2, line:2, width:2, mentality:2, tackle:2, longShot:2, counter:0 },
+  "티키타카":     { pass:0, tempo:3, press:3, line:3, width:1, mentality:3, tackle:1, longShot:1, counter:0 },
+  "강한 압박":    { pass:1, tempo:3, press:4, line:4, width:2, mentality:3, tackle:3, longShot:2, counter:0 },
+  "롱볼 역습":    { pass:4, tempo:4, press:1, line:1, width:3, mentality:2, tackle:2, longShot:2, counter:3 },
+  "선수비 역습":  { pass:3, tempo:3, press:1, line:0, width:2, mentality:1, tackle:2, longShot:1, counter:3 },
+  "측면 공략":    { pass:2, tempo:2, press:2, line:2, width:4, mentality:3, tackle:2, longShot:1, counter:0 },
+  "극단 역습":    { pass:4, tempo:4, press:0, line:0, width:2, mentality:0, tackle:2, longShot:1, counter:4 },
 };
 
 // 눈금은 하나뿐이다 — 별이 많을수록 언제나 더 나은 선수다 (잠재력은 반영하지 않는다)
@@ -520,7 +534,10 @@ async function boot() {
   $("#meta").textContent = `${DB.meta.teamCount}개 구단 · ${DB.meta.playerCount}명`;
   $("#formation").innerHTML = Object.keys(T.formation)
     .map(f => `<option${f === formation ? " selected" : ""}>${f}</option>`).join("");
+  /* 표의 기본값은 아직 옛 켬/끔(false)이다 — data/*.json 을 건드리면 데이터 해시가
+     바뀌어 이미 나눠 가진 코드가 전부 막히므로, 파일은 두고 여기서 단계로 옮겨 읽는다. */
   tac = Object.assign({}, T.tacDef);
+  tac.counter = ctrLevel(tac.counter);
 
   $("#preset").innerHTML = Object.keys(PRESETS)
     .map(k => `<button data-p="${esc(k)}">${esc(k)}</button>`).join("");
@@ -1184,15 +1201,20 @@ function drawTac() {
       </div>
       <div class="exp">${d.e}${d.weak ? `<br><span class="warn">⚠ ${d.weak}</span>` : ""}</div>
     </div>`;
-  }).join("") + `
-    <div class="tac">
-      <div class="lbl">역습 축구</div>
-      <div class="ctl"><label class="row" style="cursor:pointer;font-size:13px">
-        <input type="checkbox" id="counter" ${tac.counter ? "checked" : ""} style="accent-color:var(--acc)">
-        ${tac.counter ? "사용 중" : "사용 안 함"}</label></div>
-      <div class="exp">볼을 뺏은 즉시 전방으로 내달린다. 상대가 공격적이거나 라인을 높이 올렸을 때 위력적이고,
-        내려앉은 상대에게는 오히려 손해다.</div>
+  }).join("") + (() => {
+    /* 역습 — 예전에는 켬/끔 체크상자였다. 원본이 0~4 단계로 바뀌었고 실제 세이브도
+       그 값을 담고 있어(29팀 중 19팀이 2) 여기도 다섯 칸으로 맞춘다.
+       다른 슬라이더와 같은 `data-k` 를 달아 두므로 아래 공통 처리기가 그대로 받는다. */
+    const d = SLIDER.counter, v = ctrLevel(tac.counter);
+    return `<div class="tac">
+      <div class="lbl">${d.n}</div>
+      <div class="ctl">
+        <input type="range" min="0" max="4" step="1" value="${v}" data-k="counter">
+        <div class="val" data-v="counter">${d.s[v]}</div>
+      </div>
+      <div class="exp">${d.e}</div>
     </div>`;
+  })();
 
   $("#tacs").querySelectorAll("input[type=range]").forEach(el => el.oninput = () => {
     const k = el.dataset.k;
@@ -1204,7 +1226,6 @@ function drawTac() {
       b.classList.toggle("on", Object.keys(p).every(x => tac[x] === p[x]));
     });
   });
-  $("#counter").onchange = e => { tac.counter = e.target.checked; drawTac(); };
   drawTacNote();
 }
 
@@ -1214,7 +1235,8 @@ function drawTacNote() {
   if (lo(t.pass) && !lo(t.tempo)) s.push("짧게 돌리며 중원을 장악한다");
   if (hi(t.pass)) s.push("중원을 건너뛰어 앞으로 붙인다");
   if (hi(t.press) && hi(t.line)) s.push("높은 곳에서 잡아먹는다");
-  if (lo(t.line) && t.counter) s.push("내려앉아 역습을 노린다");
+  if (lo(t.line) && ctrLevel(t.counter) >= 3) s.push("내려앉아 역습을 노린다");
+  else if (ctrLevel(t.counter) >= 4) s.push("뺏으면 앞만 보고 달린다");
   if (hi(t.tackle)) s.push("거칠게 붙는다 — 카드를 각오해야 한다");
   if (hi(t.longShot)) s.push("각이 열리면 밖에서도 때린다");
   if (lo(t.mentality)) s.push("뒤를 단단히 하고 기다린다");
@@ -1292,6 +1314,8 @@ function applyPlan(p, where) {
     if (i >= 0) bench[i] = id;
   }
   tac = Object.assign({}, T.tacDef, p.tac || {});
+  // 저장 슬롯·파일에 옛 켬/끔이 들어 있을 수 있다 — 켬은 3, 끔은 0 으로 읽는다
+  tac.counter = ctrLevel(tac.counter);
   orders = Array.isArray(p.cond) ? p.cond.slice(0, 6) : [0, 0, 0, 0, 0, 0];
   while (orders.length < 6) orders.push(0);
   roles = {};
@@ -1424,5 +1448,10 @@ boot();
 </script>
 </div></div>
 </div>
+<!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
+<script type="module">
+import { installNav } from "./src/ui/navscroll.js?v=15be9f283f";
+installNav();
+</script>
 </body>
 </html>

@@ -482,6 +482,181 @@ function aiSubOnce(M, sd, key, diff, m){
     ),
   ),
 
+  # ── 역습 강도 (0~4) ─────────────────────────────────────────
+  # 원본(구판)에서 역습은 켜고 끄는 스위치였다. 원본 신판이 이걸 5단계 슬라이더로 바꿨고
+  # (index_new.html:3432 ctrLv), 실제 세이브를 열어 보니 29팀 중 19팀이 2, 9팀이 3, 1팀이 4다.
+  # 켬/끔으로는 그 값을 받을 수가 없다. 여기서 같은 5단계를 넣는다.
+  #
+  # ⚠ 지켜야 하는 것 — **3단계가 옛 '켬'과 완전히 같아야 한다.**
+  #   이미 나눠 가진 51자 코드는 역습을 1비트로 담고 있어 해독하면 3(켬) 또는 0(끔)이 된다.
+  #   3단계가 옛 켬과 한 글자라도 다르면 그 코드들이 조용히 다른 경기를 낸다.
+  #   그래서 계수는 원본 신판의 새 상수(0.22 등)를 따라가지 않고, **여기 있는 값을 그대로 두고**
+  #   w = 레벨/3 으로 재기만 한다. 레벨 3 → w=1.0 → 지금 식 그대로. 레벨 0 → w=0 → 꺼진 것 그대로.
+  #   레벨 4 는 w=1.333 로 지금보다 센 새 칸이다.
+  #
+  # ⚠ data/*.json 은 건드리지 않는다. tacDef.counter 는 false 로 두고 ctrLv 가 0 으로 읽는다 —
+  #   데이터 해시가 그대로여야 이미 나눠 가진 코드가 전부 살아 있다.
+  dict(
+    id="CTR-01",
+    kind="전술",
+    why="역습이 켬/끔이라 원본 신판의 0~4 단계를 받을 수 없다 — 5단계로 넓힌다",
+    count=1,
+    find=(
+      "function TAC(src){\n"
+      "  const raw=Object.assign({}, TAC_DEF, (src && src.tactic) ? src.tactic : (src||{}));\n"
+      "  const o={counter:!!raw.counter, formation:raw.formation, raw};\n"
+      "  for(const k of TAC_KEYS) o[k]=tacVal(raw[k]);\n"
+      "  return o;\n"
+      "}\n"
+    ),
+    repl=(
+      "/* [KMD26 CTR-01] 역습 강도 0~4.\n"
+      "   옛 값도 그대로 읽는다 — true(켬)=3, false(끔)=0, **미지정도 0**.\n"
+      "   ⚠ false 를 2 로 읽으면 안 된다. 역습을 안 쓰기로 한 옛 라인업이 보통 역습으로 뛰게 되어\n"
+      "     이미 나눠 가진 코드가 조용히 다른 경기를 낸다.\n"
+      "   ⚠ 미지정도 0 이다. 원본 신판은 미지정을 2 로 보지만 그건 그쪽 TAC_DEF 가 2 이기\n"
+      "     때문이고, 여기 TAC_DEF 는 false(끔)다. 2 로 두면 전술을 안 넘긴 경기가 달라진다.\n"
+      "   ⚠ src/codec/duelcode.js 의 ctrLevel 과 **같은 규칙**이어야 한다. */\n"
+      "function ctrLv(T){\n"
+      "  const v=T&&T.counter;\n"
+      "  if(v===true) return 3;\n"
+      "  if(v===false||v==null) return 0;\n"
+      "  return clamp(Math.round(+v)||0, 0, TAC_STEPS-1);\n"
+      "}\n"
+      "/* 엔진이 쓰는 계수 — **3단계가 1.0** 이라 옛 '켬'과 정확히 같다. 4단계만 그보다 세다. */\n"
+      "function ctrW(T){ return ctrLv(T)/3; }\n"
+      "function TAC(src){\n"
+      "  const raw=Object.assign({}, TAC_DEF, (src && src.tactic) ? src.tactic : (src||{}));\n"
+      "  const o={counter:ctrLv(raw), formation:raw.formation, raw};\n"
+      "  for(const k of TAC_KEYS) o[k]=tacVal(raw[k]);\n"
+      "  /* ⚠ counter 는 0~4 정수를 그대로 쓴다. TAC_KEYS 루프 안에 넣으면 tacVal 이\n"
+      "     0~2 스케일로 덮어써 5단계가 3단계로 뭉개진다(원본 신판 주석에도 '실측'으로 적혀 있다). */\n"
+      "  return o;\n"
+      "}\n"
+    ),
+  ),
+
+  dict(
+    id="CTR-02",
+    kind="전술",
+    why="전술 서명이 역습을 켬/끔으로만 봐서 단계를 바꿔도 같은 전술로 잡힌다",
+    count=1,
+    find="  return [T.formation,T.mentality,T.pass,T.tempo,T.press,T.line,T.width,T.tackle,T.longShot,T.counter?1:0].join(\"|\");\n",
+    repl="  return [T.formation,T.mentality,T.pass,T.tempo,T.press,T.line,T.width,T.tackle,T.longShot,T.counter].join(\"|\");\n",
+  ),
+
+  dict(
+    id="CTR-03",
+    kind="전술",
+    why="역습 창의 '앞을 보는 패스 선택'이 단계와 무관하게 언제나 같은 세기였다",
+    count=1,
+    find="  if(ctx.counter) opts.sort((x,y)=>(y.score+(y.forward||0)*0.65)-(x.score+(x.forward||0)*0.65));\n",
+    repl=(
+      "  /* [KMD26 CTR-03] 전진 가산을 역습 강도에 비례시킨다. ctx.counter 는 이제 0/1 이 아니라\n"
+      "     0~1.333 의 계수다(CTR-05). 3단계면 1.0 이라 아래 식은 예전과 한 글자도 다르지 않다. */\n"
+      "  if(ctx.counter) opts.sort((x,y)=>(y.score+(y.forward||0)*0.65*ctx.counter)-(x.score+(x.forward||0)*0.65*ctx.counter));\n"
+    ),
+  ),
+
+  dict(
+    id="CTR-04",
+    kind="전술",
+    why="스루패스 시도율·상한도 역습 단계를 따라야 한다",
+    count=1,
+    find=(
+      "                             * (ctx.counter?1.8:1), 0, ctx.counter?0.62:0.45) : 0;   // ⚡ 역습 창에는 찔러 본다\n"
+    ),
+    repl=(
+      "                             * (1+0.8*ctx.counter), 0, 0.45+0.17*ctx.counter) : 0;   // ⚡ 역습 창에는 찔러 본다\n"
+      "  /* [KMD26 CTR-04] 3단계(ctx.counter=1)면 1.8배·상한 0.62 로 예전과 같다. 0단계면 1배·0.45. */\n"
+    ),
+  ),
+
+  dict(
+    id="CTR-05",
+    kind="전술",
+    why="패스 선택에 넘기는 역습 표시가 0/1 이라 단계가 전달되지 않는다",
+    count=1,
+    find="                counter:this.counterOn(key)?1:0};   // ⚡ 역습 창 — 패스 선택이 앞을 본다\n",
+    repl="                counter:this.ctrWOn(key)};   // ⚡ 역습 창 — 앞을 보는 정도가 단계를 따른다 [KMD26 CTR-05]\n",
+  ),
+
+  dict(
+    id="CTR-06",
+    kind="전술",
+    why="몰고 갈 때 볼을 덜 쥐는 정도가 역습 단계를 따라야 한다",
+    count=1,
+    find="this.tempoK(key)*(this.counterOn(key)?0.55:1); return; } // 몰고 간다\n",
+    repl="this.tempoK(key)*(1-0.45*this.ctrWOn(key)); return; } // 몰고 간다 [KMD26 CTR-06]\n",
+  ),
+
+  dict(
+    id="CTR-07",
+    kind="전술",
+    why="역습 창의 세기를 꺼내 볼 방법이 없다 — 창에 계수를 실어 둔다",
+    count=1,
+    find="  counterOn(side){ return this._cw && this._cw.side===side && this.t<this._cw.until; }\n",
+    repl=(
+      "  counterOn(side){ return this._cw && this._cw.side===side && this.t<this._cw.until; }\n"
+      "  /* [KMD26 CTR-07] 역습 창이 열려 있으면 그 세기(0~1.333), 아니면 0.\n"
+      "     창을 열 때 계수를 함께 넣어 두므로(CTR-08) 여기서 팀 전술을 다시 읽지 않는다. */\n"
+      "  ctrWOn(side){ return (this._cw && this._cw.side===side && this.t<this._cw.until) ? (this._cw.w||1) : 0; }\n"
+    ),
+  ),
+
+  dict(
+    id="CTR-08",
+    kind="전술",
+    why="역습 창이 열리는 조건과 길이가 단계와 무관하게 고정이다",
+    count=1,
+    find="        this._cw = (T.counter && own<0.55) ? {side:a.side, until:this.t+7} : null;\n",
+    repl=(
+      "        /* [KMD26 CTR-08] 창 길이도 단계를 따른다. 3단계면 7초로 예전과 같다. */\n"
+      "        const _cwW=ctrW(T);\n"
+      "        this._cw = (_cwW>0 && own<0.55) ? {side:a.side, until:this.t+7*_cwW, w:_cwW} : null;\n"
+    ),
+  ),
+
+  dict(
+    id="CTR-09",
+    kind="전술",
+    why="볼 터치 후 지체하는 정도도 역습 단계를 따라야 한다",
+    count=1,
+    find="    b.hold=(1.8+RNG()*1.6)*TEMPO*this.tempoK(a.side)*(this.counterOn(a.side)?0.55:1);   // 볼 터치 후 다음 행동까지\n",
+    repl="    b.hold=(1.8+RNG()*1.6)*TEMPO*this.tempoK(a.side)*(1-0.45*this.ctrWOn(a.side));   // 볼 터치 후 다음 행동까지 [KMD26 CTR-09]\n",
+  ),
+
+  dict(
+    id="CTR-10",
+    kind="전술",
+    why="벤치가 경기 중에 켜고 끄는 역습이 아직 참/거짓이다 — 단계로 바꾼다(값은 같게)",
+    count=1,
+    find=(
+      "        want={mentality:4, line:4, press:4, tempo:4, counter:false};\n"
+    ),
+    repl=(
+      "        want={mentality:4, line:4, press:4, tempo:4, counter:0};   // [KMD26 CTR-10] false → 0\n"
+    ),
+  ),
+
+  dict(
+    id="CTR-11",
+    kind="전술",
+    why="같은 자리 — 잠글 때 켜던 역습을 3단계로 (옛 true 와 같은 세기)",
+    count=1,
+    find="        want={mentality:0, line:0, press:1, counter:true};\n",
+    repl="        want={mentality:0, line:0, press:1, counter:3};   // [KMD26 CTR-11] true → 3 (같은 세기)\n",
+  ),
+
+  dict(
+    id="CTR-12",
+    kind="전술",
+    why="같은 자리 — 한 골 차 리드에서 켜던 역습을 3단계로",
+    count=1,
+    find="        want={mentality:1, line:Math.max(0,(T.line||2)-1), counter:true};\n",
+    repl="        want={mentality:1, line:Math.max(0,(T.line||2)-1), counter:3};   // [KMD26 CTR-12] true → 3\n",
+  ),
+
 ]
 
 raw = io.open(SRC, encoding="utf-8").read()
