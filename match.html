@@ -390,9 +390,9 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=df176035ce";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=df176035ce";
-import { boardOn, listPlans, ago } from "./src/board/board.js?v=df176035ce";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=99f68914d4";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=99f68914d4";
+import { boardOn, listPlans, ago } from "./src/board/board.js?v=99f68914d4";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -872,7 +872,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=df176035ce", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=99f68914d4", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {

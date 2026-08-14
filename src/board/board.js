@@ -40,11 +40,14 @@ const COOLDOWN_MS = 60 * 1000;
 const LAST_KEY = "kmd26.board.last";
 
 function headers(extra) {
-  return Object.assign({
-    apikey: BOARD.KEY,
-    Authorization: "Bearer " + BOARD.KEY,
-    "Content-Type": "application/json",
-  }, extra || {});
+  const h = { apikey: BOARD.KEY, "Content-Type": "application/json" };
+  /* ⚠ 키가 두 종류다.
+       옛 `anon` 키   — JWT(`eyJ…`) 라 Authorization: Bearer 로도 보낼 수 있다
+       새 `publishable` 키(`sb_publishable_…`) — JWT 가 **아니다.** Bearer 로 보내면
+         PostgREST 가 토큰을 해독하려다 거부한다. apikey 헤더만 보내야 한다.
+     둘 다 받도록 생김새를 보고 정한다. */
+  if (/^eyJ/.test(BOARD.KEY)) h.Authorization = "Bearer " + BOARD.KEY;
+  return Object.assign(h, extra || {});
 }
 
 /** 남이 올린 라인업 목록 — 새것부터 */

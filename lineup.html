@@ -386,9 +386,9 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=df176035ce";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=df176035ce";
-import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=df176035ce";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=99f68914d4";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=99f68914d4";
+import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=99f68914d4";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
