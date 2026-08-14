@@ -31,7 +31,8 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = ["index.html", "lineup.html", "match.html", "board.html", "record.html", "squad.html",
          # KM26 갈래 — 세이브에서 가져온 명단으로 붙는 화면들
-         "km-lineup.html", "km-board.html", "km-record.html"]
+         # ⚠ km-board.html 은 왼쪽 바에 없지만(라인업 안으로 들어갔다) 직접 주소로 열리므로 함께 찍는다
+         "km-lineup.html", "km-match.html", "km-record.html", "km-board.html"]
 
 # 도장을 찍을 자리 — 상대 주소로 끝나는 .js 만 (남의 서버 주소는 건드리지 않는다)
 PATTERNS = [

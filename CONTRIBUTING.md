@@ -137,10 +137,15 @@ export const DATA_COMPAT = [
 
 ```bash
 python tools/stamp_version.py
-cd tools/jscheck   && go run . ../../src ../../index.html ../../lineup.html ../../match.html ../../board.html ../../record.html ../../squad.html
+cd tools/jscheck   && go run . ../../src ../../index.html ../../lineup.html ../../match.html ../../board.html ../../record.html ../../squad.html ../../km-lineup.html ../../km-match.html ../../km-record.html ../../km-board.html
 cd tools/codecheck && go run . -root ../..
 cd tools/realmatch && go run . -root ../.. -home ulsan -away jeonbuk -record
+# KM26 세이브 읽기 — 세이브 파일이 있을 때만 (저장소에 두지 않는다)
+cd tools/kmcheck   && go run . -root ../.. -save "<klm2026_*.json 경로>"
 ```
+
+> ⚠ **기준 지문**: `realmatch` 울산 vs 전북(전술 없음) = **`aaa6474d`**.
+> 커널을 건드렸으면 이 값이 그대로인지 반드시 확인하세요.
 
 | 도구 | 무엇을 보나 | 못 보는 것 |
 |---|---|---|
@@ -224,5 +229,26 @@ python -m http.server 8123
 - **README 와 공지글은 화면이 바뀌면 반드시 봅니다.** 화면 이름·버튼 이름·순서가
   바뀌었는데 안 고치면, 안내를 그대로 따라 한 사람이 없는 버튼을 찾게 됩니다.
   실제로 화면이 셋에서 다섯으로 늘 때까지 README 가 셋 기준이었던 적이 있습니다.
-- 새 화면(`*.html`)을 만들었으면 **왼쪽 바 링크**(모든 페이지)와
-  **`tools/stamp_version.py` 의 `PAGES`** 에도 넣으세요(2번).
+- 새 화면(`*.html`)을 만들었으면 **세 곳**에 넣으세요 — **왼쪽 바 링크**(모든 페이지) ·
+  **`tools/stamp_version.py` 의 `PAGES`** · **4번의 `jscheck` 명령**.
+  한 곳만 빠져도 조용히 지나갑니다(도장이 안 찍히거나 문법 검사가 그 파일을 건너뜁니다).
+
+## 8. 갈래가 둘입니다 — KM26 과 2026
+
+화면이 아홉 개인데 **두 갈래**로 나뉩니다. 고칠 때 어느 쪽인지 먼저 보세요.
+
+| | 2026 갈래 | KM26 갈래 |
+|---|---|---|
+| 명단 | `data/players.json` 고정 29팀 1,024명 | KM26 세이브에서 가져온 것 (사람마다 다름) |
+| 주고받는 것 | **51자 대전 코드** | **명단 팩**(약 15KB) — 코드에 담기지 않는다 |
+| 표 | `plans` · `matches` | `plans_km` · `matches_km` |
+| 시드 | `deriveSeed(코드A, 코드B)` | `deriveSeed(sigA, sigB)` — `planSig`+명단 해시 |
+| 화면 | `lineup` `board` `record` `match` | `km-lineup`(게시판 내장) `km-match` `km-record` |
+
+> ⚠ **KM26 갈래는 원정 쪽 선수 id 를 늘 옮깁니다**(`prepareSides` 의 `forceShift`).
+> 기본 명단은 id 가 리그 전체에서 유일하지만, 세이브에서 가져온 명단은 **세이브 안에서만**
+> 유일합니다. 다른 세이브끼리 붙이면 같은 번호가 서로 다른 선수일 수 있습니다.
+
+> ⚠ **`km-board.html` 은 왼쪽 바에 없습니다.** 게시판을 `km-lineup` 화면 안에 넣었기
+> 때문입니다(KM26 갈래는 코드 발급이 없어 "라인업 짜는 자리에서 올리고 고르는" 흐름이
+> 맞습니다). 파일은 남아 있고 직접 주소로 열립니다.
