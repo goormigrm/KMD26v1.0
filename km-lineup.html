@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMD26 · KM26 라인업</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#0b0f14;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;
+      --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341;--km:#b98cff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.6 'Segoe UI','Malgun Gothic',sans-serif}
+a{color:var(--acc);text-decoration:none}
+h1{font-size:18px;color:var(--km)}
+h2{font-size:14.5px;color:var(--gold);margin-bottom:7px}
+.sub{color:var(--sub);font-size:12.5px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:13px 14px;margin-bottom:12px}
+button{background:var(--bg3);color:var(--txt);border:1px solid var(--line);border-radius:8px;
+       padding:8px 12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+button:hover:not(:disabled){border-color:var(--acc)}
+button:disabled{opacity:.45;cursor:default}
+.big{background:var(--km);color:#1b0c33;border-color:var(--km);font-size:15px;padding:12px 16px;width:100%}
+.big:hover:not(:disabled){filter:brightness(1.08)}
+.go{background:var(--ok);color:#04260e;border-color:var(--ok);font-size:15px;padding:12px 16px;width:100%}
+.go:hover:not(:disabled){filter:brightness(1.08)}
+.note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
+      border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
+.note.km{border-left-color:var(--km)}
+.note.warn{border-left-color:var(--warn)}
+.note b{color:var(--txt)}
+code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);font-size:12px}
+.msg{margin-top:9px;font-size:13px;font-weight:700}
+.msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
+
+/* 세이브 불러오기 */
+.drop{border:2px dashed var(--line);border-radius:11px;padding:22px 14px;text-align:center;
+      cursor:pointer;background:var(--bg3)}
+.drop:hover,.drop.over{border-color:var(--km);background:#141021}
+.drop .t{font-size:15px;font-weight:800;color:var(--km)}
+.drop .s{font-size:12.5px;color:var(--sub);margin-top:4px}
+
+/* 안내 — 접었다 펴는 자세한 설명 */
+details{background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:0;margin-top:10px}
+details>summary{cursor:pointer;padding:10px 12px;font-weight:700;font-size:13px;color:var(--gold);
+      list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸ ";color:var(--sub)}
+details[open]>summary::before{content:"▾ "}
+details .body{padding:0 13px 12px;font-size:12.5px;color:var(--sub);line-height:1.75}
+details .body b{color:var(--txt)}
+details .body ol{margin:6px 0 6px 18px} details .body li{margin-bottom:5px}
+details .body table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+details .body th,details .body td{border:1px solid var(--line);padding:5px 7px;text-align:left}
+details .body th{background:var(--bg2);color:var(--txt)}
+
+/* 구단 칩 */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);
+      border-radius:9px;padding:7px 10px;cursor:pointer;font-size:13px;font-weight:700}
+.chip:hover{border-color:var(--km)}
+.chip.on{border-color:var(--km);background:#1a1330}
+.chip .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.chip .st{font-size:11px;color:var(--gold);font-variant-numeric:tabular-nums}
+
+/* 라인업 표 */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:820px){ .grid{grid-template-columns:1fr} }
+.slot{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:8px;
+      background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:6px 9px;margin-bottom:5px}
+.slot .p{font-weight:800;color:var(--gold);font-size:12px}
+.slot .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.slot .nm .po{color:var(--sub);font-weight:400;font-size:11.5px;margin-left:5px}
+.slot .r{font-size:11px;color:var(--sub);white-space:nowrap}
+.slot.empty .nm{color:var(--bad)}
+.slot:hover{border-color:var(--km);cursor:pointer}
+.fam{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+
+/* 선수 고르기 */
+.pick{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;z-index:1000;
+      align-items:center;justify-content:center;padding:14px}
+.pick.on{display:flex}
+.pick .box{background:var(--bg2);border:1px solid var(--line);border-radius:12px;width:100%;
+      max-width:520px;max-height:86vh;display:flex;flex-direction:column}
+.pick .hd{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+      align-items:center;gap:10px}
+.pick .hd b{color:var(--gold)}
+.pick .ls{overflow-y:auto;padding:8px}
+.pick .row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+      padding:8px 10px;border-radius:7px;cursor:pointer}
+.pick .row:hover{background:var(--bg3)}
+.pick .row.used{opacity:.45}
+.pick .row .st{color:var(--gold);font-size:11.5px;font-variant-numeric:tabular-nums}
+
+/* 전술 슬라이더 */
+.tac{background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.tac .lbl{font-size:12.5px;font-weight:700;color:var(--gold)}
+.tac .ctl{display:flex;align-items:center;gap:9px;margin-top:3px}
+.tac input[type=range]{flex:1;accent-color:var(--km)}
+.tac .val{min-width:74px;text-align:right;font-size:12px;font-weight:700}
+
+/* 슬롯 저장 */
+.slots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sv{background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:8px 10px;
+    font-size:12.5px;cursor:pointer;min-width:118px}
+.sv:hover{border-color:var(--km)}
+.sv .n{font-weight:800;color:var(--km)}
+.sv .d{color:var(--sub);font-size:11px}
+.sv.empty{opacity:.6}
+
+/* ── 왼쪽 바 (다른 화면과 같은 구조) ───────────────────────────── */
+#app{display:flex;min-height:100vh}
+#side{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+      padding:14px 10px;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
+#side h1{font-size:17px;color:var(--gold);margin-bottom:2px}
+#side .brand{font-size:11px;color:var(--sub);margin-bottom:14px}
+#navScroll{display:contents}
+.navbtn{display:block;width:100%;text-align:left;background:none;border:none;color:var(--txt);
+        padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;margin-bottom:2px;
+        text-decoration:none;font-weight:600}
+.navbtn:hover{background:var(--bg3)}
+.navbtn.on{background:var(--acc);color:#fff}
+.navbtn.km.on{background:var(--km);color:#1b0c33}
+.navbtn .k{display:block;font-size:11px;font-weight:400;opacity:.8}
+#mainWrap{flex:1;min-width:0}
+#pageMain{padding:20px 22px 60px;max-width:1100px}
+@media (max-width:820px){
+  #app{display:block}
+  #side{width:100%;height:auto;position:sticky;top:0;z-index:900;padding:8px 8px 0;
+        border-right:none;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.5);
+        display:grid;grid-template-columns:1fr;overflow:visible}
+  #side h1{font-size:15px;margin:0}
+  #side .brand{display:none}
+  /* 탭 줄 — 한 줄로 두고 옆으로 굴린다 (src/ui/navscroll.js 가 끌기·휠을 붙여 준다) */
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none;
+             -webkit-overflow-scrolling:touch;position:relative}
+  #navScroll.drag{cursor:grab}
+  #navScroll.grabbing{cursor:grabbing;user-select:none}
+  #side.hasmore::after{content:'';position:absolute;right:0;top:0;bottom:0;width:26px;
+       pointer-events:none;background:linear-gradient(90deg,#161b2200,#161b22)}
+  #navScroll::-webkit-scrollbar{display:none}
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
+          background:var(--bg3);border-radius:8px 8px 0 0;font-size:13px}
+  .navbtn .k{display:none}
+  #pageMain{padding:14px 12px 60px}
+}
+@media (max-width:760px){
+  body{font-size:13px}
+  h1{font-size:16px} .sub{font-size:11.5px}
+  #pageMain{padding:12px 10px 50px}
+  .card{padding:10px 11px;margin-bottom:9px}
+  button{padding:6px 9px;font-size:12px}
+  .slot{grid-template-columns:44px 1fr auto;padding:5px 7px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<nav id="side">
+  <h1>KMD26</h1>
+  <div class="brand">개리그 매니저 듀얼</div>
+  <div id="navScroll">
+    <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
+    <a class="navbtn" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
+    <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
+    <a class="navbtn" href="board.html">🗂 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
+    <a class="navbtn" href="record.html">🏛 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
+    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+    <a class="navbtn km on" href="km-lineup.html">🎮 KM26 라인업<span class="k">내 시즌 스쿼드 가져오기</span></a>
+    <a class="navbtn km" href="km-board.html">🧩 KM26 게시판<span class="k">가져온 명단끼리 붙기</span></a>
+    <a class="navbtn km" href="km-record.html">📜 KM26 기록실<span class="k">가져온 명단 경기 기록</span></a>
+  </div>
+</nav>
+<div id="mainWrap"><div id="pageMain">
+
+<div class="top">
+  <div><h1>KM26 라인업</h1>
+    <div class="sub" id="meta">내 개리그 매니저 시즌 스쿼드를 그대로 들고 와서 붙습니다</div></div>
+</div>
+
+<!-- ① 세이브 불러오기 ─────────────────────────────────────────── -->
+<div class="card">
+  <h2>① 개리그 매니저 세이브 파일을 불러옵니다</h2>
+  <div class="drop" id="drop">
+    <div class="t">📂 세이브 파일 고르기</div>
+    <div class="s"><code>klm2026_구단_2026_날짜.json</code> — 끌어다 놓아도 됩니다</div>
+  </div>
+  <input type="file" id="file" accept=".json,application/json" style="display:none">
+  <div class="msg" id="loadMsg"></div>
+
+  <details id="howto">
+    <summary>세이브 파일을 어떻게 만드나요? (처음이면 여기를 펴 보세요)</summary>
+    <div class="body">
+      <b>개리그 매니저(KM26)에서 파일을 하나 뽑아 오는 것</b>이 전부입니다.
+      KMD26 이 그 파일을 <b>읽기만</b> 하고, 원본 게임은 아무것도 바뀌지 않습니다.
+
+      <ol>
+        <li>개리그 매니저를 켜고 <b>평소 하던 시즌</b>을 불러옵니다.</li>
+        <li>메뉴에서 <b>💾 세이브파일 저장</b>을 누릅니다.
+          (세이브 관리 화면에 <code>💾 세이브파일 저장</code> / <code>📂 불러오기</code> 두 버튼이 있습니다.)</li>
+        <li><code>klm2026_안양_2026_20260814.json</code> 같은 파일이 <b>다운로드 폴더</b>에 떨어집니다.
+          크기는 보통 <b>1MB 안팎</b>입니다.</li>
+        <li>그 파일을 위 <b>📂 세이브 파일 고르기</b>에 넣습니다. 끝입니다.</li>
+      </ol>
+
+      <b>무엇이 넘어오나</b>
+      <table>
+        <tr><th>넘어옵니다</th><th>안 넘어옵니다</th></tr>
+        <tr>
+          <td>29개 구단 <b>전부</b>의 선수 명단과 능력치<br>
+              포메이션 · 손으로 정해 둔 자리<br>
+              슬라이더 여덟 개 + 역습 단계<br>
+              선수별 역할과 임무</td>
+          <td>선발 열한 명 <b>전부</b>는 아닙니다 (아래 참고)<br>
+              교체 명단 (원본이 저장하지 않습니다)<br>
+              계약 · 사기 · 부상 · 시즌 기록<br>
+              조건부 지시 (원본에 없는 기능입니다)</td>
+        </tr>
+      </table>
+
+      <b>왜 선발이 전부 안 오나요?</b><br>
+      개리그 매니저는 선발을 <b>저장해 두지 않고 경기 때마다 다시 고릅니다.</b>
+      세이브에 남는 것은 <b>감독이 손으로 옮겨 둔 자리</b>와 골키퍼뿐입니다.
+      실제로 4-2-3-1 열한 자리 중 <b>열 자리</b>가 살아 왔고 한 자리가 비었습니다.
+      비는 자리와 <b>교체 아홉 칸</b>은 여기서 자동으로 채운 뒤 <b>손으로 고치시면 됩니다.</b>
+
+      <b>내 팀이 아닌 구단도 되나요?</b><br>
+      됩니다. 세이브 하나에 <b>29개 구단이 전부</b> 들어 있어서, 그 시즌의 어느 팀이든
+      그대로 꺼내 쓸 수 있습니다. 이적으로 선수가 옮겨 다닌 것도 그 시즌 기준으로 반영됩니다.
+
+      <b>내 세이브가 남에게 가나요?</b><br>
+      아니요. 파일은 <b>이 브라우저 안에서만</b> 열립니다. 게시판에 올리는 것은 스스로
+      누를 때뿐이고, 그때도 올라가는 것은 <b>경기에 나올 스무 명</b>과 전술뿐입니다.
+      시즌 기록 · 재정 · 다른 구단 명단은 올라가지 않습니다.
+    </div>
+  </details>
+
+  <div class="note warn" id="engineNote" style="display:none">
+    <b>매치엔진은 KMD26 것을 씁니다.</b> 개리그 매니저 최신판이 아니라 이 게임이 쓰는 판으로
+    경기가 돌아갑니다. 그래서 <b>같은 라인업이라도 원본에서 돌린 결과와는 다를 수 있습니다.</b>
+    <br>원본 최신판에 있는 <code>크로스 빈도</code> 슬라이더는 이 엔진에 없어 넘어오지 않습니다.
+  </div>
+</div>
+
+<!-- ② 구단 고르기 ─────────────────────────────────────────────── -->
+<div class="card" id="teamCard" style="display:none">
+  <h2>② 어느 구단으로 붙을까요</h2>
+  <div class="sub" id="saveInfo"></div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<!-- ③ 라인업 ──────────────────────────────────────────────────── -->
+<div id="main" style="display:none">
+
+<div class="card">
+  <h2>③ 선발과 교체</h2>
+  <div class="sub" id="planNote"></div>
+  <div class="grid" style="margin-top:9px">
+    <div>
+      <div class="sub" style="margin-bottom:5px">선발 열한 명 — <b>자리를 누르면 바꿉니다</b></div>
+      <div id="xi"></div>
+    </div>
+    <div>
+      <div class="sub" style="margin-bottom:5px">교체 아홉 칸 — 순서가 곧 교체 순서입니다</div>
+      <div id="bench"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+    <button id="reAuto">↻ 자동 배치로 다시</button>
+    <button id="reSave">↩ 세이브가 정한 대로 되돌리기</button>
+    <select id="formation" style="background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+            border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"></select>
+  </div>
+</div>
+
+<div class="card">
+  <h2>④ 전술</h2>
+  <div class="sub">세이브에서 온 값이 이미 들어 있습니다. 그대로 써도 되고 여기서 고쳐도 됩니다.</div>
+  <div id="tacs" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <h2>⑤ 저장하고 붙기</h2>
+  <div class="sub">불러온 명단은 <b>이 브라우저에만</b> 남습니다. 슬롯을 누르면 그 자리에 저장합니다.</div>
+  <div class="slots" id="saveSlots"></div>
+  <div style="margin-top:11px">
+    <button class="go" id="post">🧩 KM26 게시판에 올리기</button>
+  </div>
+  <div class="msg" id="postMsg"></div>
+
+  <!-- 게시판에서 상대를 고르고 왔을 때 -->
+  <div id="awayBox" style="display:none;margin-top:11px">
+    <div class="note km" id="awayNote"></div>
+    <button class="big" id="play" style="margin-top:9px" disabled>⚔ 이 상대와 경기 시작</button>
+  </div>
+  <div class="note km">
+    <b>가져온 명단은 51자 대전 코드를 만들지 않습니다.</b> 선수와 능력치가 사람마다 달라
+    51자 안에 담을 수 없기 때문입니다. 대신 <b>명단을 통째로</b> 게시판에 올리고,
+    상대는 그 글을 골라서 붙습니다.
+    <br>그래서 <b>KM26 명단끼리만</b> 붙습니다 — 기본 명단(29개 구단 1,024명)과는 섞이지 않고,
+    기록도 <a href="km-record.html">KM26 기록실</a>에 따로 쌓입니다.
+  </div>
+</div>
+
+</div><!-- /main -->
+
+</div></div>
+</div>
+
+<!-- 선수 고르기 -->
+<div class="pick" id="pick">
+  <div class="box">
+    <div class="hd"><b id="pickTitle">선수 고르기</b><button id="pickClose">닫기</button></div>
+    <div class="ls" id="pickList"></div>
+  </div>
+</div>
+
+<script type="module">
+import { readSave, saveInfo, teamListOf, makePack, slimPack, checkPack, PACK_KIND }
+  from "./src/km26/kmsave.js?v=df04b34ebe";
+import { autoLineup, planSig } from "./src/engine/teams.js?v=df04b34ebe";
+import { kmBoardOn, kmPostPlan, myNick, rememberNick, NICK_MAX }
+  from "./src/board/kmboard.js?v=df04b34ebe";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* 전술 슬라이더 — 라인업 화면과 같은 눈금·같은 말이어야 한다.
+   ⚠ 두 화면이 다른 말을 쓰면 같은 값이 다른 전술처럼 보인다. */
+const SLIDER = {
+  pass:      { n: "패스 스타일", s: ["아주 짧게", "짧게", "보통", "길게", "아주 길게"] },
+  tempo:     { n: "템포", s: ["아주 느리게", "느리게", "보통", "빠르게", "아주 빠르게"] },
+  press:     { n: "압박 강도", s: ["압박 자제", "낮은 압박", "보통", "높은 압박", "극한 압박"] },
+  line:      { n: "수비 라인", s: ["아주 낮게", "낮게", "보통", "높게", "아주 높게"] },
+  width:     { n: "공격 폭", s: ["아주 좁게", "좁게", "보통", "넓게", "아주 넓게"] },
+  mentality: { n: "멘탈리티", s: ["매우 수비적", "수비적", "균형", "공격적", "매우 공격적"] },
+  tackle:    { n: "수비 강도", s: ["아주 신중하게", "신중하게", "보통", "거칠게", "아주 거칠게"] },
+  longShot:  { n: "중거리 슛", s: ["아주 자제", "자제", "보통", "적극", "아주 적극"] },
+  counter:   { n: "역습", s: ["안 함", "가끔", "보통", "적극", "극단적"] },
+};
+
+const SLOT_KEY = "kmd26.km26.slots";
+const SLOT_N = 5;
+
+let DB = null, T = null, META = null;      // 기본 데이터 (표·별점 기준)
+let G = null;                              // 불러온 세이브
+let pack = null;                           // 지금 만지고 있는 팩
+let baseNote = null;                       // 세이브가 무엇을 정해 줬는지
+let picking = null;                        // 지금 고르는 자리
+
+/* ── 시작 ───────────────────────────────────────────────────── */
+async function boot() {
+  try {
+    const m = await fetch("data/meta.json", { cache: "no-cache" }).then(r => r.json());
+    const v = "?v=" + m.dataHash;
+    const [teams] = await Promise.all([
+      fetch("data/teams.json" + v).then(r => r.json()),
+    ]);
+    META = m; T = teams.tables; DB = teams;
+  } catch (e) {
+    $("#loadMsg").className = "msg bad";
+    $("#loadMsg").textContent = "기본 데이터를 불러오지 못했습니다 — 새로고침해 보세요.";
+    return;
+  }
+  $("#formation").innerHTML = Object.keys(T.formation).sort()
+    .map(f => `<option>${f}</option>`).join("");
+
+  $("#drop").onclick = () => $("#file").click();
+  $("#file").onchange = e => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ""; };
+  const d = $("#drop");
+  d.ondragover = e => { e.preventDefault(); d.classList.add("over"); };
+  d.ondragleave = () => d.classList.remove("over");
+  d.ondrop = e => {
+    e.preventDefault(); d.classList.remove("over");
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) readFile(f);
+  };
+  $("#pickClose").onclick = () => $("#pick").classList.remove("on");
+  $("#pick").onclick = e => { if (e.target === $("#pick")) $("#pick").classList.remove("on"); };
+  $("#reAuto").onclick = () => rebuild(true);
+  $("#reSave").onclick = () => rebuild(false);
+  $("#formation").onchange = () => changeFormation($("#formation").value);
+  $("#post").onclick = post;
+  drawSlots();
+  if (!kmBoardOn()) $("#post").disabled = true;
+  showAway();
+}
+
+/* 게시판에서 "이 라인업과 붙기" 를 누르고 오면 그 글이 여기 실려 온다.
+   ⚠ 명단 팩이 15KB 라 주소에 담을 수 없어 sessionStorage 를 거친다.
+   ⚠ 경기를 실제로 돌리는 길은 아직 없다 — 아래 버튼이 꺼져 있는 이유다.
+     붙이려면 일꾼에게 두 명단을 함께 넘기고, **원정 쪽 선수 id 를 반드시
+     AWAY_ID_SHIFT 로 옮겨야 한다**(세이브가 다르면 같은 번호가 다른 선수다). */
+function showAway() {
+  const m = /[#&]away=(\d+)/.exec(location.hash || "");
+  if (!m) return;
+  let row = null;
+  try { row = JSON.parse(sessionStorage.getItem("kmd26.km26.away") || "null"); } catch (e) { /* 없으면 만다 */ }
+  if (!row || String(row.id) !== m[1]) return;
+  $("#awayBox").style.display = "";
+  $("#awayNote").innerHTML =
+    `상대로 <b>${esc(row.nick)}</b> 님의 <b>${esc(row.pack && row.pack.team ? row.pack.team.short : "")}</b> `
+    + `라인업을 가져왔습니다.<br><b>경기를 돌리는 기능은 아직 준비 중입니다</b> — `
+    + `지금은 명단을 불러오고 올리는 데까지 됩니다.`;
+}
+
+/* ── 세이브 읽기 ────────────────────────────────────────────── */
+function readFile(file) {
+  const msg = $("#loadMsg");
+  msg.className = "msg";
+  msg.textContent = `${file.name} 을 읽는 중… (${Math.round(file.size / 1024)}KB)`;
+  const fr = new FileReader();
+  fr.onload = () => {
+    const r = readSave(fr.result);
+    if (!r.ok) { msg.className = "msg bad"; msg.textContent = "✗ " + r.why; return; }
+    G = r.G;
+    const info = saveInfo(G);
+    msg.className = "msg ok";
+    msg.textContent = `✓ ${info.season} 시즌 · ${info.teamCount}개 구단 · ${info.playerCount}명을 읽었습니다.`;
+    $("#saveInfo").innerHTML = `${esc(info.season)} 시즌 · 구단 ${info.teamCount}개 · 선수 ${info.playerCount}명`
+      + (info.userTeamName ? ` · 내 구단 <b style="color:var(--km)">${esc(info.userTeamName)}</b>` : "");
+    $("#engineNote").style.display = "";
+    $("#howto").open = false;
+    drawTeams(info.userTeamId);
+    $("#teamCard").style.display = "";
+    $("#teamCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  fr.onerror = () => { msg.className = "msg bad"; msg.textContent = "✗ 파일을 읽지 못했습니다."; };
+  fr.readAsText(file);
+}
+
+function drawTeams(mine) {
+  const teams = teamListOf(G).slice().sort((a, b) =>
+    (a.id === mine ? -1 : b.id === mine ? 1 : 0) || (a.div || 1) - (b.div || 1));
+  $("#chips").innerHTML = teams.map(t => {
+    const n = (t.players || []).length;
+    return `<button class="chip" data-t="${esc(t.id)}"${n < 11 ? " disabled" : ""}>
+      <span class="dot" style="background:${esc(t.col || "#888")}"></span>
+      ${esc(t.short || t.id)}${t.id === mine ? " ⭐" : ""}
+      <span class="st">${n}명</span></button>`;
+  }).join("");
+  $("#chips").querySelectorAll("[data-t]").forEach(b => b.onclick = () => choose(b.dataset.t));
+}
+
+function choose(teamId) {
+  $("#chips").querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c.dataset.t === teamId));
+  const r = makePack(G, teamId, T, META, autoLineup);
+  if (!r.ok) { $("#loadMsg").className = "msg bad"; $("#loadMsg").textContent = "✗ " + r.why; return; }
+  pack = r.pack; baseNote = r.note;
+  $("#formation").value = pack.plan.formation;
+  $("#main").style.display = "";
+  drawAll();
+  $("#main").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* 자동으로 다시 짜거나, 세이브가 정한 대로 되돌린다 */
+function rebuild(auto) {
+  if (!pack) return;
+  const keep = pack.plan.formation;
+  const r = makePack(G, pack.team.id, T, META, autoLineup);
+  if (!r.ok) return;
+  pack = r.pack; baseNote = r.note;
+  if (auto) {
+    const lu = autoLineup(pack.squad, T, keep);
+    pack.plan.xi = lu.xi; pack.plan.bench = lu.bench;
+    baseNote = Object.assign({}, baseNote, { keptSlots: 0, autoXI: 11, benchFromSave: 0, benchAuto: 9 });
+  }
+  if (pack.plan.formation !== keep) changeFormation(keep); else drawAll();
+}
+
+function changeFormation(f) {
+  if (!pack || !T.formation[f]) return;
+  const slots = ["GK", ...T.formation[f].map(s => s[1])];
+  const old = pack.plan.xi;
+  const kept = {}, used = new Set();
+  // 같은 이름의 자리는 그대로 지킨다 — 포메이션을 바꿔도 짜 둔 것이 최대한 남는다
+  for (const s of slots) if (old[s] != null) { kept[s] = old[s]; used.add(old[s]); }
+  const rest = pack.squad.filter(p => !used.has(p.id) && !pack.plan.bench.includes(p.id));
+  const auto = autoLineup(rest, T, f);
+  for (const s of slots) if (kept[s] == null && auto.xi[s] != null) kept[s] = auto.xi[s];
+  pack.plan.formation = f;
+  pack.plan.tac.formation = f;
+  pack.plan.xi = kept;
+  drawAll();
+}
+
+/* ── 그리기 ─────────────────────────────────────────────────── */
+function drawAll() { drawNote(); drawXI(); drawBench(); drawTac(); }
+
+function drawNote() {
+  const n = baseNote || {};
+  const bits = [];
+  if (n.keptSlots) bits.push(`세이브가 정한 자리 <b>${n.keptSlots}곳</b>을 그대로 씁니다`);
+  if (n.autoXI) bits.push(`빈 자리 <b>${n.autoXI}곳</b>은 자동으로 채웠습니다`);
+  if (n.benchAuto) bits.push(`교체 <b>${n.benchAuto}칸</b>도 자동입니다 (원본이 저장하지 않습니다)`);
+  if (n.roleSkip) bits.push(`그 자리에서 못 맡는 역할 <b>${n.roleSkip}개</b>는 뺐습니다`);
+  $("#planNote").innerHTML = bits.join(" · ") || "세이브에서 그대로 가져왔습니다.";
+}
+
+const byId = id => pack.squad.find(p => p.id === id);
+const famOf = (p, slot) => (p && p.posFam && p.posFam[T.slotFam[slot]]) || 0;
+const famCol = v => v >= 90 ? "#3fb950" : v >= 70 ? "#84c14a" : v >= 45 ? "#d29922" :
+                    v >= 20 ? "#d2691e" : "#f85149";
+
+function slotRow(slot, id, kind, i) {
+  const p = byId(id);
+  const f = p ? famOf(p, slot) : 0;
+  const role = p && pack.plan.roles[p.id];
+  return `<div class="slot${p ? "" : " empty"}" data-k="${kind}" data-s="${esc(slot)}" data-i="${i}">
+    <span class="p">${esc(kind === "b" ? "교체 " + (i + 1) : slot)}</span>
+    <span class="nm">${p ? `<span class="fam" style="background:${famCol(f)}"></span>${esc(p.name)}
+      <span class="po">${esc(p.prefPos)} · ★${p.star}</span>` : "비어 있음"}</span>
+    <span class="r">${role ? esc(role.r + "/" + role.d) : ""}</span>
+  </div>`;
+}
+
+function drawXI() {
+  const slots = ["GK", ...T.formation[pack.plan.formation].map(s => s[1])];
+  $("#xi").innerHTML = slots.map((s, i) => slotRow(s, pack.plan.xi[s], "x", i)).join("");
+  bindRows("#xi");
+}
+function drawBench() {
+  $("#bench").innerHTML = pack.plan.bench.map((id, i) => slotRow("", id, "b", i)).join("");
+  bindRows("#bench");
+}
+function bindRows(sel) {
+  document.querySelectorAll(sel + " .slot").forEach(el => el.onclick = () =>
+    openPick(el.dataset.k, el.dataset.s, +el.dataset.i));
+}
+
+function drawTac() {
+  const keys = T.tacKeys.concat(["counter"]);
+  $("#tacs").innerHTML = keys.map(k => {
+    const d = SLIDER[k], v = pack.plan.tac[k] ?? 2;
+    return `<div class="tac">
+      <div class="lbl">${d.n}</div>
+      <div class="ctl">
+        <input type="range" min="0" max="4" step="1" value="${v}" data-k="${k}">
+        <div class="val" data-v="${k}">${d.s[v]}</div>
+      </div>
+    </div>`;
+  }).join("");
+  $("#tacs").querySelectorAll("input[type=range]").forEach(el => el.oninput = () => {
+    const k = el.dataset.k;
+    pack.plan.tac[k] = +el.value;
+    $(`[data-v="${k}"]`).textContent = SLIDER[k].s[+el.value];
+  });
+}
+
+/* ── 선수 고르기 ────────────────────────────────────────────── */
+function openPick(kind, slot, i) {
+  picking = { kind, slot, i };
+  const used = new Set(Object.values(pack.plan.xi).concat(pack.plan.bench).filter(v => v != null));
+  const cur = kind === "x" ? pack.plan.xi[slot] : pack.plan.bench[i];
+  const list = pack.squad.slice().sort((a, b) => {
+    if (kind === "x" && slot) return famOf(b, slot) - famOf(a, slot) || b.star - a.star;
+    return b.star - a.star;
+  });
+  $("#pickTitle").textContent = kind === "x" ? `${slot} 자리에 세울 선수` : `교체 ${i + 1}번`;
+  $("#pickList").innerHTML =
+    `<div class="row" data-p=""><span style="color:var(--bad)">— 비우기 —</span><span></span><span></span></div>` +
+    list.map(p => {
+      const f = kind === "x" && slot ? famOf(p, slot) : 0;
+      return `<div class="row${used.has(p.id) && p.id !== cur ? " used" : ""}" data-p="${p.id}">
+        <span>${kind === "x" && slot ? `<span class="fam" style="background:${famCol(f)}"></span>` : ""}${esc(p.name)}
+          <span style="color:var(--sub);font-size:11.5px"> ${esc(p.prefPos)} · ${p.no}번</span></span>
+        <span class="st">★${p.star}</span>
+        <span style="color:var(--sub);font-size:11.5px">${p.id === cur ? "지금" : used.has(p.id) ? "다른 자리" : ""}</span>
+      </div>`;
+    }).join("");
+  $("#pickList").querySelectorAll("[data-p]").forEach(r => r.onclick = () => putPlayer(r.dataset.p));
+  $("#pick").classList.add("on");
+}
+
+function putPlayer(pidStr) {
+  const pid = pidStr === "" ? null : +pidStr;
+  const { kind, slot, i } = picking;
+  if (pid != null) {
+    // 다른 자리에 있던 사람이면 그 자리를 비운다 — 같은 사람이 두 자리에 서면 경기가 안 된다
+    for (const s of Object.keys(pack.plan.xi)) if (pack.plan.xi[s] === pid) delete pack.plan.xi[s];
+    for (let k = 0; k < pack.plan.bench.length; k++) if (pack.plan.bench[k] === pid) pack.plan.bench[k] = null;
+  }
+  if (kind === "x") { if (pid == null) delete pack.plan.xi[slot]; else pack.plan.xi[slot] = pid; }
+  else pack.plan.bench[i] = pid;
+  $("#pick").classList.remove("on");
+  drawXI(); drawBench();
+}
+
+/* ── 저장 슬롯 ──────────────────────────────────────────────── */
+function readSlots() {
+  try { return JSON.parse(localStorage.getItem(SLOT_KEY) || "[]"); } catch (e) { return []; }
+}
+function drawSlots() {
+  const list = readSlots();
+  $("#saveSlots").innerHTML = Array.from({ length: SLOT_N }, (_, i) => {
+    const s = list[i];
+    return `<button class="sv${s ? "" : " empty"}" data-i="${i}">
+      <span class="n">${i + 1}. ${s ? esc(s.team) : "빈 칸"}</span>
+      <span class="d">${s ? esc(s.season + " · " + s.formation) : "여기에 저장"}</span>
+    </button>`;
+  }).join("");
+  $("#saveSlots").querySelectorAll("[data-i]").forEach(b => b.onclick = () => useSlot(+b.dataset.i));
+}
+function useSlot(i) {
+  const list = readSlots();
+  if (pack) {
+    // 라인업을 만지고 있으면 저장, 아니면 불러오기
+    list[i] = { team: pack.team.short, season: pack.season, formation: pack.plan.formation,
+                pack: slimPack(pack) };
+    try { localStorage.setItem(SLOT_KEY, JSON.stringify(list)); } catch (e) {
+      $("#postMsg").className = "msg bad";
+      $("#postMsg").textContent = "저장 공간이 모자랍니다 — 다른 슬롯을 지워 주세요.";
+      return;
+    }
+    drawSlots();
+    $("#postMsg").className = "msg ok";
+    $("#postMsg").textContent = `${i + 1}번 슬롯에 저장했습니다.`;
+  }
+}
+
+/* ── 게시판에 올리기 ────────────────────────────────────────── */
+async function post() {
+  if (!pack) return;
+  const bad = checkPack(pack, T);
+  if (bad) {
+    $("#postMsg").className = "msg bad";
+    $("#postMsg").textContent = "✗ " + bad;
+    return;
+  }
+  const nick = (prompt("게시판에 쓸 닉네임 (최대 " + NICK_MAX + "자)", myNick() || "") || "").trim();
+  if (!nick) return;
+  $("#post").disabled = true;
+  $("#postMsg").className = "msg";
+  $("#postMsg").textContent = "올리는 중…";
+  const r = await kmPostPlan({
+    nick, team: pack.team.short, season: pack.season,
+    sig: planSig(Object.assign({}, pack.plan, { id: pack.team.id })) + "|" + squadSig(pack),
+    pack: slimPack(pack),
+  });
+  $("#post").disabled = false;
+  if (r.ok) {
+    rememberNick(nick);
+    $("#postMsg").className = "msg ok";
+    $("#postMsg").textContent = r.dup
+      ? "이미 같은 라인업이 올라와 있습니다 — 새로 올리지 않았습니다."
+      : "✓ 올렸습니다. KM26 게시판에서 볼 수 있습니다.";
+  } else {
+    $("#postMsg").className = "msg bad";
+    $("#postMsg").textContent = "✗ " + r.why;
+  }
+}
+
+/* 명단 지문 — 같은 라인업이라도 **명단이 다르면 다른 글**이다.
+   선수 능력치가 사람마다 다르므로 라인업만으로는 같은 글인지 가릴 수 없다. */
+function squadSig(p) {
+  let h = 0x811c9dc5;
+  const put = s => { for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } };
+  for (const q of p.squad.slice().sort((a, b) => a.id - b.id)) {
+    put(q.id + ":" + q.name + ":" + q.ovr + ":");
+    for (const k of Object.keys(q.attr).sort()) put(k + q.attr[k]);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+boot();
+</script>
+<!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
+<script type="module">
+import { installNav } from "./src/ui/navscroll.js?v=df04b34ebe";
+installNav();
+</script>
+</body>
+</html>

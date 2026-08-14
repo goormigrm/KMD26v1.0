@@ -32,7 +32,7 @@
    ⚠ 이 파일은 커널을 부르지 않습니다 — 페이지에 올려도 무겁지 않습니다.
    ───────────────────────────────────────────────────────────── */
 
-import { ctrLevel } from "../codec/duelcode.js?v=be55ae9cff";
+import { ctrLevel } from "../codec/duelcode.js?v=df04b34ebe";
 
 /** KMD26 이 선수에게서 쓰는 값 — `tools/gendata` 의 playerKeep 과 같아야 한다 */
 export const PLAYER_KEEP = [
