@@ -97,6 +97,23 @@ button:disabled{opacity:.45;cursor:default}
 .hl.idle.open canvas{filter:none}
 .hl.idle.open .badge{color:var(--ok)}
 
+/* ── 지금 막 벌어진 일 (2D 바로 아래 한 줄) ────────────────────
+   KM26 은 필드 아래 자막 한 줄로 문자중계를 흘립니다. 아래 기록은 그대로 쌓아 두고,
+   여기는 **가장 새 줄 하나**만 크게 보여 줍니다 — 눈이 필드에 있는 동안
+   무슨 일이 벌어졌는지 아래까지 내려가 찾지 않아도 되게.
+   ⚠ 두 줄까지만 보이게 잘라 둡니다(line-clamp). 안 자르면 긴 해설에서 높이가 출렁여
+     바로 아래 재생 버튼이 밀립니다. */
+.tick{margin-top:8px;padding:9px 12px;background:var(--bg3);border:1px solid var(--line);
+     border-radius:9px;font-size:14px;line-height:1.5;min-height:62px;
+     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.tick .m{color:var(--gold);font-weight:800;font-variant-numeric:tabular-nums}
+.tick .tm{font-weight:800;font-size:12px;padding:1px 6px;border-radius:4px;background:#161b22}
+.tick .sub{color:var(--sub)}
+/* 바뀔 때 한 번 번쩍 — 안 그러면 글자만 조용히 갈려서 놓친다 */
+.tick.hit{animation:tickIn .45s ease-out}
+@keyframes tickIn{from{background:#1d2b3a;border-color:var(--acc)}
+                  to{background:var(--bg3);border-color:var(--line)}}
+
 /* ── 전술 게시판 ─────────────────────────────────────────────
    남이 남겨 둔 라인업 목록. 페이지를 옮기지 않고 이 자리에서 골라 바로 붙는다. */
 .bdlist{margin-top:7px;max-height:260px;overflow:auto;border:1px solid var(--line);
@@ -366,6 +383,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
       </div>
       <div class="cap" id="hlCap"></div>
     </div>
+    <!-- 2D 바로 아래 한 줄 — 지금 막 벌어진 일. 아래 기록은 그대로 쌓이고 여기는 가장 새 줄만. -->
+    <div class="tick" id="tick"></div>
     <div class="row" style="justify-content:space-between;margin-bottom:9px">
       <div class="row">
         <button id="play" class="pri">⏸ 일시정지</button>
@@ -865,6 +884,7 @@ function start() {
   $("#game").style.display = "";
   $("#result").style.display = "none";
   logSet(`<div class="ev info"><span class="m"></span><span class="x">경기를 준비하고 있습니다… (8초쯤 걸립니다)</span></div>`);
+  tickSay("경기를 준비하고 있습니다…");
   $("#score").textContent = "0 : 0";
   $("#clock").textContent = "계산 중";
   $("#prog").style.width = "0%";
@@ -882,7 +902,7 @@ function start() {
     R = e.data;
     paintTeams(R.home, R.away);
     minute = 0; idx = 0; held = null;
-    logSet("");
+    logSet(""); tickSay("킥오프");
     // 킥오프부터 관전 화면을 흘린다 — 장면이 하나도 없는 0:0 경기에서도 필드가 움직인다
     watchSec = 0; backToWatch();
     resume();
@@ -989,7 +1009,28 @@ function logBox() {
 }
 function logSet(html) { $("#log").innerHTML = `<div class="in">${html}</div>`; }
 
+/* ── 지금 막 벌어진 일 ─────────────────────────────────────────
+   push() 가 유일한 "공개" 지점이므로 여기만 붙들면 된다 —
+   붙들어 둔 골 해설(releaseHold)도 자동으로 제때 올라온다. */
+function tickSet(e) {
+  const el = $("#tick");
+  if (!el) return;
+  el.innerHTML = `${e.noTime ? "" : `<span class="m">${esc(String(e.min ?? ""))}'</span> `}${
+    e.t ? `<span class="tm" style="color:${esc(e.col || "#a9b4c0")}">${esc(e.t)}</span> ` : ""
+  }${esc(e.txt || "")}`;
+  el.classList.remove("hit");
+  void el.offsetWidth;               // 애니메이션을 처음부터 다시 돌리려면 한 번 비워야 한다
+  el.classList.add("hit");
+}
+
+/** 해설이 아닌 상태 한 줄 (준비 중 · 킥오프 · 경기 종료) */
+function tickSay(txt) {
+  const el = $("#tick");
+  if (el) { el.innerHTML = `<span class="sub">${esc(txt)}</span>`; el.classList.remove("hit"); }
+}
+
 function push(e) {
+  tickSet(e);
   const row = document.createElement("div");
   row.className = "ev " + (e.type || "txt");
   row.innerHTML = `<span class="m">${e.noTime ? "" : esc(String(e.min ?? "")) + "'"}</span>
@@ -1015,6 +1056,7 @@ function finish() {
   pause();
   releaseHold(null);          // 붙들어 둔 해설이 남아 있으면 여기서 반드시 푼다
   watchToEnd();               // 관전 화면은 마지막 장에서 멈추고 배지를 "경기 종료"로
+  tickSay("🏁 경기 종료 — 아래에 경기 기록과 팬 반응이 있습니다.");
   $("#clock").textContent = "경기 종료";
   $("#prog").style.width = "100%";
   $("#score").textContent = `${R.home.goals} : ${R.away.goals}`;
