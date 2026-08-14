@@ -37,12 +37,22 @@ a{color:var(--acc)}
 .lnk:hover{border-color:var(--acc)}
 .lnk b{color:var(--acc)}
 .lnk .d{display:block;color:var(--sub);font-size:12.5px;margin-top:2px}
-.step{display:flex;gap:11px;padding:9px 0;border-top:1px solid #21262d}
-.step:first-of-type{border-top:0}
-.step .n{width:24px;height:24px;flex:none;border-radius:50%;background:var(--ok);color:#04260e;
-     font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
-.step .t{font-size:13.5px}
-.step .t b{color:var(--txt)}
+/* ── 세 걸음 ──────────────────────────────────────────────────
+   첫 화면은 **5초 안에 읽혀야** 한다. 예전에는 네 단락짜리 설명과 흐름도가 있었는데,
+   게시판에서 처음 들어온 사람은 그걸 읽지 않고 그냥 닫는다.
+   "무엇을 하는 게임인가"는 세 줄이면 된다. 나머지는 라인업 화면이 알려 준다. */
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+@media (max-width:700px){ .how{grid-template-columns:1fr} }
+.how>div{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+.how .n{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--ok);
+     color:#04260e;font-size:12.5px;font-weight:800;align-items:center;justify-content:center;
+     margin-right:7px;vertical-align:1px}
+.how b{font-size:14.5px}
+.how .d{display:block;color:var(--sub);font-size:12.5px;margin-top:5px}
+/* 이 게임의 한 가지 특별한 점 — 여기만 눈에 걸리면 된다 */
+.hook{margin-top:14px;background:#12281a;border:1px solid #1f4a2b;border-left:3px solid var(--ok);
+     border-radius:10px;padding:13px 15px;font-size:13.5px}
+.hook b{color:var(--ok)}
 table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
 th{color:var(--sub);text-align:left;font-size:12.5px;padding:6px 8px;border-bottom:1px solid var(--line)}
 td{padding:6px 8px;border-bottom:1px solid #21262d}
@@ -101,61 +111,40 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 
 
 <h1>개리그 매니저 듀얼</h1>
-<div class="sub">사용자끼리 <b>전술로 대전</b>하는 축구 감독 게임. 서버가 없습니다.</div>
+<div class="sub">서버 없이 <b>링크만 주고받아</b> 사람과 전술로 붙는 K리그 감독 게임.
+  설치도 가입도 없습니다.</div>
 
 <!-- 첫 화면에서 할 일은 하나다 — 라인업을 짜는 것 -->
 <a class="go" href="lineup.html">⚽ 라인업 짜고 시작하기
-  <span class="s">구단 → 전술 → 선발 열한 명 → 경기</span></a>
+  <span class="s">K리그1·2 29개 구단 1,024명</span></a>
 
 <div class="gorow">
-  <a class="go alt" href="match.html">🤖 연습 경기부터</a>
+  <a class="go alt" href="match.html">🤖 연습부터 · 게시판에서 상대 고르기</a>
   <a class="go alt" href="squad.html">🔍 선수단 먼저 보기</a>
 </div>
 
-<div class="card">
-  <h2 style="margin-top:0">어떻게 하는 게임인가</h2>
-  <div class="step"><span class="n">1</span><span class="t">
-    <b>라인업을 짠다</b> — 구단을 고르고, 전술 슬라이더 여덟 개를 맞추고, 자리마다 선수를 세웁니다.
-    역할·임무와 <b>조건부 지시</b>("60분에 지고 있으면 총공세")까지 미리 적어 둡니다.</span></div>
-  <div class="step"><span class="n">2</span><span class="t">
-    <b>대전 코드를 건넨다</b> — 라인업 한 벌이 51자짜리 코드가 됩니다. 상대에게 코드나 링크를 주고,
-    상대 코드를 받습니다. 혼자 하고 싶으면 <b>연습 상대(AI)</b>와 붙어도 됩니다.</span></div>
-  <div class="step"><span class="n">3</span><span class="t">
-    <b>경기를 본다</b> — 90분을 해설로 따라가고, 결정적 장면은 2D로 봅니다. 골이 들어가면
-    득점자가 뜨고 곧바로 다시보기가 돌아갑니다. 끝나면 팬들이 떠듭니다.</span></div>
-  <div class="step"><span class="n">4</span><span class="t">
-    <b>결과 링크를 주고받는다</b> — 코드 두 개에서 시드가 나오므로, 같은 링크를 열면
-    <b>토씨 하나 안 틀리고 같은 경기</b>가 재생됩니다. 어느 쪽도 유리한 결과를 골라 보낼 수 없습니다.</span></div>
+<div class="how">
+  <div><span class="n">1</span><b>라인업을 짠다</b>
+    <span class="d">구단 · 전술 슬라이더 여덟 개 · 선발 열한 명.
+      "60분에 지고 있으면 총공세" 같은 지시도 미리 적어 둡니다.</span></div>
+  <div><span class="n">2</span><b>51자 코드를 건넨다</b>
+    <span class="d">라인업 한 벌이 코드 한 줄이 됩니다.
+      상대가 없으면 <b>전술 게시판</b>에서 고르거나 연습 AI 와 붙습니다.</span></div>
+  <div><span class="n">3</span><b>둘이 똑같은 90분을 본다</b>
+    <span class="d">해설 · 결정적 장면 2D · 경기 뒤 팬 반응.
+      결과 링크를 열면 상대도 같은 경기를 봅니다.</span></div>
 </div>
 
-<div class="card">
-<div class="flow">[A] 라인업을 짜고 → 대전 코드/링크를 게시판에 올린다
-[B] 링크를 열고 → 자기 라인업을 짜고 → 경기를 본다 → 결과 링크를 A에게
-[A] 결과 링크를 연다 → 토씨 하나 안 틀리고 똑같은 경기</div>
+<div class="hook">
+  <b>마음에 드는 결과를 골라 보낼 수 없습니다.</b>
+  경기의 씨앗이 <b>양쪽 코드에서 함께</b> 나오기 때문에, 내 코드를 확정하는 순간
+  상대 코드가 무엇이든 결과는 이미 정해져 있습니다. 서버가 없어도 조작이 안 되는 이유입니다.
 </div>
-
-<h2>무엇이 들어 있나</h2>
-
-<a class="lnk" href="lineup.html">
-  <b>라인업</b>
-  <span class="d">포메이션 12종 · 전술판 · 역할·임무 · 조건부 지시 · 저장 슬롯 10벌 · 대전 코드 발급.
-    선수 옆 <b>프로필</b>을 누르면 능력치를 그 자리에서 봅니다.</span>
-</a>
-
-<a class="lnk" href="match.html">
-  <b>경기</b>
-  <span class="d">해설 재생 · 결정적 장면 2D · 득점자 패널 · 골 다시보기 · 팬 반응.
-    상대는 <b>대전 코드</b>나 <b>연습 AI(3난이도)</b> 중에서 고릅니다.</span>
-</a>
-
-<a class="lnk" href="squad.html">
-  <b>선수단</b>
-  <span class="d">K리그1·2 29개 구단 1,024명. 능력치 40종 · 특성 · 포지션 능숙도.</span>
-</a>
 
 <footer>
-매치엔진은 <a href="https://github.com/KleagueM2026/KM26v2.0">KM26 v2.0</a> 에서 가져왔고, 원저작자의 사용 허락을 받았습니다.
-자세한 내용은 <a href="NOTICE.md">NOTICE</a> 를 보세요.<br>
+<a href="CHANGELOG.md">최근 업데이트 내역</a> ·
+매치엔진은 <a href="https://github.com/KleagueM2026/KM26v2.0">KM26 v2.0</a> 에서 가져왔고, 원저작자의 사용 허락을 받았습니다
+(<a href="NOTICE.md">NOTICE</a>).<br>
 비공식 팬 프로젝트입니다. 한국프로축구연맹 및 각 구단과 아무 관련이 없으며, 구단 엠블럼을 사용하지 않습니다.<br>
 소스: <a href="https://github.com/goormigrm/KMD26v1.0">github.com/goormigrm/KMD26v1.0</a>
 </footer>
