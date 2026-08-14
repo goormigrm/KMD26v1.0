@@ -22,8 +22,8 @@
 /* 여기 두 줄만 채우면 게시판이 켜집니다. 비어 있으면 화면에서 게시판이 통째로 숨습니다
    — 설정 전에도 게임은 그대로 돌아갑니다. */
 export const BOARD = {
-  URL: "",   // 예: https://abcdefghijkl.supabase.co
-  KEY: "",   // 예: eyJhbGciOi... (anon public)
+  URL: "https://duiarycgzctauyjhgoub.supabase.co",
+  KEY: "sb_publishable_DJzf5YcGm-QDYDxVcDEDeA_XSGupTL4",   // publishable (공개용)
 };
 
 /** 게시판을 쓸 수 있는 상태인가 */
