@@ -248,6 +248,7 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn on" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
+    <a class="navbtn" href="board.html">🗂 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
     <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
@@ -386,9 +387,9 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=58501eeef2";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=58501eeef2";
-import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=58501eeef2";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=074bd45315";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=074bd45315";
+import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=074bd45315";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

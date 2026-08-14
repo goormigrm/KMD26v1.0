@@ -107,6 +107,40 @@ async function readErr(r) {
   } catch (e) { return `서버 오류 (${r.status})`; }
 }
 
+/* ── 찾기 ──────────────────────────────────────────────────────
+   닉네임 · 구단 · 한 줄 소개를 한꺼번에 봅니다.
+
+   ⚠ **서버에 다시 묻지 않습니다.** 이미 받아 둔 목록을 그 자리에서 거릅니다 —
+     한 글자 칠 때마다 요청을 보내면 무료 티어를 그것만으로 다 씁니다.
+     그래서 한 글자("안")만 쳐도 바로 좁혀지고, 지웠다 다시 쳐도 기다림이 없습니다.
+
+   초성만 쳐도 찾습니다("ㅇㅇ" → 안양). 폰에서 구단 이름을 다 치는 사람은 없습니다. */
+const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+
+/** 한글을 첫 자음만 남긴 줄로 — 한글이 아닌 글자는 그대로 둔다 */
+export function chosung(s) {
+  let out = "";
+  for (const ch of String(s || "")) {
+    const c = ch.charCodeAt(0);
+    out += (c >= 0xac00 && c <= 0xd7a3) ? CHO[((c - 0xac00) / 588) | 0] : ch;
+  }
+  return out;
+}
+
+/** 이 줄이 찾는 말에 걸리는가 — 빈 말이면 전부 걸린다(거르지 않는다)
+    ⚠ 칸을 **하나로 이어 붙여** 찾으면 안 된다. 닉네임 "철수" + 구단 "안양" 을 이으면
+      "철수안양" 이 되어 있지도 않은 "수안" 이 걸린다. 칸마다 따로 본다. */
+export function matchQuery(row, q) {
+  const s = String(q || "").toLowerCase().replace(/\s+/g, "");
+  if (!s) return true;
+  // 초성만 친 경우에만 초성으로 견준다 — 안 그러면 "가"가 "각"에도 걸려 엉뚱하게 넓어진다
+  const cho = /^[ㄱ-ㅎ]+$/.test(s);
+  return [row && row.nick, row && row.team, row && row.note].some(v => {
+    const t = String(v || "").toLowerCase().replace(/\s+/g, "");
+    return t.includes(s) || (cho && chosung(t).includes(s));
+  });
+}
+
 /** "3분 전" 처럼 — 목록에 붙일 상대 시각 */
 export function ago(iso) {
   const t = Date.parse(iso);

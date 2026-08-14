@@ -75,27 +75,23 @@ button:disabled{opacity:.45;cursor:default}
      border-radius:6px;padding:5px 9px;font-size:12.5px;color:#e6ddc4}
 .ordlog b{color:var(--gold);font-variant-numeric:tabular-nums}
 
-/* ── 2D 하이라이트 ─────────────────────────── */
+/* ── 2D 하이라이트 ─────────────────────────────────────────────
+   ⚠ **필드 위에는 아무것도 덮지 않습니다.** 예전에는 왼쪽 위 이름표("12' 선방") · 아래 자막 ·
+     오른쪽 위 버튼 두 개가 캔버스에 얹혀 있었습니다. 두 가지가 문제였습니다 —
+     ① 이름표가 무슨 장면인지를 **공이 닿기도 전에** 알려 줘 김이 샜고,
+     ② 필드보다 그 글자들이 먼저 눈에 들어온다는 제보를 받았습니다.
+     지금 막 무슨 일이 벌어졌는지는 바로 아래 한 줄(.tick)이 말해 주고,
+     장면 조작(다시 보기 · 건너뛰기)은 아래 버튼 줄로 내렸습니다.
+     득점자 패널(.gp)만 남깁니다 — 그건 공이 골망에 꽂힌 **뒤에** 뜨므로 미리 알려 주지 않습니다. */
 .hl{position:relative;margin-bottom:12px}
 .hl canvas{width:100%;display:block;border-radius:10px;background:#0f2415;border:1px solid #24402a}
-.hl .cap{position:absolute;left:0;right:0;bottom:0;padding:7px 11px;font-size:13px;font-weight:700;
-     background:linear-gradient(0deg,#000c,#0000);border-radius:0 0 10px 10px}
-.hl .badge{position:absolute;top:8px;left:10px;background:#000a;border:1px solid #ffffff33;
-     border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:800}
-/* 리플레이 중임을 분명히 한다 — KM26 의 🎬 배지와 같은 자리 */
-.hl .badge.rep{border-color:var(--gold);color:var(--gold)}
-.hl .skip{position:absolute;top:8px;right:10px;display:flex;gap:5px}
-.hl .skip button{padding:3px 9px;font-size:11.5px;border-radius:6px}
 /* 결정적 장면이 아닌 동안 — 경기는 계속 흐르지만 눈여겨볼 대목은 아니라는 뜻.
    KM26 이 하이라이트 밖에서 캔버스를 어둡게 덮는 것과 같은 표시다(#pitch2d.dim). */
 .hl.idle canvas{filter:saturate(.62) brightness(.72)}
-.hl.idle .badge{color:#9fb0c0;font-weight:700}
-.hl.idle #hlSkip{display:none}     /* 관전 중에는 건너뛸 것이 없다 — 다시 보기만 남는다 */
 /* 경기 초반 정상 재생 구간(OPEN_MINUTES) — **빨리 감는 중이 아니다.**
    어둡게 덮는 표시는 "지금은 눈여겨볼 대목이 아니다"라는 뜻이므로 여기서는 걷어낸다.
    결정적 장면과 똑같이 밝게 본다. */
 .hl.idle.open canvas{filter:none}
-.hl.idle.open .badge{color:var(--ok)}
 
 /* ── 지금 막 벌어진 일 (2D 바로 아래 한 줄) ────────────────────
    KM26 은 필드 아래 자막 한 줄로 문자중계를 흘립니다. 아래 기록은 그대로 쌓아 두고,
@@ -118,6 +114,13 @@ button:disabled{opacity:.45;cursor:default}
    남이 남겨 둔 라인업 목록. 페이지를 옮기지 않고 이 자리에서 골라 바로 붙는다. */
 .bdlist{margin-top:7px;max-height:260px;overflow:auto;border:1px solid var(--line);
      border-radius:8px;background:var(--bg3)}
+/* 찾기 한 줄 — 목록을 불러온 뒤에만 뜬다 */
+.bdtools{display:flex;gap:6px;align-items:center;margin-top:7px}
+.bdtools input{flex:1;min-width:0;background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+     border-radius:7px;padding:6px 9px;font-size:12.5px;font-family:inherit}
+.bdtools input:focus{outline:none;border-color:var(--acc)}
+.bdtools .bdmore{flex:none;font-size:11.5px;font-weight:700;color:var(--sub)}
+.bdtools .bdmore:hover{color:var(--acc)}
 .bdrow{display:flex;align-items:center;gap:8px;padding:7px 9px;cursor:pointer;
      border-bottom:1px solid #1b2028;font-size:12.5px}
 .bdrow:last-child{border-bottom:0}
@@ -281,6 +284,57 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 .mycode input{flex:1;min-width:220px;background:var(--bg3);color:var(--gold);border:1px solid var(--line);
      border-radius:7px;padding:6px 9px;font-size:12.5px;font-family:monospace}
 .spdlb{color:var(--sub);font-size:11.5px;font-weight:700;margin-right:2px}
+
+/* ── 폰 화면 ───────────────────────────────────────────────────
+   2D 필드는 캔버스가 `width:100%` 라 화면 폭에 맞춰 **함께 줄어드는데**, 글자와 버튼은
+   데스크톱 크기 그대로였습니다. 그래서 폰에서는 필드보다 전광판·버튼·해설이 더 커 보여
+   화면이 어수선했습니다. 필드를 기준으로 나머지를 같은 비율로 함께 줄입니다.
+
+   ⚠ 이 블록은 스타일시트 **맨 아래**에 있어야 합니다 — 위쪽 `@media (max-width:820px)`
+     (왼쪽 바) 와 `(max-width:760px)` (전광판·대진) 규칙을 덮어써야 하기 때문입니다.
+   ⚠ 필드 캔버스(.hl canvas)는 건드리지 않습니다. 기준이 되는 쪽이라 그대로 둡니다. */
+@media (max-width:760px){
+  body{font-size:13px}
+  h1{font-size:16px} h3{font-size:13px} .sub{font-size:11.5px}
+  #pageMain{padding:12px 10px 50px}
+  .card{padding:10px 11px;margin-bottom:9px}
+  /* 전광판 — 점수만 크게 남기고 나머지를 줄인다 */
+  .board{padding:11px 10px;gap:8px}
+  .board .nm{font-size:13px}
+  .board .bar{width:5px;height:24px}
+  .score{font-size:23px;letter-spacing:0}
+  .clock{font-size:11px}
+  /* 버튼 줄 — 폰에서 두 줄로 접히므로 낱개를 작게 해 한 줄에 더 담는다 */
+  button,select{padding:6px 9px;font-size:12px;border-radius:7px}
+  .go{padding:12px 12px;font-size:14.5px} .go .s{font-size:11px}
+  .spd,#play,#skip,#again,#hlSkip,#hlReplay{padding:5px 8px;font-size:11.5px}
+  .scene button{padding:4px 7px;font-size:11px}
+  .scene .lb,.spdlb{font-size:10.5px}
+  /* 지금 막 벌어진 일 · 해설 */
+  .tick{font-size:12.5px;min-height:52px;padding:7px 10px}
+  .tick .tm{font-size:11px}
+  .log{height:230px}
+  .ev{font-size:12px;padding:3px 6px;gap:7px}
+  .ev .m{font-size:10.5px;min-width:26px}
+  .ev .tm{font-size:10.5px}
+  /* 대진 고르기 */
+  .sideBox{padding:9px 10px}
+  .sideBox .sh{font-size:12.5px} .sideBox .sh2{font-size:11px}
+  .chips{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
+  .chip{font-size:11.5px;padding:5px 6px}
+  textarea.cin{font-size:11.5px;min-height:46px}
+  .mycode{font-size:11.5px;padding:8px 10px}
+  .bdrow{font-size:11.5px;padding:6px 7px}
+  /* 경기 기록 · 반응 */
+  table{font-size:12px} td{padding:4px 6px} td.k{font-size:11px}
+  .note{font-size:11.5px;padding:7px 9px}
+  .rmsg{font-size:11.5px;padding:5px 8px}
+  .ordlog>div{font-size:11.5px}
+  .hlist{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+  .hlist button{font-size:11px;padding:5px 6px}
+  .hlist .k{font-size:10px}
+  .nav a{font-size:12px;padding:7px 11px}
+}
 </style>
 </head>
 <body>
@@ -292,6 +346,7 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn on" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
+    <a class="navbtn" href="board.html">🗂 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
     <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
@@ -333,7 +388,21 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
         <button class="tab" data-lg="k2">K리그2</button>
       </div>
       <div class="chips" id="awayTeams"></div>
-      <div class="sh2">라인업 · 상대</div>
+      <!-- 전술 게시판 — 상대가 접속해 있지 않아도 남겨 둔 라인업과 붙는다.
+           ⚠ 예전에는 "🔗 대전 코드 붙여넣기" 상자 **안에** 들어 있어서, 코드 칸을 먼저 골라야
+             보였다. 상대를 못 구한 사람이 가장 먼저 보아야 할 것이므로 라인업 목록보다 위로
+             올린다. 고르면 코드 칸으로 알아서 넘어간다.
+           board.js 가 아직 설정되지 않았으면 통째로 숨는다. -->
+      <div id="boardPick" style="display:none;margin-bottom:8px">
+        <button id="boardOpen" class="go code" style="padding:8px 10px;font-size:12.5px">
+          📋 전술 게시판에서 상대 고르기</button>
+        <div class="bdtools" id="boardTools" style="display:none">
+          <input id="boardQ" placeholder="닉네임 · 구단으로 찾기 (예: 안)" spellcheck="false">
+          <a class="bdmore" href="board.html">게시판 전체 보기 →</a>
+        </div>
+        <div id="boardList" class="bdlist" style="display:none"></div>
+      </div>
+      <div class="sh2" style="margin-top:0">라인업 · 상대</div>
       <div class="chips src" id="awaySrc"></div>
       <!-- 연습 상대의 전술 (어려움은 상성으로 자동) -->
       <div id="aiBox" style="display:none">
@@ -344,13 +413,6 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
         <div class="cl">상대가 준 코드를 여기에 붙여넣으세요 (Ctrl+V)</div>
         <textarea id="awayCode" class="cin" rows="2" spellcheck="false"
                   placeholder="KM26D1-…"></textarea>
-        <!-- 전술 게시판 — 상대가 접속해 있지 않아도 남겨 둔 라인업과 붙는다.
-             board.js 가 아직 설정되지 않았으면 통째로 숨는다. -->
-        <div id="boardPick" style="display:none;margin-top:7px">
-          <button id="boardOpen" class="go code" style="padding:7px 10px;font-size:12.5px">
-            📋 전술 게시판에서 고르기</button>
-          <div id="boardList" class="bdlist" style="display:none"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -373,15 +435,10 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
   </div>
 
   <div class="card" style="margin-top:12px">
+    <!-- 필드 위에는 아무것도 얹지 않습니다 (위 .hl 주석 참고) — 캔버스와 득점자 패널뿐. -->
     <div class="hl idle" id="hl" style="display:none">
       <canvas id="cv" width="700" height="440"></canvas>
       <div class="gp hidden" id="gp"></div>
-      <div class="badge" id="hlBadge"></div>
-      <div class="skip">
-        <button id="hlReplay" title="이 장면을 느리게 다시 봅니다">↺ 다시 보기</button>
-        <button id="hlSkip">건너뛰기 ✕</button>
-      </div>
-      <div class="cap" id="hlCap"></div>
     </div>
     <!-- 2D 바로 아래 한 줄 — 지금 막 벌어진 일. 아래 기록은 그대로 쌓이고 여기는 가장 새 줄만. -->
     <div class="tick" id="tick"></div>
@@ -393,6 +450,10 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
         <button class="spd" data-s="2">2배속</button>
         <button class="spd" data-s="4">4배속</button>
         <button id="skip">⏭ 끝까지</button>
+        <!-- 장면 조작 — 예전에는 필드 위 오른쪽 위에 얹혀 있었습니다. 필드를 가리지 않게 내렸습니다.
+             볼 것이 있을 때만 나타납니다(관전 중에는 건너뛸 장면이 없습니다). -->
+        <button id="hlReplay" style="display:none" title="방금 본 장면을 느리게 다시 봅니다">↺ 다시 보기</button>
+        <button id="hlSkip" style="display:none">⏩ 장면 건너뛰기</button>
       </div>
       <div class="scene">
         <span class="lb">장면</span>
@@ -409,9 +470,9 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=58501eeef2";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=58501eeef2";
-import { boardOn, listPlans, ago } from "./src/board/board.js?v=58501eeef2";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=074bd45315";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=074bd45315";
+import { boardOn, listPlans, ago, matchQuery } from "./src/board/board.js?v=074bd45315";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -503,9 +564,13 @@ async function boot() {
   $("#awayCode").oninput = describe;
   $("#boardOpen").onclick = () => {
     const box = $("#boardList");
-    if (box.style.display !== "none") { box.style.display = "none"; return; }   // 다시 누르면 접는다
+    if (box.style.display !== "none") {                    // 다시 누르면 접는다
+      box.style.display = "none"; $("#boardTools").style.display = "none"; return;
+    }
     openBoard();
   };
+  // 글자를 칠 때마다 그 자리에서 좁힌다 — 서버에 다시 묻지 않는다 (board.js matchQuery 주석)
+  $("#boardQ").oninput = drawBoardList;
 
   /* 링크로 들어온 경우 (설계서 4-1)
      #c=<코드>        상대가 건넨 초대 링크 — 그 팀을 원정에 앉힌다
@@ -514,12 +579,13 @@ async function boot() {
   if (mm) {
     $("#homePlan").value = "code"; $("#awayPlan").value = "code";
     $("#homeCode").value = mm.a; $("#awayCode").value = mm.b;
-    drawCodeRow();
+    drawCodeRow(); drawSrcChips("home"); drawSrcChips("away");
   } else {
     const cm = /[#&?]c=([^&#\s]+)/.exec(location.hash || location.search);
     if (cm) {
       $("#awayPlan").value = "code"; $("#awayCode").value = decodeURIComponent(cm[1]);
-      drawAiSel(); drawCodeRow();
+      // 칩의 선택 표시까지 맞춘다 — 게시판(board.html)에서 넘어오는 길이라 여기가 첫 화면이다
+      drawAiSel(); drawCodeRow(); drawSrcChips("away");
     }
   }
   describe();
@@ -694,7 +760,8 @@ function drawCodeRow() {
 
 /* ── 전술 게시판에서 고르기 ────────────────────────────────────
    목록에서 한 줄을 누르면 그 코드가 원정 칸에 그대로 들어간다 — 그 뒤는
-   손으로 붙여넣은 것과 똑같은 길을 탄다(검사·경기 시작까지). */
+   손으로 붙여넣은 것과 똑같은 길을 탄다(검사·경기 시작까지).
+   전체 목록·자세한 화면은 board.html 이 따로 있다. 여기는 그 자리에서 바로 붙기 위한 것이다. */
 let boardRows = null;
 
 async function openBoard() {
@@ -702,19 +769,37 @@ async function openBoard() {
   box.style.display = "";
   box.innerHTML = `<div class="bdempty">불러오는 중…</div>`;
   try {
-    boardRows = await listPlans(40);
+    boardRows = await listPlans(120);
   } catch (e) {
+    boardRows = null;
     box.innerHTML = `<div class="bdempty" style="color:var(--bad)">
       게시판을 불러오지 못했습니다 — ${esc(e.message)}</div>`;
     return;
   }
+  // 찾기 칸은 불러오고 나서 띄운다 — 목록이 없는데 찾기 칸만 있으면 이상하다
+  $("#boardTools").style.display = boardRows.length ? "" : "none";
+  drawBoardList();
+}
+
+/** 지금 찾는 말로 목록을 그린다 (받아 둔 것에서 거른다 — 서버에 다시 묻지 않는다) */
+function drawBoardList() {
+  const box = $("#boardList");
+  if (!boardRows) return;
   if (!boardRows.length) {
     box.innerHTML = `<div class="bdempty">아직 올라온 라인업이 없습니다.<br>
       <span class="sub">라인업 화면에서 코드를 발급하면 거기서 올릴 수 있습니다 —
       첫 번째가 되어 보세요.</span></div>`;
     return;
   }
-  box.innerHTML = boardRows.map((r, i) => `<div class="bdrow" data-b="${i}">
+  const q = $("#boardQ").value;
+  const hits = boardRows.map((r, i) => ({ r, i })).filter(x => matchQuery(x.r, q));
+  if (!hits.length) {
+    // 조사("울산 로")가 어색해지므로 찾는 말을 앞에 따로 세운다
+    box.innerHTML = `<div class="bdempty">찾는 말 <b>${esc(q)}</b> — 걸리는 라인업이 없습니다.
+      <br><span class="sub">닉네임이나 구단 이름의 일부를 넣어 보세요 — 초성도 됩니다.</span></div>`;
+    return;
+  }
+  box.innerHTML = hits.map(({ r, i }) => `<div class="bdrow" data-b="${i}">
     <span class="nk">${esc(r.nick || "")}</span>
     <span class="tm2">${esc(r.team || "")}</span>
     <span class="nt">${esc(r.note || "")}</span>
@@ -724,8 +809,13 @@ async function openBoard() {
     const r = boardRows[+el.dataset.b];
     const ta = $("#awayCode");
     ta.value = r.code;
+    /* 게시판은 라인업 목록보다 위에 있으므로, 여기서 고른 사람은 아직 "🔗 대전 코드
+       붙여넣기" 칸을 고르지 않았을 수 있다. 골라 준다 — 안 그러면 코드가 들어갔는데도
+       자동 라인업으로 경기가 시작된다. */
+    setSel("#awayPlan", "code");
     ta.dispatchEvent(new Event("input", { bubbles: true }));   // describe() 가 바로 검사한다
     box.style.display = "none";
+    $("#boardTools").style.display = "none";
   });
 }
 
@@ -892,7 +982,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=58501eeef2", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=074bd45315", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -961,7 +1051,7 @@ function tick() {
 
   // "90+3" 같은 추가시간 표기는 90 이후로 몰아서 푼다
   const minOf = e => (typeof e.min === "number" ? e.min : 90 + (parseInt(String(e.min).split("+")[1], 10) || 0));
-  let shown = false, big = null;
+  let shown = false;
   while (idx < R.events.length && minOf(R.events[idx]) <= minute) {
     const e = R.events[idx++];
     /* 골 해설이 2D 보다 먼저 나오면 어떻게 들어갔는지 보기도 전에 결과를 알게 된다.
@@ -971,12 +1061,10 @@ function tick() {
          뒷줄 하나만 먼저 나가도 점수가 올라가 버린다. */
     if (!held && e.type === "goal") {
       const hc = holdingClip(minOf(e));
-      if (hc) held = { c: hc, evs: [], cap: e.txt || "" };
+      if (hc) held = { c: hc, evs: [] };
     }
     if (held) { held.evs.push(e); continue; }
     push(e); shown = true;
-    // 골 해설이 있으면 그 문장을 장면 자막으로 쓴다
-    if (!big && (e.type === "goal" || e.type === "big")) big = e;
   }
   $("#clock").textContent = minute >= 90 ? `90+${minute - 90}분` : `${minute}분`;
   $("#prog").style.width = Math.min(100, minute / 90 * 100) + "%";
@@ -988,10 +1076,7 @@ function tick() {
   if (c) {
     c._seen = true;
     pause();                         // 장면을 보는 동안 시계는 멈춘다
-    // 해설을 붙들어 둔 장면이면 자막·배지도 결과를 감춘다 (releaseHold 가 되돌린다)
-    const quiet = !!(held && held.c === c);
-    playClip(c, quiet ? `${c.min}' 장면` : (big && big.txt ? big.txt : `${c.min}' ${kindLabel(c)}`),
-             () => { backToWatch(); resume(); }, quiet ? { quiet: true } : {});
+    playClip(c, () => { backToWatch(); resume(); });
     return;
   }
   if (idx >= R.events.length && minute >= 90) finish();
@@ -1098,8 +1183,7 @@ function finish() {
     ${drawReactions()}`;
 
   $("#result").querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
-    const c = R.clips[+b.dataset.c];
-    playClip(c, `${c.min}' ${kindLabel(c)}`, resumeWatch);
+    playClip(R.clips[+b.dataset.c], resumeWatch);
     $("#hl").scrollIntoView({ behavior: "smooth", block: "nearest" });
   });
   const cr = $("#copyRes");
@@ -1150,7 +1234,7 @@ let clipTimer = null, onClipEnd = null, lastClip = null;
    예전에는 그 분의 해설을 먼저 다 풀고 나서 장면을 틀었다. 그래서 "골!" 을 읽은 뒤에
    어떻게 들어갔는지를 보게 돼, 정작 볼거리인 2D 가 김이 새 버렸다.
    이제 골 줄부터는 붙들어 두었다가 공이 골망에 꽂히는 프레임에서 함께 푼다. */
-let held = null;      // {c: 붙들게 한 장면, evs: 붙든 해설들, cap: 골 자막}
+let held = null;      // {c: 붙들게 한 장면, evs: 붙든 해설들}
 
 /** 이 분의 골을 보여 줄 장면 — 없으면 붙들 이유가 없다 */
 function holdingClip(min) {
@@ -1171,11 +1255,6 @@ function releaseHold(c) {
   held = null;                       // push() 가 다시 붙들지 않도록 먼저 비운다
   for (const e of h.evs) push(e);
   $("#log").scrollTop = 0;
-  // 감춰 뒀던 자막·배지를 되돌린다
-  if (cur && cur.c === h.c) {
-    if (h.cap) $("#hlCap").textContent = h.cap;
-    $("#hlBadge").textContent = `${h.c.min}' ${kindLabel(h.c)}`;
-  }
 }
 
 /* 리플레이 — KM26 과 같은 규격입니다 (index.html 의 HL_REPLAY_*).
@@ -1278,19 +1357,16 @@ function isLight(hex) {
      그래서 관전 헤드는 언제나 `(지금 분 + 1) × 60초` 를 넘지 않습니다. */
 const WATCH_STRIDE = 73;               // replay.js 의 WATCH_STRIDE 와 같아야 한다
 let watchSec = 0, watchLast = 0, rafId = null, drawnSec = -1;
-let watchLabel = null;                 // backToWatch 가 받은 이름표 (없으면 구간을 보고 정한다)
 
 /** 초반 정상 재생 구간인가 — 빨리 감는 중이 아니므로 어둡게 덮지 않는다 */
 const inOpening = () => !!(R && R.watch && minute < OPEN_MINUTES);
 
-/** 관전 화면의 밝기·이름표를 지금 구간에 맞춘다 (분이 바뀔 때마다 부른다) */
+/** 관전 화면의 밝기를 지금 구간에 맞춘다 (분이 바뀔 때마다 부른다).
+    ⚠ 이름표는 없앴습니다 — 필드 위에 글자를 얹지 않습니다(.hl 주석). 밝기만 남깁니다. */
 function syncWatchLook() {
   const hl = $("#hl");
   if (!hl.classList.contains("idle")) return;   // 장면 재생 중이면 관여하지 않는다
-  const open = inOpening();
-  hl.classList.toggle("open", open);
-  $("#hlBadge").textContent = watchLabel ||
-    (open ? "▶ 경기 시작" : (R && R.watch ? "○ 경기 진행 중" : "킥오프"));
+  hl.classList.toggle("open", inOpening());
 }
 
 const watchCount = () => (R && R.watch ? (R.watch.length / WATCH_STRIDE) | 0 : 0);
@@ -1340,13 +1416,11 @@ function drawWatchAt(sec) {
 }
 
 /** 관전 화면으로 (돌아)간다 — 장면이 끝났거나 경기가 막 시작했을 때 */
-function backToWatch(label) {
+function backToWatch() {
   const hl = $("#hl");
   hl.style.display = ""; hl.classList.add("idle");
-  watchLabel = label || null;
-  syncWatchLook();                    // 밝기(.open)와 이름표를 지금 구간에 맞춘다
-  $("#hlBadge").classList.remove("rep");
-  $("#hlCap").textContent = "";
+  syncWatchLook();                    // 밝기(.open)를 지금 구간에 맞춘다
+  $("#hlSkip").style.display = "none";                     // 관전 중에는 건너뛸 장면이 없다
   $("#hlReplay").style.display = lastClip ? "" : "none";   // 본 장면이 있으면 다시 볼 수 있다
   drawnSec = -1;
   if (!rafId) { watchLast = 0; rafId = requestAnimationFrame(watchLoop); }
@@ -1354,7 +1428,7 @@ function backToWatch(label) {
 }
 
 /** 경기가 끝났다 — 관전 트랙 마지막 장에서 멈춘다 */
-function watchToEnd() { watchSec = 1e9; backToWatch("🏁 경기 종료"); }
+function watchToEnd() { watchSec = 1e9; backToWatch(); }
 
 /** 장면을 다 봤다 — 경기가 끝났으면 마지막 장으로, 아니면 그 자리에서 계속 흐른다 */
 const resumeWatch = () => (R && minute >= 90 ? watchToEnd() : backToWatch());
@@ -1383,27 +1457,25 @@ function watchLoop(now) {
 
 /**
  * 클립 한 편을 재생한다. 끝나면 done()
- * @param {object} o { replay:true } 면 느리게 돌리고 🎬 배지를 단다
+ * @param {object} o { replay:true } 면 느리게 돌린다
  *
+ * ⚠ 필드 위에는 자막도 이름표도 띄우지 않는다 — 무슨 장면인지 먼저 알려 주면 김이 샌다
+ *   (.hl 주석). 무슨 일이 벌어졌는지는 바로 아래 한 줄(.tick)이 제때 말해 준다.
  * ⚠ 재생 상태를 cur 에 들고 있는 이유: 배속을 바꿀 때 **보고 있던 장면의 남은 부분**부터
  *   새 간격으로 이어 돌려야 한다. 예전에는 장면 재생이 늘 40ms 고정이라, 장면이 스무 개쯤
  *   되는 경기에서는 전체 시간이 장면에 지배돼 1·2·4배속 차이가 느껴지지 않았다.
  */
 let cur = null;
 
-function playClip(c, caption, done, o = {}) {
+function playClip(c, done, o = {}) {
   stopClip();
   lastClip = c;
   $("#hl").style.display = "";
   $("#hl").classList.remove("idle");
-  /* quiet — 해설을 붙들어 둔 장면. 배지에 "골" 이라고 쓰면 자막을 감춰 봐야 소용이 없다
-     (KM26 도 재생 중에는 장면 종류를 띄우지 않는다 — startHighlight 주석). */
-  $("#hlBadge").textContent = o.replay ? "🎬 다시보기"
-    : (o.quiet ? `${c.min}'` : `${c.min}' ${kindLabel(c)}`);
-  $("#hlBadge").classList.toggle("rep", !!o.replay);
-  $("#hlCap").textContent = caption || "";
+  $("#hlSkip").style.display = "";           // 보는 중에만 건너뛸 것이 있다
+  $("#hlReplay").style.display = "none";     // 보는 중에 "다시 보기"는 말이 안 된다
   onClipEnd = done;
-  cur = { c, caption, done, replay: !!o.replay, frames: o.frames || c.frames, i: 0 };
+  cur = { c, done, replay: !!o.replay, frames: o.frames || c.frames, i: 0 };
   startClipTimer();
 }
 
@@ -1423,7 +1495,7 @@ function startClipTimer() {
       // 골은 KM26 처럼 한 번 더 — 골 순간을 가운데 두고 느리게. 리플레이는 되풀이하지 않는다.
       if (!replay && c.kind === "goal" && !isNoGoal(c)) {
         const rf = replayFrames(c);
-        if (rf) { playClip(c, "🎬 다시 보겠습니다.", done, { replay: true, frames: rf }); return; }
+        if (rf) { playClip(c, done, { replay: true, frames: rf }); return; }
       }
       hideGoalPanel();
       if (done) done();
@@ -1509,7 +1581,7 @@ $("#hlReplay").onclick = () => {
   const wasPlaying = playing;
   pause();
   const rf = lastClip.kind === "goal" ? replayFrames(lastClip) : null;
-  playClip(lastClip, "🎬 다시 보겠습니다.", () => { resumeWatch(); if (wasPlaying) resume(); },
+  playClip(lastClip, () => { resumeWatch(); if (wasPlaying) resume(); },
            { replay: true, frames: rf || lastClip.frames });
 };
 

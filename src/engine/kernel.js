@@ -25,7 +25,7 @@
    · [보류] WIDTH-01  크로스 판단 문턱이 팀 '폭'을 읽지 않는다 (수정안이 역효과라 보류)
    ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "./rng.js?v=58501eeef2";
+import { RNG } from "./rng.js?v=074bd45315";
 
 const R = (n)=>Math.floor(RNG()*n);
 

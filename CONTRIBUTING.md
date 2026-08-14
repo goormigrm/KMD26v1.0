@@ -72,7 +72,11 @@ python tools/patch_kernel.py src/engine/kernel.raw.js src/engine/kernel.js
 
 GitHub Pages 는 응답 헤더를 정할 수 없어서, 브라우저에게 "이 파일 바뀌었다"고 알릴 방법이
 **주소를 바꾸는 것**밖에 없습니다. `tools/stamp_version.py` 가 `src/**/*.js` 내용을 해시해
-모든 모듈 주소에 `?v=<해시>` 를 박습니다(25곳).
+모든 모듈 주소에 `?v=<해시>` 를 박습니다(2026-08-14 기준 29곳).
+
+> ⚠ **새 페이지를 만들었으면 `stamp_version.py` 의 `PAGES` 에 넣으세요.**
+> 안 넣으면 그 페이지만 옛 `?v=` 를 든 채로 배포돼, 다른 화면과 **다른 모듈**을 씁니다.
+> `board.html` 을 만들 때 실제로 한 번 빠뜨렸습니다.
 
 ```bash
 python tools/stamp_version.py
@@ -175,6 +179,8 @@ python -m http.server 8123
 
 `src/board/board.js` 위쪽 두 줄(`URL`·`KEY`)이 비어 있으면 **게시판이 통째로 숨습니다.**
 설정 전에도 게임은 그대로 돌아가므로, 켜지 않은 채로 배포해도 됩니다.
+붙는 자리는 두 군데입니다 — 경기 화면 원정 칸(그 자리에서 바로 붙기)과
+**`board.html`**(둘러보고 찾기). 둘 다 같은 `listPlans` 를 씁니다.
 
 - 켜는 절차와 SQL 은 [docs/전술게시판-설정.md](docs/전술게시판-설정.md) 에 있습니다.
 - ⛔ **`service_role` 키를 넣지 마세요.** 넣어야 하는 것은 `anon` `public` 입니다.
