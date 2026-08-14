@@ -91,6 +91,54 @@ details .body th{background:var(--bg2);color:var(--txt)}
 .pick .row.used{opacity:.45}
 .pick .row .st{color:var(--gold);font-size:11.5px;font-variant-numeric:tabular-nums}
 
+/* ── 전술판 — 기본 라인업 화면과 같은 "한 줄 5칸" 격자 ─────────────
+   KM26 을 하던 분들이 오는 화면이라 그 형태를 그대로 씁니다. */
+.pitch{position:relative;overflow:hidden;
+       background:linear-gradient(180deg,#14301c,#0f2415);border:1px solid #24402a;
+       border-radius:10px;padding:10px 8px}
+.pmark{position:absolute;inset:0;pointer-events:none}
+.pmark i{position:absolute;display:block;border:1.5px solid #ffffff1f}
+.pgrid{position:relative;display:grid;gap:5px}
+.prow5{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.cell{min-height:64px;border-radius:8px;display:flex;flex-direction:column;justify-content:center;
+      align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;
+      border:1px dashed #ffffff2e;color:#ffffff66;font-size:12px;font-weight:800;padding:4px}
+.cell.off{border-color:transparent;cursor:default}
+.cell.nf{border-style:dotted;border-color:#ffffff14;color:#ffffff2b;cursor:not-allowed}
+.cell.has{border:1px solid var(--line);background:#0b0f14cc;color:var(--txt);padding:5px 4px}
+.cell.sel{border-color:var(--km);box-shadow:0 0 0 2px #b98cff66}
+.cell .role{font-size:10.5px;font-weight:800;background:#161b22;border:1px solid var(--line);
+      border-radius:4px;padding:0 5px;margin-bottom:3px;white-space:nowrap;
+      max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.cell .who{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:700;
+      max-width:100%;overflow:hidden}
+.cell .who .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .fdot{width:8px;height:8px;border-radius:50%;flex:none}
+.cell .sl{font-size:10px;color:var(--sub);font-weight:800;margin-top:2px}
+@media (max-width:520px){ .cell{min-height:56px} .cell .who{font-size:12px} }
+
+/* 선수 목록 — 선발·교체에 없는 나머지 */
+.plist{display:flex;flex-direction:column;gap:4px;max-height:420px;overflow-y:auto;margin-top:6px}
+.prow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+      background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:6px 9px;
+      cursor:pointer;font-size:13px}
+.prow:hover{border-color:var(--km)}
+.prow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.prow .nm .po{color:var(--sub);font-weight:400;font-size:11.5px;margin-left:5px}
+.prow .st{color:var(--gold);font-size:11.5px;font-variant-numeric:tabular-nums}
+.prow .tag{font-size:10.5px;font-weight:800;border-radius:4px;padding:1px 6px;
+      background:var(--bg2);border:1px solid var(--line);color:var(--sub)}
+
+/* 조건부 지시 */
+.ord{display:grid;grid-template-columns:26px 1fr 18px 1fr;gap:6px;align-items:center;margin-bottom:5px}
+.ord .on{font-size:11.5px;font-weight:800;color:var(--sub);text-align:center}
+.ord .ar{color:var(--sub);text-align:center;font-size:12px}
+.ord select{width:100%;background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+      border-radius:7px;padding:7px 8px;font-family:inherit;font-size:12.5px}
+.ord select:focus{outline:none;border-color:var(--km)}
+@media (max-width:520px){ .ord{grid-template-columns:22px 1fr;row-gap:3px} .ord .ar{display:none}
+  .ord select{font-size:12px} }
+
 /* 전술 슬라이더 */
 .tac{background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
 .tac .lbl{font-size:12.5px;font-weight:700;color:var(--gold)}
@@ -241,45 +289,79 @@ details .body th{background:var(--bg2);color:var(--txt)}
   </div>
 </div>
 
-<!-- ② 구단 고르기 ─────────────────────────────────────────────── -->
+<!-- ② 내 구단 ─────────────────────────────────────────────────── -->
 <div class="card" id="teamCard" style="display:none">
-  <h2>② 어느 구단으로 붙을까요</h2>
+  <h2>② 내 구단</h2>
   <div class="sub" id="saveInfo"></div>
   <div class="chips" id="chips"></div>
+  <div class="note km">
+    <b>세이브에서 감독을 맡고 계신 구단으로만 붙습니다.</b> 다른 구단 명단은 보여 주지 않습니다 —
+    남의 팀 스쿼드까지 열어 보면 그 시즌을 굴리는 재미가 사라지기 때문입니다.
+  </div>
 </div>
 
-<!-- ③ 라인업 ──────────────────────────────────────────────────── -->
+<!-- ③ 전술판 ──────────────────────────────────────────────────── -->
 <div id="main" style="display:none">
 
 <div class="card">
-  <h2>③ 선발과 교체</h2>
+  <h2>③ 전술판</h2>
   <div class="sub" id="planNote"></div>
   <div class="grid" style="margin-top:9px">
     <div>
-      <div class="sub" style="margin-bottom:5px">선발 열한 명 — <b>자리를 누르면 바꿉니다</b></div>
-      <div id="xi"></div>
+      <div class="pitch">
+        <div class="pmark" aria-hidden="true">
+          <i style="left:22%;right:22%;top:0;height:13%"></i>
+          <i style="left:36%;right:36%;top:0;height:6%"></i>
+          <i style="left:22%;right:22%;bottom:0;height:13%"></i>
+          <i style="left:36%;right:36%;bottom:0;height:6%"></i>
+          <i style="left:0;right:0;top:50%;height:0"></i>
+        </div>
+        <div class="pgrid" id="pgrid"></div>
+      </div>
+      <div class="sub" style="margin-top:6px">
+        자리를 누르면 그 자리에 세울 선수를 고릅니다. 아래 <b>선수 목록</b>에서 눌러도 됩니다.
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+        <select id="formation" style="background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+                border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"></select>
+        <button id="reAuto">↻ 자동 배치</button>
+        <button id="reSave">↩ 세이브가 정한 대로</button>
+      </div>
     </div>
     <div>
-      <div class="sub" style="margin-bottom:5px">교체 아홉 칸 — 순서가 곧 교체 순서입니다</div>
+      <div class="sub" style="margin-bottom:5px">선발 열한 명</div>
+      <div id="xi"></div>
+      <div class="sub" style="margin:9px 0 5px">교체 아홉 칸 — 순서가 곧 교체 순서입니다</div>
       <div id="bench"></div>
     </div>
-  </div>
-  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
-    <button id="reAuto">↻ 자동 배치로 다시</button>
-    <button id="reSave">↩ 세이브가 정한 대로 되돌리기</button>
-    <select id="formation" style="background:var(--bg3);color:var(--txt);border:1px solid var(--line);
-            border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"></select>
   </div>
 </div>
 
 <div class="card">
-  <h2>④ 전술</h2>
+  <h2>④ 선수 목록</h2>
+  <div class="sub" id="restNote">선발·교체에 없는 나머지 선수입니다. 누르면 어디에 세울지 고릅니다.</div>
+  <div class="plist" id="rest"></div>
+</div>
+
+<div class="card">
+  <h2>⑤ 조건부 지시</h2>
+  <div class="sub">경기 중에는 아무도 버튼을 못 누릅니다. <b>여기가 사실상 승부처입니다.</b>
+    여섯 칸까지 미리 적어 두면 그 상황이 오는 순간 저절로 발동합니다.</div>
+  <div id="orders" style="margin-top:8px"></div>
+  <div class="note">
+    개리그 매니저에는 없는 기능이라 <b>세이브에서 넘어오지 않습니다</b> — 여기서 새로 적으셔야 합니다.
+    조건이 볼 수 있는 것은 <b>경기 시각 · 득실차 · 내 퇴장 수</b> 셋뿐입니다.
+  </div>
+</div>
+
+<div class="card">
+  <h2>⑥ 전술</h2>
   <div class="sub">세이브에서 온 값이 이미 들어 있습니다. 그대로 써도 되고 여기서 고쳐도 됩니다.</div>
   <div id="tacs" style="margin-top:8px"></div>
 </div>
 
 <div class="card">
-  <h2>⑤ 저장하고 붙기</h2>
+  <h2>⑦ 저장하고 붙기</h2>
   <div class="sub">불러온 명단은 <b>이 브라우저에만</b> 남습니다. 슬롯을 누르면 그 자리에 저장합니다.</div>
   <div class="slots" id="saveSlots"></div>
   <div style="margin-top:11px">
@@ -316,10 +398,11 @@ details .body th{background:var(--bg2);color:var(--txt)}
 
 <script type="module">
 import { readSave, saveInfo, teamListOf, makePack, slimPack, checkPack, PACK_KIND }
-  from "./src/km26/kmsave.js?v=df04b34ebe";
-import { autoLineup, planSig } from "./src/engine/teams.js?v=df04b34ebe";
+  from "./src/km26/kmsave.js?v=0631260f6e";
+import { autoLineup, planSig } from "./src/engine/teams.js?v=0631260f6e";
+import { CONDS, ACTS, packOrder, unpackOrder } from "./src/engine/orders.js?v=0631260f6e";
 import { kmBoardOn, kmPostPlan, myNick, rememberNick, NICK_MAX }
-  from "./src/board/kmboard.js?v=df04b34ebe";
+  from "./src/board/kmboard.js?v=0631260f6e";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -375,8 +458,9 @@ async function boot() {
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) readFile(f);
   };
-  $("#pickClose").onclick = () => $("#pick").classList.remove("on");
-  $("#pick").onclick = e => { if (e.target === $("#pick")) $("#pick").classList.remove("on"); };
+  const closePick = () => { picking = null; $("#pick").classList.remove("on"); if (pack) drawPitch(); };
+  $("#pickClose").onclick = closePick;
+  $("#pick").onclick = e => { if (e.target === $("#pick")) closePick(); };
   $("#reAuto").onclick = () => rebuild(true);
   $("#reSave").onclick = () => rebuild(false);
   $("#formation").onchange = () => changeFormation($("#formation").value);
@@ -429,17 +513,25 @@ function readFile(file) {
   fr.readAsText(file);
 }
 
+/* 감독을 맡고 있는 구단 **하나만** 보여 준다.
+   ⚠ 예전에는 29개 구단을 다 펼쳤다. 남의 팀 스쿼드까지 열어 보면 그 시즌을 굴리는
+     재미가 사라진다는 것이 사용자 판단이다(2026-08-14). 세이브에는 29개 구단이
+     다 들어 있지만 **화면에는 내 팀만** 올린다. */
 function drawTeams(mine) {
-  const teams = teamListOf(G).slice().sort((a, b) =>
-    (a.id === mine ? -1 : b.id === mine ? 1 : 0) || (a.div || 1) - (b.div || 1));
-  $("#chips").innerHTML = teams.map(t => {
-    const n = (t.players || []).length;
-    return `<button class="chip" data-t="${esc(t.id)}"${n < 11 ? " disabled" : ""}>
-      <span class="dot" style="background:${esc(t.col || "#888")}"></span>
-      ${esc(t.short || t.id)}${t.id === mine ? " ⭐" : ""}
-      <span class="st">${n}명</span></button>`;
-  }).join("");
+  const teams = teamListOf(G);
+  const me = teams.find(t => t.id === mine) || null;
+  if (!me) {
+    $("#chips").innerHTML = "";
+    $("#loadMsg").className = "msg bad";
+    $("#loadMsg").textContent = "✗ 세이브에서 감독을 맡은 구단을 찾지 못했습니다.";
+    return;
+  }
+  const n = (me.players || []).length;
+  $("#chips").innerHTML = `<button class="chip on" data-t="${esc(me.id)}"${n < 11 ? " disabled" : ""}>
+      <span class="dot" style="background:${esc(me.col || "#888")}"></span>
+      ${esc(me.short || me.id)} ⭐<span class="st">${n}명</span></button>`;
   $("#chips").querySelectorAll("[data-t]").forEach(b => b.onclick = () => choose(b.dataset.t));
+  if (n >= 11) choose(me.id);        // 고를 것이 하나뿐이니 바로 연다
 }
 
 function choose(teamId) {
@@ -485,7 +577,90 @@ function changeFormation(f) {
 }
 
 /* ── 그리기 ─────────────────────────────────────────────────── */
-function drawAll() { drawNote(); drawXI(); drawBench(); drawTac(); }
+function drawAll() { drawNote(); drawPitch(); drawXI(); drawBench(); drawRest(); drawOrders(); drawTac(); }
+
+/* 위(공격)에서 아래(수비) 순서. 기본 라인업 화면·KM26 전술판과 같은 줄 순서다. */
+const ROW_ORDER = ["FW", "AM", "MF", "DM", "WB", "DF", "SW"];
+
+const formSlots = () => new Set(["GK", ...T.formation[pack.plan.formation].map(s => s[1])]);
+/** 어느 포메이션에서든 쓰이는 자리 — 아무도 안 쓰는 칸(SW)은 격자에서 지운다 */
+const USED_SLOTS = () => new Set([].concat(...Object.keys(T.formation)
+  .map(f => ["GK", ...T.formation[f].map(s => s[1])])));
+
+function roleOf(slot, pid) {
+  const g = T.roleGrp[slot];
+  const cur = pack.plan.roles[pid];
+  if (cur) {
+    const R = T.roles.find(r => r.k === cur.r);
+    if (R && R.grp.includes(g) && R.duty.includes(cur.d)) return { k: cur.r, duty: T.dutyN[cur.d] || cur.d };
+  }
+  const d = T.roleDef[g] || ["CM", "S"];
+  return { k: d[0], duty: T.dutyN[d[1]] || d[1] };
+}
+
+function drawPitch() {
+  const inForm = formSlots(), used = USED_SLOTS();
+  const rows = ROW_ORDER.map(r => T.rowSlots[r]).concat([[null, null, "GK", null, null]])
+    .map(cells => cells.map(s => (s && used.has(s) ? s : null)))
+    .filter(cells => cells.some(Boolean));
+  $("#pgrid").innerHTML = rows.map(cells => `<div class="prow5">${cells.map(slot => {
+    if (!slot) return `<div class="cell off"></div>`;
+    /* 지금 포메이션이 안 쓰는 자리 — 흐리게 두고 세울 수 없게 한다.
+       포메이션은 위 선택 상자에서 고른다(기본 라인업 화면과 같은 판단). */
+    if (!inForm.has(slot)) return `<div class="cell nf" title="${esc(pack.plan.formation)} 에는 없는 자리입니다">${esc(slot)}</div>`;
+    const pid = pack.plan.xi[slot], p = pid != null ? byId(pid) : null;
+    const on = picking && picking.kind === "x" && picking.slot === slot;
+    if (!p) return `<div class="cell${on ? " sel" : ""}" data-slot="${esc(slot)}">${esc(slot)}</div>`;
+    const f = famOf(p, slot), r = roleOf(slot, p.id);
+    return `<div class="cell has${on ? " sel" : ""}" data-slot="${esc(slot)}" title="${esc(slot)}">
+      <span class="role">${esc(r.k)} · ${esc(r.duty)}</span>
+      <span class="who"><span class="fdot" style="background:${famCol(f)}"></span>
+        <span class="nm">${esc(p.name)}</span></span>
+      <span class="sl">${esc(slot)}</span>
+    </div>`;
+  }).join("")}</div>`).join("");
+  $("#pgrid").querySelectorAll(".cell[data-slot]").forEach(el =>
+    el.onclick = () => openPick("x", el.dataset.slot, 0));
+}
+
+/** 선발·교체에 없는 나머지 — 여기서 눌러도 자리를 고를 수 있다 */
+function drawRest() {
+  const used = new Set(Object.values(pack.plan.xi).concat(pack.plan.bench).filter(v => v != null));
+  const rest = pack.squad.filter(p => !used.has(p.id))
+    .sort((a, b) => b.star - a.star || a.no - b.no);
+  $("#restNote").innerHTML = `선발·교체에 없는 <b>${rest.length}명</b>입니다. 누르면 어디에 세울지 고릅니다.`;
+  $("#rest").innerHTML = rest.map(p => `
+    <div class="prow" data-p="${p.id}">
+      <span class="nm">${esc(p.name)}<span class="po">${esc(p.prefPos)} · ${p.no}번</span></span>
+      <span class="tag">${esc(p.pos)}</span>
+      <span class="st">★${p.star}</span>
+    </div>`).join("") || `<div class="sub">남은 선수가 없습니다.</div>`;
+  $("#rest").querySelectorAll("[data-p]").forEach(el => el.onclick = () => openSlotPick(+el.dataset.p));
+}
+
+/* ── 조건부 지시 (여섯 칸) ──────────────────────────────────── */
+function drawOrders() {
+  const cond = pack.plan.cond;
+  $("#orders").innerHTML = cond.map((v, i) => {
+    const u = unpackOrder(v | 0);
+    return `<div class="ord">
+      <span class="on">${i + 1}</span>
+      <select data-oc="${i}">${CONDS.map(c =>
+        `<option value="${c.k}"${c.k === u.cond ? " selected" : ""}>${esc(c.n)}</option>`).join("")}</select>
+      <span class="ar">→</span>
+      <select data-oa="${i}">${ACTS.map(a =>
+        `<option value="${a.k}"${a.k === u.act ? " selected" : ""}>${esc(a.n)}</option>`).join("")}</select>
+    </div>`;
+  }).join("");
+  $("#orders").querySelectorAll("[data-oc]").forEach(s => s.onchange = () => {
+    const i = +s.dataset.oc;
+    pack.plan.cond[i] = packOrder(+s.value, unpackOrder(pack.plan.cond[i] | 0).act);
+  });
+  $("#orders").querySelectorAll("[data-oa]").forEach(s => s.onchange = () => {
+    const i = +s.dataset.oa;
+    pack.plan.cond[i] = packOrder(unpackOrder(pack.plan.cond[i] | 0).cond, +s.value);
+  });
+}
 
 function drawNote() {
   const n = baseNote || {};
@@ -570,6 +745,38 @@ function openPick(kind, slot, i) {
     }).join("");
   $("#pickList").querySelectorAll("[data-p]").forEach(r => r.onclick = () => putPlayer(r.dataset.p));
   $("#pick").classList.add("on");
+  drawPitch();               // 고르는 자리를 전술판에서도 짚어 준다
+}
+
+/** 선수 목록에서 사람을 먼저 고른 경우 — 어느 자리에 세울지 되묻는다 */
+function openSlotPick(pid) {
+  const p = byId(pid);
+  if (!p) return;
+  const slots = ["GK", ...T.formation[pack.plan.formation].map(s => s[1])];
+  $("#pickTitle").textContent = `${p.name} 을(를) 어디에 세울까요`;
+  $("#pickList").innerHTML = slots.map(s => {
+    const cur = pack.plan.xi[s], q = cur != null ? byId(cur) : null;
+    const f = famOf(p, s);
+    return `<div class="row" data-slot="${esc(s)}">
+      <span><span class="fam" style="background:${famCol(f)}"></span><b>${esc(s)}</b>
+        <span style="color:var(--sub);font-size:11.5px"> ${q ? "지금 " + esc(q.name) : "비어 있음"}</span></span>
+      <span class="st">능숙도 ${f}</span><span></span>
+    </div>`;
+  }).join("") + pack.plan.bench.map((id, i) => {
+    const q = id != null ? byId(id) : null;
+    return `<div class="row" data-bench="${i}">
+      <span><b>교체 ${i + 1}</b>
+        <span style="color:var(--sub);font-size:11.5px"> ${q ? "지금 " + esc(q.name) : "비어 있음"}</span></span>
+      <span></span><span></span>
+    </div>`;
+  }).join("");
+  $("#pickList").querySelectorAll("[data-slot]").forEach(r => r.onclick = () => {
+    picking = { kind: "x", slot: r.dataset.slot, i: 0 }; putPlayer(String(pid));
+  });
+  $("#pickList").querySelectorAll("[data-bench]").forEach(r => r.onclick = () => {
+    picking = { kind: "b", slot: "", i: +r.dataset.bench }; putPlayer(String(pid));
+  });
+  $("#pick").classList.add("on");
 }
 
 function putPlayer(pidStr) {
@@ -582,8 +789,9 @@ function putPlayer(pidStr) {
   }
   if (kind === "x") { if (pid == null) delete pack.plan.xi[slot]; else pack.plan.xi[slot] = pid; }
   else pack.plan.bench[i] = pid;
+  picking = null;
   $("#pick").classList.remove("on");
-  drawXI(); drawBench();
+  drawPitch(); drawXI(); drawBench(); drawRest();
 }
 
 /* ── 저장 슬롯 ──────────────────────────────────────────────── */
@@ -666,7 +874,7 @@ boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=df04b34ebe";
+import { installNav } from "./src/ui/navscroll.js?v=0631260f6e";
 installNav();
 </script>
 </body>

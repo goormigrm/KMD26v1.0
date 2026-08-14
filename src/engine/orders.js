@@ -14,7 +14,7 @@
    ⚠ 발동은 분 경계에서만 봅니다 — 커널 aiTacticCheck 를 붙인 자리와 같습니다.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim } from "./kernel.js?v=df04b34ebe";
+import { MatchSim } from "./kernel.js?v=0631260f6e";
 
 /* 조건 — 4비트(0~15). 0 은 "빈 칸"이라 쓰지 않습니다. */
 export const CONDS = [
@@ -41,13 +41,14 @@ export const CONDS = [
 export const ACTS = [
   { k: 0,  n: "(아무것도)",        apply: null },
   { k: 1,  n: "총공세",            say: "총공세로 나섭니다",
-    apply: (T) => ({ mentality: 4, line: 4, press: 4, tempo: 4, counter: false }) },
+    /* 역습은 0~4 단계다(예전에는 켬/끔). 옛 false = 0, 옛 true = 3 — 같은 세기다 */
+    apply: (T) => ({ mentality: 4, line: 4, press: 4, tempo: 4, counter: 0 }) },
   { k: 2,  n: "공격적으로",        say: "공격적으로 전환합니다",
     apply: (T) => ({ mentality: Math.min(4, num(T.mentality) + 1), line: Math.min(4, num(T.line) + 1) }) },
   { k: 3,  n: "잠근다",            say: "완전히 내려앉습니다",
-    apply: (T) => ({ mentality: 0, line: 0, press: 1, counter: true }) },
+    apply: (T) => ({ mentality: 0, line: 0, press: 1, counter: 3 }) },
   { k: 4,  n: "실리로",            say: "무게중심을 뒤로 옮깁니다",
-    apply: (T) => ({ mentality: Math.max(0, num(T.mentality) - 1), line: Math.max(0, num(T.line) - 1), counter: true }) },
+    apply: (T) => ({ mentality: Math.max(0, num(T.mentality) - 1), line: Math.max(0, num(T.line) - 1), counter: 3 }) },
   { k: 5,  n: "압박을 올린다",      say: "압박을 끌어올립니다",
     apply: (T) => ({ press: Math.min(4, num(T.press) + 2) }) },
   { k: 6,  n: "압박을 내린다",      say: "압박을 내려 체력을 아낍니다",
@@ -69,7 +70,8 @@ export const ACTS = [
   { k: 14, n: "카드를 아낀다",      say: "신중하게 수비합니다",
     apply: (T) => ({ tackle: Math.max(0, num(T.tackle) - 2) }) },
   { k: 15, n: "역습을 켠다",        say: "역습을 노립니다",
-    apply: (T) => ({ counter: true }) },
+    /* 옛 true 와 같은 세기(3단계). 더 세게 걸려면 라인업에서 미리 4로 둘 것 */
+    apply: (T) => ({ counter: 3 }) },
 ];
 
 const num = v => (typeof v === "number" ? v : 2);

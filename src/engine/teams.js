@@ -10,7 +10,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* 역습 단계(0~4) 판정은 코덱과 **한 곳**에서 온다 — 두 벌을 두면 반드시 어긋난다 */
-import { ctrLevel } from "../codec/duelcode.js?v=df04b34ebe";
+import { ctrLevel } from "../codec/duelcode.js?v=0631260f6e";
 
 /** 깊은 복사 — 능력치·능숙도까지 새 객체로 (JSON 데이터라 이걸로 충분합니다) */
 const clone = o => JSON.parse(JSON.stringify(o));
