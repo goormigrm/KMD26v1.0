@@ -93,6 +93,50 @@ h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
 .board .t.a{text-align:right}
 .board .sc{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
 .board .cl{font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+/* 90분 중 어디까지 왔나 — 2026 경기 화면과 같은 얇은 띠 */
+.bar2{height:3px;background:#0b0f1466;border-radius:2px;overflow:hidden;margin-top:6px;grid-column:1/-1}
+.bar2>i{display:block;height:100%;background:var(--km);width:0}
+
+/* ── 득점자 패널 ──────────────────────────────────────────────
+   필드 위에 얹는 **유일한** 덮개입니다. 공이 골망에 꽂힌 뒤에 뜨므로 미리 알려 주지
+   않습니다. 커널은 오프사이드·VAR 로 취소된 골에도 goal 표시를 붙이므로,
+   득점 기록에 없으면 NO GOAL 로 갈라 보여 줍니다. */
+.gp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;z-index:5}
+.gp.hidden{display:none}
+.gpBox{background:rgba(8,12,17,.88);border:2px solid var(--gpCol,var(--km));
+    border-left:10px solid var(--gpCol,var(--km));border-radius:12px;padding:14px 30px 13px;
+    text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.65);
+    animation:gpIn .32s cubic-bezier(.2,1.5,.4,1)}
+@keyframes gpIn{from{transform:scale(.72) translateY(10px);opacity:0}
+                to{transform:scale(1) translateY(0);opacity:1}}
+.gpTag{font-size:26px;font-weight:900;letter-spacing:4px;color:var(--gpCol,var(--km));
+    text-shadow:0 0 18px var(--gpCol,var(--km));line-height:1}
+.gpName{font-size:24px;font-weight:800;color:#fff;margin-top:6px;letter-spacing:.5px}
+.gpMeta{font-size:13px;color:#dbe3ea;margin-top:4px}
+.gpMeta b{color:var(--gold);font-size:15px}
+.gpAst{color:#7ee787;margin-left:4px;font-weight:700}
+.gpBox.off{border-color:var(--bad);border-left-color:var(--bad)}
+.gpName.strike{text-decoration:line-through;color:#ffb4ad}
+@media (max-width:760px){
+  .gpBox{padding:11px 20px 10px}
+  .gpTag{font-size:21px} .gpName{font-size:19px} .gpMeta{font-size:12px}
+}
+
+/* 대진 카드의 상대 고르기 */
+.fin{flex:1;min-width:170px;background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+     border-radius:9px;padding:9px 12px;font-size:14px;font-family:inherit}
+.fin:focus{outline:none;border-color:var(--km)}
+.prow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+      background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:7px 10px;
+      cursor:pointer;font-size:13px;margin-bottom:5px}
+.prow:hover{border-color:var(--km)}
+.prow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.prow .nm .po{color:var(--sub);font-weight:400;font-size:11.5px;margin-left:5px}
+.prow .tag{font-size:10.5px;font-weight:800;border-radius:4px;padding:1px 6px;
+      background:var(--bg2);border:1px solid var(--line);color:var(--sub)}
+.prow .st{color:var(--km);font-size:11.5px;font-weight:800;white-space:nowrap}
+.prow.on{border-color:var(--km);background:#1a1330}
 .ctrls{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .ctrls button{font-size:12.5px;padding:6px 10px}
 .ctrls button.on{border-color:var(--km);color:var(--km)}
@@ -167,20 +211,30 @@ h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
     <div class="sub">개리그 매니저에서 가져온 명단끼리 붙습니다</div></div>
 </div>
 
+<!-- ⚠ 카드 차례는 **2026 경기 화면과 같습니다** —
+     대진 → 2D·자막 → 문자 중계 → 경기 기록.
+     경기 기록이 2D 위에 있으면 다 보기도 전에 점수가 눈에 들어옵니다. -->
 <div class="card" id="setup">
   <h2>대진</h2>
   <div class="vs" id="vs"><div class="sub">준비 중…</div></div>
   <div class="note" id="how"></div>
+
+  <!-- 상대 고르기 — 게시판 화면으로 옮겨 가지 않고 여기서 고릅니다.
+       한 판 하고 나서 **다른 상대와 또 붙는** 길이 여기입니다(2026 의 "다시 대진 고르기"). -->
+  <div style="margin-top:11px">
+    <button id="oOpen">🧩 KM26 전술 게시판에서 상대 고르기</button>
+    <div id="oBox" style="display:none">
+      <div class="row" style="margin-top:9px">
+        <input id="oq" class="fin" placeholder="닉네임 · 구단 · 한 줄 소개로 찾기 (예: 안)"
+               spellcheck="false" autocomplete="off">
+        <button id="oload">↻ 새로고침</button>
+      </div>
+      <div id="oppo" style="margin-top:8px"></div>
+    </div>
+  </div>
+
   <button class="big" id="play" style="margin-top:11px" disabled>⚔ 경기 시작</button>
   <div class="msg" id="playMsg"></div>
-</div>
-
-<div class="card" id="resultCard" style="display:none">
-  <h2>경기 기록</h2>
-  <div class="vs" id="score"></div>
-  <table class="st" id="stats"></table>
-  <!-- 득점 · 주심 · 지문 · 조건부 지시 · 결과 링크 · 다시 보기 · 경기 뒤 반응 -->
-  <div id="resultMore"></div>
 </div>
 
 <div class="card" id="playCard" style="display:none">
@@ -188,10 +242,14 @@ h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
     <div class="t" id="bH"></div>
     <div><div class="sc" id="bS">0 : 0</div><div class="cl" id="bC" style="text-align:center">0'</div></div>
     <div class="t a" id="bA"></div>
+    <div class="bar2"><i id="prog"></i></div>
   </div>
   <div class="hl idle" id="hl">
     <span class="rep">● 리플레이</span>
     <canvas id="cv" width="700" height="440"></canvas>
+    <!-- 필드 위에 얹는 것은 이것 하나뿐입니다 — 공이 골망에 꽂힌 **뒤에** 뜨므로
+         무슨 장면인지 미리 알려 주지 않습니다(2026 경기 화면과 같은 판단). -->
+    <div class="gp hidden" id="gp"></div>
   </div>
   <div class="tick" id="tick">경기를 시작합니다.</div>
   <div class="ctrls">
@@ -200,12 +258,27 @@ h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
     <button class="sp" data-sp="2">2배</button>
     <button class="sp" data-sp="4">4배</button>
     <button id="skip">⏩ 끝까지</button>
+    <!-- 장면을 보는 중에만 나타납니다 — 관전 중에는 건너뛸 장면이 없습니다 -->
+    <button id="clipSkip" style="display:none">⏩ 장면 건너뛰기</button>
+    <span style="flex:1"></span>
+    <button id="again">↻ 다시 대진 고르기</button>
   </div>
 </div>
 
 <div class="card" id="evtCard" style="display:none">
   <h2>문자 중계</h2>
   <div id="evts"></div>
+</div>
+
+<div class="card" id="resultCard" style="display:none">
+  <h2>경기 기록</h2>
+  <div class="vs" id="score"></div>
+  <table class="st" id="stats"></table>
+  <!-- 득점 · 주심 · 지문 · 조건부 지시 · 결과 링크 · 다시 보기 · 경기 뒤 반응 -->
+  <div id="resultMore"></div>
+  <div class="row" style="margin-top:12px">
+    <button id="again2">↻ 다시 대진 고르기</button>
+  </div>
 </div>
 
 </div></div>
@@ -217,8 +290,8 @@ import { planSig } from "./src/engine/teams.js?v=38e22109f1";
 /* ⚠ deriveSeed 는 rng.js 에서 바로 가져온다 — duel.js 를 거치면 6천 줄짜리 커널이
      화면에 딸려 올라온다. 경기는 일꾼이 돌리므로 화면에는 커널이 필요 없다. */
 import { deriveSeed } from "./src/engine/rng.js?v=38e22109f1";
-import { kmPostMatch, kmPostPlan, getKmPack, findPlanId, kmBoardOn, myNick, rememberNick, NICK_MAX }
-  from "./src/board/kmboard.js?v=38e22109f1";
+import { kmPostMatch, kmPostPlan, getKmPack, findPlanId, listKmPlans, kmBoardOn,
+         myNick, rememberNick, NICK_MAX } from "./src/board/kmboard.js?v=38e22109f1";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -273,6 +346,10 @@ async function boot() {
     return;
   }
 
+  /* 대진 카드의 버튼은 **어느 길로 들어왔든** 걸어 둔다 — 결과 링크로 열어 본 뒤에도
+     "다른 상대와 붙어 볼까"가 되어야 한다. */
+  bindSetup();
+
   /* ── 결과 링크로 열린 경우 ────────────────────────────────────
      `#m=<내 글 번호>,<상대 글 번호>` 다. 51자 코드가 없는 갈래라 링크에 담는 것은
      **게시판 글 두 개**다. 그 둘이면 명단·전술이 그대로 나오므로 같은 경기를
@@ -315,20 +392,143 @@ async function boot() {
   hNick = myNick() || "나";
   aNick = (a && a.nick) || "상대";
 
+  window.__awayRow = a;
+  drawVs();
+  drawHow();
+  $("#play").onclick = play;
+}
+
+/** 지금 무엇이 모자란지 / 다 갖췄으면 얼마나 걸리는지 */
+function drawHow() {
   const need = [];
   if (!mine) need.push(`<a href="km-lineup.html">KM26 라인업</a>에서 세이브를 불러와 라인업을 짜고 <b>저장 슬롯에 저장</b>해 주세요`);
-  if (!away) need.push(`<a href="km-lineup.html">KM26 라인업</a>의 <b>전술 게시판</b>에서 상대를 골라 주세요`);
-
-  drawVs();
-
+  if (!away) need.push(`아래 <b>🧩 KM26 전술 게시판에서 상대 고르기</b>로 상대를 골라 주세요`);
   if (need.length) {
-    $("#how").innerHTML = "먼저 두 가지가 있어야 합니다.<br>· " + need.join("<br>· ");
+    $("#how").innerHTML = (need.length > 1 ? "먼저 두 가지가 있어야 합니다.<br>· " : "· ") + need.join("<br>· ");
+    $("#play").disabled = true;
+    if (mine && !away) openOppo();        // 상대만 없으면 고르는 칸을 바로 펴 준다
     return;
   }
   $("#how").innerHTML = `90분을 다 돌린 뒤 결과를 보여 주므로 <b>8초쯤</b> 걸립니다.`;
   $("#play").disabled = false;
-  $("#play").onclick = play;
-  window.__awayRow = a;
+}
+
+/* ── 상대 고르기 ───────────────────────────────────────────────
+   게시판 화면으로 옮겨 가지 않고 이 자리에서 고릅니다. **한 판 하고 나서 다른 상대와
+   또 붙는 길**이기도 합니다 — 2026 경기 화면의 "다시 대진 고르기"와 같은 자리입니다.
+   ⚠ 명단 팩이 15KB 라 주소에 담을 수 없어 세션 저장소를 거칩니다. */
+const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const choOf = t => { let o = ""; for (const ch of String(t || "")) { const c = ch.charCodeAt(0) - 0xac00;
+  o += (c >= 0 && c <= 11171) ? CHO[Math.floor(c / 588)] : ch; } return o; };
+
+let oppoRows = null;
+
+function openOppo() {
+  $("#oBox").style.display = "";
+  $("#oOpen").textContent = "🧩 상대 고르기 접기";
+  if (!oppoRows) loadOppo();
+}
+function toggleOppo() {
+  if ($("#oBox").style.display === "none") { openOppo(); return; }
+  $("#oBox").style.display = "none";
+  $("#oOpen").textContent = "🧩 KM26 전술 게시판에서 상대 고르기";
+}
+
+async function loadOppo() {
+  if (!kmBoardOn()) { $("#oppo").innerHTML = `<div class="sub">게시판이 아직 설정되지 않았습니다.</div>`; return; }
+  $("#oppo").innerHTML = `<div class="sub">불러오는 중…</div>`;
+  try {
+    oppoRows = await listKmPlans(60);
+    drawOppo();
+  } catch (e) {
+    $("#oppo").innerHTML = `<div class="sub">✗ ${esc(e.message || e)}</div>`;
+  }
+}
+
+function drawOppo() {
+  if (!oppoRows) return;
+  const q = $("#oq").value.trim();
+  const mineKey = mine ? keyOf(mine) : "";
+  const nowId = (window.__awayRow || {}).id;
+  const list = oppoRows.filter(r => {
+    if (r.sig && r.sig === mineKey) return false;     // 내 글은 상대가 될 수 없다
+    if (!q) return true;
+    const hay = (r.nick || "") + " " + (r.team || "") + " " + (r.note || "");
+    return hay.includes(q) || choOf(hay).includes(choOf(q));
+  });
+  if (!list.length) {
+    $("#oppo").innerHTML = `<div class="sub">${oppoRows.length
+      ? "찾는 라인업이 없습니다."
+      : `아직 올라온 라인업이 없습니다. <a href="km-lineup.html">KM26 라인업</a>에서 올려 보세요.`}</div>`;
+    return;
+  }
+  $("#oppo").innerHTML = list.map(r => `
+    <div class="prow${r.id === nowId ? " on" : ""}" data-o="${r.id}">
+      <span class="nm">${esc(r.nick)}<span class="po">${esc(r.team)}${r.season ? " · " + esc(r.season) : ""}</span></span>
+      <span class="tag">${esc(r.note || "")}</span>
+      <span class="st">${r.id === nowId ? "지금 상대" : "⚔ 붙기"}</span>
+    </div>`).join("");
+  $("#oppo").querySelectorAll("[data-o]").forEach(el => el.onclick = () => pickOppo(+el.dataset.o, el));
+}
+
+async function pickOppo(id, el) {
+  const cell = el.querySelector(".st");
+  const was = cell.textContent;
+  cell.textContent = "가져오는 중…";
+  try {
+    const row = await getKmPack(id);
+    sessionStorage.setItem(AWAY_KEY, JSON.stringify({ id: row.id, nick: row.nick, pack: row.pack }));
+    away = normPack(row.pack);
+    aNick = row.nick || "상대";
+    window.__awayRow = { id: row.id, nick: aNick };
+    /* 결과 링크로 열려 있었다면 그 해시를 지운다 — 안 지우면 새로고침 때
+       방금 고른 상대가 아니라 링크의 옛 대진이 다시 뜬다. */
+    if (location.hash) history.replaceState(null, "", location.pathname);
+    fromLink = false;
+    resetForNext();
+    drawVs(); drawHow(); drawOppo();
+    $("#setup").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    cell.textContent = was;
+    msg("bad", "✗ " + (e.message || e));
+  }
+}
+
+/* 다음 경기를 위해 지난 판의 흔적을 지운다 — 2026 의 "다시 대진 고르기"와 같은 자리다.
+   ⚠ `mine` 과 `myPlanId` 는 그대로 둔다. 내 라인업은 바뀌지 않았다. */
+function resetForNext() {
+  stopClock();
+  clipRun++;                     // 남아 있던 장면 재생을 끊는다 (아래 playClip 머리말 참고)
+  R = null; inClip = false; clipSkip = false; lastRecNote = "";
+  $("#pp").disabled = false; $("#skip").disabled = false;   // finish() 가 꺼 둔 것을 되살린다
+  hideGoalPanel();
+  $("#resultCard").style.display = "none";
+  $("#playCard").style.display = "none";
+  $("#evtCard").style.display = "none";
+  $("#resultMore").innerHTML = "";
+  $("#evts").innerHTML = "";
+  $("#prog").style.width = "0%";
+  $("#clipSkip").style.display = "none";
+  $("#hl").classList.remove("rep");
+  msg("", "");
+}
+
+/** 대진 카드의 버튼들 — 상대 고르기 · 찾기 · 다시 고르기 */
+function bindSetup() {
+  $("#oOpen").onclick = toggleOppo;
+  $("#oload").onclick = loadOppo;
+  $("#oq").oninput = drawOppo;
+  $("#again").onclick = again;
+  $("#again2").onclick = again;
+}
+
+/** "다시 대진 고르기" — 대진 카드로 올라가 상대 목록을 편다 */
+function again() {
+  resetForNext();
+  drawHow();
+  openOppo();
+  loadOppo();                 // 그 사이 새 라인업이 올라왔을 수 있다
+  $("#setup").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function drawVs() {
@@ -353,6 +553,7 @@ async function play() {
   if (sigH === sigA) return msg("bad", "✗ 양 팀의 선수·전술이 완전히 같습니다 — 한쪽을 바꿔 주세요.");
 
   $("#play").disabled = true;
+  lastRecNote = "";              // 지난 판의 기록실 알림을 물려받지 않는다
   msg("", "90분을 돌리는 중… (8초쯤 걸립니다)");
   if (!REACT) {
     try { REACT = await fetch("data/reactions.json?v=" + META.dataHash).then(r => r.json()); }
@@ -403,7 +604,8 @@ async function play() {
 const WATCH_STRIDE = 73;          // replay.js 의 WATCH_STRIDE 와 같아야 한다
 const OPEN_MINUTES = 3;           // 초반 몇 분은 빨리 감지 않는다
 const MIN_MS = 800;               // 1배속에서 한 분에 쓰는 시간
-let R = null, minute = 0, watchSec = 0, speed = 1, playing = false;
+let R = null, minute = 0, watchSec = 0, speed = 1, playing = false, clipSkip = false;
+let clipRun = 0;                 // 지금 돌고 있는 장면의 세대 (옛 장면을 끊는 데 쓴다)
 let timer = null, rafId = null, drawnSec = -1, clipIdx = 0, evIdx = 0, inClip = false;
 
 const isLight = hex => {
@@ -543,6 +745,7 @@ function tickMinute() {
   if (inClip) return;
   minute++;
   $("#bC").textContent = minute + "'";
+  $("#prog").style.width = Math.min(100, minute / 90 * 100) + "%";
   $("#hl").classList.toggle("open", minute < OPEN_MINUTES);
   flushEvents();
   const c = (R.clips || [])[clipIdx];
@@ -554,28 +757,72 @@ function tickMinute() {
   if (minute >= 90) { stopClock(); finish(); }
 }
 
-/** 결정적 장면 한 편 — 프레임을 그대로 돌린다. 그동안 시계는 멈춘다. */
+/** 결정적 장면 한 편 — 프레임을 그대로 돌린다. 그동안 시계는 멈춘다.
+    ⚠ 득점자 패널은 **공이 골망에 꽂히는 프레임(trig)** 에서 띄운다. 장면 처음에
+      띄우면 무슨 일이 벌어질지 미리 알려 주는 꼴이 된다(2026 화면과 같은 판단). */
 function playClip(c) {
   const fs = c.f || c.frames || [];
   if (!fs.length) return;
-  inClip = true;
+  /* 이 장면의 세대 번호. 다음 경기가 시작되거나 대진을 다시 고르면 번호가 올라가고,
+     아직 남아 있던 옛 장면의 setTimeout 은 **조용히 끊긴다.**
+     ⚠ 이게 없으면 판을 갈아엎은 뒤(`R = null`)에도 옛 장면이 한 번 더 깨어나
+       `drawFrame` 에서 넘어지고(TypeError: reading 'roster'), `inClip` 이 true 로
+       남아 **다음 경기의 시계가 영영 멈춘다.** 실제로 겪었다. */
+  const my = ++clipRun;
+  inClip = true; clipSkip = false;
   const hl = $("#hl");
   hl.classList.remove("idle");
   hl.classList.toggle("rep", !!c.replay);
+  hideGoalPanel();
+  $("#clipSkip").style.display = "";
+  const trig = c.trig != null ? c.trig : Math.floor(fs.length * 0.6);
+  const done = () => {
+    inClip = false; clipSkip = false;
+    hl.classList.add("idle"); hl.classList.remove("rep");
+    hl.classList.toggle("open", minute < OPEN_MINUTES);
+    $("#clipSkip").style.display = "none";
+    hideGoalPanel();
+    watchSec = Math.max(watchSec, fs[fs.length - 1].c || watchSec);
+  };
   let i = 0;
   const step = () => {
-    if (i >= fs.length) {
-      inClip = false;
-      hl.classList.add("idle"); hl.classList.remove("rep");
-      hl.classList.toggle("open", minute < OPEN_MINUTES);
-      watchSec = Math.max(watchSec, fs[fs.length - 1].c || watchSec);
-      return;
-    }
+    if (my !== clipRun || !R) return;          // 지난 판의 장면 — 여기서 조용히 끝낸다
+    if (clipSkip) { drawFrame(fs[fs.length - 1]); done(); return; }
+    if (i >= fs.length) { done(); return; }
     const f = fs[i++];
     drawFrame(f);
+    if (i === trig + 1 && c.kind === "goal") showGoalPanel(c);
     setTimeout(step, Math.max(16, 42 / speed));
   };
   step();
+}
+
+/* ── 득점자 패널 ──────────────────────────────────────────────
+   ⚠ 커널은 오프사이드·VAR 로 취소된 골에도 `goal` 을 붙인다. 득점 기록(goalLine)에
+     없으면 취소된 것이므로 **NO GOAL** 로 갈라 보여 준다 — 있지도 않은 득점을
+     알리지 않기 위해서다. */
+function showGoalPanel(c) {
+  const g = goalOf(c);
+  const team = c.side === "h" ? R.home : R.away;
+  const el = $("#gp");
+  el.style.setProperty("--gpCol", g ? (team.col || "#b98cff") : "#f85149");
+  el.innerHTML = g
+    ? `<div class="gpBox">
+         <div class="gpTag">GOAL!</div>
+         <div class="gpName">${esc(g.n || "득점")}</div>
+         <div class="gpMeta"><b>${c.min}'</b> · ${esc(team.short)}${
+           g.a ? `<span class="gpAst">도움 ${esc(g.a)}</span>` : ""}</div>
+       </div>`
+    : `<div class="gpBox off">
+         <div class="gpTag">NO GOAL</div>
+         <div class="gpName strike">${esc(team.short)}</div>
+         <div class="gpMeta"><b>${c.min}'</b> · 🚩 <b style="color:#ff7b72">득점 취소</b></div>
+       </div>`;
+  el.classList.remove("hidden");
+}
+function hideGoalPanel() {
+  const el = $("#gp");
+  if (el) { el.classList.add("hidden"); el.innerHTML = ""; }
 }
 
 /** 그 분까지의 문자중계를 흘린다 */
@@ -600,16 +847,24 @@ function flushEvents() {
 function finish() {
   minute = 90;
   $("#bC").textContent = "\uacbd\uae30 \uc885\ub8cc";
+  $("#prog").style.width = "100%";
+  $("#clipSkip").style.display = "none";
+  hideGoalPanel();
   flushEvents();
   $("#bS").textContent = `${R.home.goals} : ${R.away.goals}`;
+  /* \ub05d\ub09c \uacbd\uae30\uc5d0\uc11c \ub204\ub97c \uac83\uc774 \uc5c6\ub294 \ubc84\ud2bc\uc740 \uaebc \ub454\ub2e4 \u2014 \ub20c\ub7ec\ub3c4 \uc548 \uba39\ub294 \uac83\ucc98\ub7fc \ubcf4\uc774\uc9c0 \uc54a\uac8c.
+     \u26a0 "\ub2e4\uc2dc \ubcf4\uae30"\ub294 \uadf8\ub300\ub85c \ub418\uc5b4\uc57c \ud558\ubbc0\ub85c \ubc30\uc18d \ubc84\ud2bc\uc740 \uc0b4\ub824 \ub454\ub2e4. */
+  $("#pp").disabled = true; $("#skip").disabled = true;
+  $("#tick").innerHTML = `<b>\ud83c\udfc1 \uacbd\uae30 \uc885\ub8cc</b> \u2014 \uc544\ub798\uc5d0 \uacbd\uae30 \uae30\ub85d\uacfc \ud32c \ubc18\uc751\uc774 \uc788\uc2b5\ub2c8\ub2e4.`;
   $("#resultCard").style.display = "";
   $("#resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /** 결과가 도착하면 재생을 준비한다 */
 function startReplay(r) {
+  clipRun++;                     // 지난 판의 장면이 남아 있으면 여기서 끊는다
   R = r;
-  minute = 0; watchSec = 0; drawnSec = -1; clipIdx = 0; evIdx = 0; inClip = false;
+  minute = 0; watchSec = 0; drawnSec = -1; clipIdx = 0; evIdx = 0; inClip = false; clipSkip = false;
   $("#playCard").style.display = "";
   $("#evtCard").style.display = "";
   $("#evts").innerHTML = "";
@@ -617,10 +872,20 @@ function startReplay(r) {
   $("#bA").textContent = r.away.short;
   $("#bS").textContent = "0 : 0";
   $("#bC").textContent = "0'";
+  $("#prog").style.width = "0%";
+  $("#clipSkip").style.display = "none";
+  /* 지난 판이 끝나며 꺼 둔 버튼을 되살린다 — 같은 화면에서 두 번째 경기를 돌릴 수 있다 */
+  $("#pp").disabled = false; $("#skip").disabled = false;
+  hideGoalPanel();
   $("#hl").classList.add("idle", "open");
   drawFrame(r.form0 || null);
   $("#pp").onclick = () => (playing ? stopClock() : startClock());
-  $("#skip").onclick = () => { stopClock(); while (minute < 90) { minute++; flushEvents(); } finish(); };
+  $("#clipSkip").onclick = () => { clipSkip = true; };
+  $("#skip").onclick = () => {
+    clipSkip = true; stopClock();
+    while (minute < 90) { minute++; flushEvents(); }
+    finish();
+  };
   document.querySelectorAll(".sp").forEach(b => b.onclick = () => {
     speed = +b.dataset.sp;
     document.querySelectorAll(".sp").forEach(x => x.classList.toggle("on", x === b));
