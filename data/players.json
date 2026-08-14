@@ -2931,7 +2931,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "CM",
+   "prefPos": "GK",
    "star": 3.5,
    "traits": [
     "runsRarely",
@@ -8789,7 +8789,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "LB",
+   "prefPos": "GK",
    "star": 3.5,
    "traits": [
     "looksForPass",
@@ -37158,7 +37158,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "CM",
+   "prefPos": "GK",
    "star": 3.5,
    "traits": [
     "runsRarely",
@@ -46183,7 +46183,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "CM",
+   "prefPos": "GK",
    "star": 2.5,
    "traits": [],
    "w": 82
@@ -48857,7 +48857,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "ST",
+   "prefPos": "GK",
    "star": 2.5,
    "traits": [],
    "w": 75
@@ -51575,7 +51575,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "CM",
+   "prefPos": "GK",
    "star": 2,
    "traits": [],
    "w": 76
@@ -51767,7 +51767,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "ST",
+   "prefPos": "GK",
    "star": 2.5,
    "traits": [
     "noLongShots"
@@ -61291,7 +61291,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "ST",
+   "prefPos": "GK",
    "star": 3,
    "traits": [],
    "w": 76
@@ -62245,22 +62245,22 @@
     "AMC": 0,
     "AML": 0,
     "AMR": 0,
-    "DC": 0,
-    "DL": 0,
-    "DM": 0,
-    "DR": 0,
-    "GK": 100,
+    "DC": 100,
+    "DL": 45,
+    "DM": 50,
+    "DR": 45,
+    "GK": 0,
     "LW": 0,
     "MC": 0,
     "ML": 0,
     "MR": 0,
     "RW": 0,
     "ST": 0,
-    "SW": 0,
-    "WBL": 0,
-    "WBR": 0
+    "SW": 70,
+    "WBL": 30,
+    "WBR": 30
    },
-   "prefPos": "GK",
+   "prefPos": "CB",
    "star": 2,
    "traits": [],
    "w": 80
@@ -66776,7 +66776,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "ST",
+   "prefPos": "GK",
    "star": 3,
    "traits": [],
    "w": 74
@@ -78256,7 +78256,7 @@
     "WBL": 0,
     "WBR": 0
    },
-   "prefPos": "CM",
+   "prefPos": "GK",
    "star": 3.5,
    "traits": [],
    "w": 83

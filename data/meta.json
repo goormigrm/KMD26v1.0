@@ -1,5 +1,5 @@
 {
- "dataHash": "21edfc69c1b97ca5",
+ "dataHash": "6d4b32c636580eae",
  "genFrom": "src/data/gen.js",
  "note": "tools/gendata 가 만든 파일입니다. 손으로 고치지 마세요 — 원본이 갱신되면 extract_data.py 를 다시 돌린 뒤 이 도구를 실행하세요.",
  "playerCount": 1024,

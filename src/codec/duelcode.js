@@ -139,6 +139,8 @@ function hash16(dataHash) {
 export const DATA_COMPAT = [
   { hash: "847b18feb1dd419b",
     why: "선수들의 선호 포지션 표시 정정 (좌·우 풀백이 센터백으로 잡히던 문제)" },
+  { hash: "21edfc69c1b97ca5",
+    why: "골키퍼 선호 자리 고정 (골키퍼 10명이 CM·ST 같은 필드 자리로 잡히던 문제)" },
 ];
 
 /**

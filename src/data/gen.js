@@ -3,14 +3,15 @@
    생성: tools/extract_data.py
    원본: KM26 v2.0 (KleagueM2026/KM26v2.0) — 원저작자 허락 하에 사용
    원본 해시: sha256:d18fe0dfc09c
-   추출 선언 109개 / 3105줄
+   추출 선언 109개 / 3109줄
    난수 시드화: Math.random() 18곳 → RNG()
 
    ── 듀얼 패치 ─────────────────────────────────────────────
    · D2-01  estimateOvr 의 ±3 난수 제거 — 대전에서 같은 선수가 판마다 다른 능력치면 성립하지 않는다 (설계 결정 D-2)
+   · GK-01  골키퍼에게 필드 자리가 선호로 붙는다 — 선호 자리 표를 이름으로만 찾아서 동명이인의 자리가 넘어온다
    ⚠ 이 파일을 직접 부르지 마세요. tools/gendata.html 이 한 번만 돌려 JSON 을 만듭니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "../engine/rng.js?v=7640ec1658";
+import { RNG } from "../engine/rng.js?v=6f1f369ad1";
 
 const CUR_YEAR = 2026;
 
@@ -1234,7 +1235,11 @@ function applyTweakObj(p, k){
 }
 
 function assignPrefPos(p, teamId){
-  return PREF_POS_OVERRIDE[teamId+":"+p.name] || inferPrefPos(p);
+  /* [KMD26 GK-01] 골키퍼는 골키퍼만, 필드 플레이어는 골키퍼가 아닌 자리만 갖는다.
+     선호 자리 표는 이름으로만 찾으므로 동명이인의 자리가 넘어올 수 있다. */
+  if(p.pos==="GK") return "GK";
+  const ov = PREF_POS_OVERRIDE[teamId+":"+p.name];
+  return (ov && ov!=="GK") ? ov : inferPrefPos(p);
 }
 /* 현재 배치된 슬롯이 선수의 선호 포지션과 얼마나 맞는지 — green(적합)/yellow(다소 안맞음, 같은 라인)/red(라인 자체가 다름) */
 /* ── 포지션 능숙도 (FM식) ─────────────────────────────────────────

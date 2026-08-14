@@ -88,6 +88,31 @@ PATCHES = [
     find="  const v = base + ageAdj + noAdj + (frn?3:0) + (R(7)-3);\n",
     repl="  const v = base + ageAdj + noAdj + (frn?3:0);   // [KMD26 D-2] (R(7)-3) 제거 — 기대값 0\n",
   ),
+  dict(
+    id="GK-01",
+    why="골키퍼에게 필드 자리가 선호로 붙는다 — 선호 자리 표를 이름으로만 찾아서 동명이인의 자리가 넘어온다",
+    count=1,
+    # PREF_POS_OVERRIDE 는 팀id+이름으로만 찾는다. 그런데 표(D1/D2)와 실제 등록 명단(ROSTER26)은
+    # 별개라, 같은 팀에 같은 이름의 다른 선수가 있으면 엉뚱한 자리가 붙는다.
+    #   안양 김정훈 — 등록 명단에서는 GK(2001), 표에는 동명이인 미드필더 → 선호가 "CM"
+    #   포항 김호진 — 반대로 필드 플레이어인데 선호가 "GK" 로 잡혀 posFam.GK 가 100이 됐다
+    # initPosFam 이 pos==="GK" 면 GK=100 을 따로 박아 주므로 능숙도는 멀쩡했지만,
+    # 화면에 뜨는 "선호 CM" 은 그대로 거짓말이었다.
+    find=(
+      "function assignPrefPos(p, teamId){\n"
+      "  return PREF_POS_OVERRIDE[teamId+\":\"+p.name] || inferPrefPos(p);\n"
+      "}\n"
+    ),
+    repl=(
+      "function assignPrefPos(p, teamId){\n"
+      "  /* [KMD26 GK-01] 골키퍼는 골키퍼만, 필드 플레이어는 골키퍼가 아닌 자리만 갖는다.\n"
+      "     선호 자리 표는 이름으로만 찾으므로 동명이인의 자리가 넘어올 수 있다. */\n"
+      "  if(p.pos===\"GK\") return \"GK\";\n"
+      "  const ov = PREF_POS_OVERRIDE[teamId+\":\"+p.name];\n"
+      "  return (ov && ov!==\"GK\") ? ov : inferPrefPos(p);\n"
+      "}\n"
+    ),
+  ),
 ]
 
 src, js, base = J.read_script(SRC)

@@ -74,6 +74,9 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
       align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;
       border:1px dashed #ffffff2e;color:#ffffff66;font-size:12px;font-weight:800;padding:4px}
 .cell.off{border-color:transparent;cursor:default}
+/* 이 포메이션이 쓰지 않는 자리 — 전술판은 스물다섯 칸을 다 그리지만
+   대전 코드에 담기는 것은 포메이션의 열한 칸뿐이다. 세울 수 없다는 걸 눈으로 알려 준다. */
+.cell.nf{border-style:dotted;border-color:#ffffff14;color:#ffffff26;cursor:not-allowed}
 .cell.has{border:1px solid var(--line);background:#0b0f14cc;color:var(--txt);padding:5px 4px}
 .cell.sel{border-color:var(--acc);box-shadow:0 0 0 2px #2ea8ff66}
 .cell.drop{border-color:var(--ok);border-style:dashed;background:#1a3a2455}
@@ -366,8 +369,8 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=7640ec1658";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=7640ec1658";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=6f1f369ad1";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=6f1f369ad1";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -434,6 +437,13 @@ const stars = p => `<span class="stars" style="--pct:${Math.round((p.star||0)/5*
 const famOf = (p, slot) => (p.posFam && p.posFam[T.slotFam[slot]]) || 0;
 const famLv = v => T.famLv.find(l => v >= l.min) || T.famLv[T.famLv.length - 1];
 const slotsOf = f => ["GK", ...T.formation[f].map(s => s[1])];
+/* 지금 포메이션이 쓰는 자리 열한 개.
+   ⚠ 전술판은 `rowSlots` 의 **스물다섯 칸**을 다 그리는데, 대전 코드에 담기는 것은
+     포메이션의 열한 칸뿐이다(`duelcode.js` 의 slotOrder). 예전에는 전술판이 포메이션을
+     아예 안 봐서, 4-3-3 인데 LM 같은 **바깥 자리**에 선수를 세울 수 있었다.
+     그러면 화면은 "선발 11명"이라고 하는데 정작 LCM 이 비어, 코드를 발급하는 순간
+     "LCM 자리가 비어 있거나 명단에 없는 선수입니다" 로 막혔다. */
+const formSlots = () => new Set(slotsOf(formation));
 const byId = id => DB.players[team].find(p => p.id === id);
 const slotOfPlayer = id => Object.keys(xi).find(s => xi[s] === id) || null;
 const benchIdxOf = id => { const i = bench.indexOf(id); return i < 0 ? null : i; };
@@ -556,6 +566,12 @@ function autoFill() {
    선발은 열한 명을 넘을 수 없다. 자리 자체가 열한 개인 게 아니라 전술판이
    모든 자리를 보여 주기 때문에, 여기서 막지 않으면 열두 명이 들어간다(실제로 그랬다). */
 function place(slot, id) {
+  // 이 포메이션에 없는 자리에는 세울 수 없다 (formSlots 주석 참고)
+  if (!formSlots().has(slot)) {
+    flash(`${formation} 에는 ${slot} 자리가 없습니다 — 포메이션을 바꾸면 그 자리가 열립니다.`);
+    sel = null;
+    return;
+  }
   const from = slotOfPlayer(id);   // 이미 선발이면 자리만 옮기는 것 — 인원은 그대로다
   const cur = xi[slot];
   if (!from && cur == null && xiCount() >= 11) {
@@ -843,9 +859,15 @@ const ROW_ORDER = ["FW", "AM", "MF", "DM", "WB", "DF", "SW"];
 
 function drawPitch() {
   const rows = ROW_ORDER.map(r => T.rowSlots[r]).concat([[null, null, "GK", null, null]]);
+  const inForm = formSlots();
   // ⚠ #pitch 가 아니라 #pgrid 에 쓴다 — #pitch 안에는 코트 배경(.pmark)이 함께 있다
   $("#pgrid").innerHTML = rows.map(cells => `<div class="prow5">${cells.map(slot => {
     if (!slot) return `<div class="cell off"></div>`;
+    /* 이 포메이션이 안 쓰는 자리는 죽은 칸으로 그린다. data-slot 을 달지 않으므로
+       누르기·끌어다 놓기 대상이 아니다 — 아래 바인딩이 `.cell[data-slot]` 만 잡는다. */
+    if (!inForm.has(slot)) {
+      return `<div class="cell nf" title="${esc(formation)} 에는 없는 자리입니다">${esc(slot)}</div>`;
+    }
     const pid = xi[slot], p = pid != null ? byId(pid) : null;
     const isSel = sel && sel.kind === "slot" && sel.slot === slot;
     const isDrop = sel && sel.kind === "player";
@@ -890,6 +912,12 @@ function drawPitch() {
 
 /** 두 자리를 통째로 맞바꾼다 — 한쪽이 비어 있으면 그냥 옮긴다 */
 function swapSlots(a, b) {
+  // 전술판이 바깥 자리를 이미 막고 있지만, 끌어다 놓기 경로도 함께 막는다
+  const inForm = formSlots();
+  if (!inForm.has(a) || !inForm.has(b)) {
+    flash(`${formation} 에는 ${inForm.has(a) ? b : a} 자리가 없습니다.`);
+    return;
+  }
   const pa = xi[a], pb = xi[b];
   if (pb != null) xi[a] = pb; else delete xi[a];
   if (pa != null) xi[b] = pa; else delete xi[b];
@@ -1123,16 +1151,26 @@ function applyPlan(p, where) {
   $("#formation").value = formation;
 
   const have = new Set(DB.players[team].map(q => q.id));
+  const inForm = formSlots();
   let lost = 0;
+  const strays = [];        // 이 포메이션에 없는 자리에 서 있던 선수
   xi = {};
   for (const s of Object.keys(p.xi || {})) {
-    if (have.has(p.xi[s])) xi[s] = p.xi[s]; else lost++;
+    if (!have.has(p.xi[s])) { lost++; continue; }
+    /* 예전 판에서 저장된 라인업에는 포메이션 바깥 자리가 들어 있을 수 있다.
+       그대로 두면 화면은 "선발 11명"인데 코드 발급이 막힌다 — 걷어내서 교체 명단으로 내린다. */
+    if (!inForm.has(s)) { strays.push(p.xi[s]); continue; }
+    xi[s] = p.xi[s];
   }
   bench = new Array(9).fill(null);
   (p.bench || []).slice(0, 9).forEach((id, i) => {
     if (id == null) return;
     if (have.has(id)) bench[i] = id; else lost++;
   });
+  for (const id of strays) {
+    const i = bench.indexOf(null);
+    if (i >= 0) bench[i] = id;
+  }
   tac = Object.assign({}, T.tacDef, p.tac || {});
   orders = Array.isArray(p.cond) ? p.cond.slice(0, 6) : [0, 0, 0, 0, 0, 0];
   while (orders.length < 6) orders.push(0);
@@ -1146,6 +1184,10 @@ function applyPlan(p, where) {
   $("#main").style.display = "";
   drawTac(); drawOrders(); draw();
   if (lost) { flash(where + "에서 " + lost + "명을 찾지 못했습니다 — 선수 명단이 바뀌었을 수 있습니다."); drawHint(); }
+  else if (strays.length) {
+    flash(`${formation} 에 없는 자리에 서 있던 ${strays.length}명을 교체 명단으로 내렸습니다 — 자리를 다시 채워 주세요.`);
+    drawHint();
+  }
   return true;
 }
 
