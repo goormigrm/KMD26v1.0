@@ -85,8 +85,18 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
         display:grid;grid-template-columns:1fr;overflow:visible}
   #side h1{font-size:15px;margin:0}
   #side .brand,#side .navsep{display:none}
-  /* 탭은 가로로 눕히고 옆으로 스크롤한다 */
-  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none}
+  /* 탭 줄 — 넘치면 옆으로 굴린다.
+     ⚠ PC 브라우저의 모바일 보기에서는 마우스로 끌어도 굴러가지 않는다 —
+       src/ui/navscroll.js 가 끌기·휠을 붙여 준다(손가락은 원래 된다). */
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none;
+             -webkit-overflow-scrolling:touch;position:relative}
+  #navScroll.drag{cursor:grab}
+  #navScroll.grabbing{cursor:grabbing;user-select:none}
+  /* 더 있다는 표시 — 오른쪽 끝을 흐리게 말아 둔다.
+     ⚠ 흐림은 **굴러가는 칸 밖**(#side)에 붙인다 — 안 그러면 내용과 함께 밀려 나간다.
+     ⚠ position 을 다시 잡지 말 것 — #side 는 sticky 라 이미 기준이 된다. */
+  #side.hasmore::after{content:'';position:absolute;right:0;top:0;bottom:0;width:26px;
+       pointer-events:none;background:linear-gradient(90deg,#161b2200,#161b22)}
   #navScroll::-webkit-scrollbar{display:none}
   .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
           background:var(--bg3);border-radius:8px 8px 0 0}
@@ -120,8 +130,15 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 <a class="go" href="lineup.html">⚽ 라인업 짜고 시작하기
   <span class="s">K리그1·2 29개 구단 1,024명</span></a>
 
+<!-- 갈 수 있는 곳을 첫 화면에도 펼쳐 둔다 — 위쪽 탭 줄을 못 찾거나 못 넘기는 사람이 있다 -->
 <div class="gorow">
-  <a class="go alt" href="match.html">🤖 연습부터 · 게시판에서 상대 고르기</a>
+  <a class="go alt" href="board.html">🗂 전술 게시판
+    <span class="s">올라온 라인업 골라서 바로 붙기 · 전술마다 승률</span></a>
+  <a class="go alt" href="record.html">🏛 듀얼 기록실
+    <span class="s">사람끼리 붙은 경기 다시 보기</span></a>
+</div>
+<div class="gorow">
+  <a class="go alt" href="match.html">🤖 연습부터 · 대전 코드로 붙기</a>
   <a class="go alt" href="squad.html">🔍 선수단 먼저 보기</a>
 </div>
 
@@ -134,7 +151,8 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
       상대가 없으면 <b>전술 게시판</b>에서 고르거나 연습 AI 와 붙습니다.</span></div>
   <div><span class="n">3</span><b>둘이 똑같은 90분을 본다</b>
     <span class="d">해설 · 결정적 장면 2D · 경기 뒤 팬 반응.
-      결과 링크를 열면 상대도 같은 경기를 봅니다.</span></div>
+      결과 링크를 열면 상대도 같은 경기를 봅니다.
+      그 경기는 <b>듀얼 기록실</b>에 남아 누구나 다시 볼 수 있습니다.</span></div>
 </div>
 
 <div class="hook">
@@ -150,6 +168,12 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 비공식 팬 프로젝트입니다. 한국프로축구연맹 및 각 구단과 아무 관련이 없으며, 구단 엠블럼을 사용하지 않습니다.<br>
 소스: <a href="https://github.com/goormigrm/KMD26v1.0">github.com/goormigrm/KMD26v1.0</a>
 </footer>
+
+<!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
+<script type="module">
+import { installNav } from "./src/ui/navscroll.js?v=65a3434ddf";
+installNav();
+</script>
 
 </div></div>
 </div>

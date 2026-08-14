@@ -124,8 +124,18 @@ tr.p.on{background:#12283d}
         display:grid;grid-template-columns:1fr;overflow:visible}
   #side h1{font-size:15px;margin:0}
   #side .brand,#side .navsep{display:none}
-  /* 탭은 가로로 눕히고 옆으로 스크롤한다 */
-  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none}
+  /* 탭 줄 — 넘치면 옆으로 굴린다.
+     ⚠ PC 브라우저의 모바일 보기에서는 마우스로 끌어도 굴러가지 않는다 —
+       src/ui/navscroll.js 가 끌기·휠을 붙여 준다(손가락은 원래 된다). */
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none;
+             -webkit-overflow-scrolling:touch;position:relative}
+  #navScroll.drag{cursor:grab}
+  #navScroll.grabbing{cursor:grabbing;user-select:none}
+  /* 더 있다는 표시 — 오른쪽 끝을 흐리게 말아 둔다.
+     ⚠ 흐림은 **굴러가는 칸 밖**(#side)에 붙인다 — 안 그러면 내용과 함께 밀려 나간다.
+     ⚠ position 을 다시 잡지 말 것 — #side 는 sticky 라 이미 기준이 된다. */
+  #side.hasmore::after{content:'';position:absolute;right:0;top:0;bottom:0;width:26px;
+       pointer-events:none;background:linear-gradient(90deg,#161b2200,#161b22)}
   #navScroll::-webkit-scrollbar{display:none}
   .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
           background:var(--bg3);border-radius:8px 8px 0 0}
@@ -169,7 +179,8 @@ tr.p.on{background:#12283d}
 <div id="squad"></div>
 
 <script type="module">
-import { teamStar } from "./src/ui/teamstar.js?v=da9413b7fe";
+import { installNav } from "./src/ui/navscroll.js?v=65a3434ddf";
+import { teamStar } from "./src/ui/teamstar.js?v=65a3434ddf";
 
 const $ = s => document.querySelector(s);
 const el = (h) => { const d = document.createElement("div"); d.innerHTML = h.trim(); return d.firstChild; };
@@ -375,6 +386,9 @@ function showPlayer(id) {
 }
 
 boot();
+
+/* 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 — PC 브라우저의 모바일 보기에서는 그냥은 안 굴러간다 */
+installNav();
 </script>
 </div></div>
 </div>
