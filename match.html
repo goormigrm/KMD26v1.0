@@ -345,26 +345,45 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
   h1{font-size:16px} h3{font-size:13px} .sub{font-size:11.5px}
   #pageMain{padding:12px 10px 50px}
   .card{padding:10px 11px;margin-bottom:9px}
-  /* 전광판 — 점수만 크게 남기고 나머지를 줄인다 */
-  .board{padding:7px 9px;gap:7px;border-radius:9px}
+  /* ── 경기 중에는 화면을 필드에 몰아 준다 ──────────────────────
+     375×812 실측: 위쪽 탭 117 + 제목 44 + 전광판 66 = **227px** 를 필드 위가 먹어,
+     필드가 화면 한참 아래(270px)에서 시작했습니다. 시작하자마자 빈 곳만 보였습니다. */
+  /* ① 위쪽 탭은 경기 중에 붙어 있지 않는다 — 내리면 비켜 주고, 올리면 다시 나온다 */
+  body.ingame #side{position:static;box-shadow:none}
+  /* ② 제목("경기 · 29개 구단 1,024명")은 경기 중에 알려 줄 것이 없다 */
+  body.ingame .top{display:none}
+  /* ③ 전광판 — 점수와 시계를 **한 줄로** 눕힌다 (66px → 44px) */
+  .board{padding:6px 9px;gap:7px;border-radius:9px}
   .board .nm{font-size:12px}
-  .board .bar{width:4px;height:18px}
-  .score{font-size:19px;letter-spacing:0}
-  .clock{font-size:10.5px}
-  .bar2{margin-top:5px}
-  /* 버튼 줄 — 폰에서 두 줄로 접히므로 낱개를 작게 해 한 줄에 더 담는다 */
+  .board .bar{width:4px;height:17px}
+  .mid{display:flex;align-items:baseline;justify-content:center;gap:6px}
+  .score{font-size:18px;letter-spacing:0;line-height:1.15}
+  .clock{font-size:10.5px;line-height:1.15}
+  .bar2{margin-top:4px;height:2px}
+  /* ④ 버튼 줄 — 긴 말을 접는다(.lg). "결정적 장면 전부" → "전부" */
+  .lg{display:none}
   button,select{padding:6px 9px;font-size:12px;border-radius:7px}
   .go{padding:12px 12px;font-size:14.5px} .go .s{font-size:11px}
   .spd,#play,#skip,#again,#hlSkip,#hlReplay{padding:5px 8px;font-size:11.5px}
-  .scene button{padding:4px 7px;font-size:11px}
-  .scene .lb,.spdlb{font-size:10.5px}
+  .scene button{padding:4px 8px;font-size:11px}
+  .scene .lb,.spdlb{display:none}          /* "속도"·"장면" 이름표는 버튼만 봐도 안다 */
+  #game .row{gap:5px}
   /* 지금 막 벌어진 일 · 해설 */
-  .tick{font-size:12.5px;min-height:34px;padding:7px 10px;margin-bottom:13px}
+  .tick{font-size:12.5px;min-height:34px;padding:7px 10px;margin-bottom:11px}
   .tick .tm{font-size:11px}
-  .log{height:230px}
+  .log{height:200px}
   .ev{font-size:12px;padding:3px 6px;gap:7px}
   .ev .m{font-size:10.5px;min-width:26px}
   .ev .tm{font-size:10.5px}
+  /* ── 경기 시작 버튼을 아래에 붙여 둔다 ────────────────────────
+     실측(375×640): 구단 칩 스물아홉 장과 라인업 칸을 다 지나 **1,137px** 을 내려가야
+     `▶ 경기 시작` 에 닿았습니다. 폰에서 가장 중요한 버튼이 가장 멀리 있었습니다.
+     고를 것을 고르는 동안 늘 손닿는 곳에 있어야 합니다.
+     ⚠ 경기 중에는 이 버튼이 없으므로 대진 화면(`:not(.ingame)`)에서만 붙입니다. */
+  body:not(.ingame) #start{position:sticky;bottom:8px;z-index:800;
+       box-shadow:0 5px 16px rgba(0,0,0,.55)}
+  /* 붙어 있는 버튼이 마지막 줄(내 대전 코드)을 영영 가리지 않게 바닥을 띄운다 */
+  body:not(.ingame) #setup{padding-bottom:74px}
   /* 대진 고르기 */
   .sideBox{padding:9px 10px}
   .sideBox .sh{font-size:12.5px} .sideBox .sh2{font-size:11px}
@@ -478,7 +497,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 <div id="game" style="display:none">
   <div class="board">
     <div class="side"><span class="bar" id="hCol"></span><span class="nm" id="hName"></span></div>
-    <div>
+    <!-- 폰에서는 점수와 시계를 한 줄로 늈힌다(.mid) — 전광판이 필드를 밀어내지 않게 -->
+    <div class="mid">
       <div class="score" id="score">0 : 0</div>
       <div class="clock" id="clock">킥오프 대기</div>
     </div>
@@ -508,15 +528,15 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
         <!-- 장면 조작 — 예전에는 필드 위 오른쪽 위에 얹혀 있었습니다. 필드를 가리지 않게 내렸습니다.
              볼 것이 있을 때만 나타납니다(관전 중에는 건너뛸 장면이 없습니다). -->
         <button id="hlReplay" style="display:none" title="방금 본 장면을 느리게 다시 봅니다">↺ 다시 보기</button>
-        <button id="hlSkip" style="display:none">⏩ 장면 건너뛰기</button>
+        <button id="hlSkip" style="display:none">⏩ <span class="lg">장면 </span>건너뛰기</button>
       </div>
       <div class="scene">
         <span class="lb">장면</span>
-        <button class="sc on" data-m="all">결정적 장면 전부</button>
+        <button class="sc on" data-m="all"><span class="lg">결정적 장면 </span>전부</button>
         <button class="sc" data-m="goal">골만</button>
         <button class="sc" data-m="off">안 보기</button>
       </div>
-      <div class="row"><button id="again">다시 대진 고르기</button></div>
+      <div class="row"><button id="again">다시 <span class="lg">대진 </span>고르기</button></div>
     </div>
     <div class="log" id="log"></div>
   </div>
@@ -651,6 +671,8 @@ async function boot() {
     stop(); stopClip(); lastClip = null;
     $("#hl").style.display = "none";
     $("#game").style.display = "none"; $("#setup").style.display = "";
+    document.body.classList.remove("ingame");
+    window.scrollTo(0, 0);              // 대진 화면은 맨 위부터 보여 준다
     // 다른 탭에서 라인업을 새로 저장했을 수 있다 — 목록을 다시 읽는다
     HAND = loadPlan(); SLOTS = loadSlots();
     drawPlanSel("home"); drawPlanSel("away"); describe();
@@ -1061,6 +1083,9 @@ function start() {
   $("#hl").style.display = ""; $("#hl").classList.add("idle");
   drawFrame(null);
   $("#setup").style.display = "none";
+  /* 경기 중 표시 — 폰에서 위쪽 탭과 제목을 비켜 준다(스타일시트 맨 아래 폰 블록).
+     화면의 4분의 1을 차지하던 것이라, 필드가 한참 아래에서 시작했다. */
+  document.body.classList.add("ingame");
   $("#game").style.display = "";
   $("#result").style.display = "none";
   logSet(`<div class="ev info"><span class="m"></span><span class="x">경기를 준비하고 있습니다… (8초쯤 걸립니다)</span></div>`);
@@ -1071,6 +1096,11 @@ function start() {
   // 전광판은 결과가 오기 전에도 켜진다 — 같은 구단이면 여기서도 이름표를 갈라 둔다
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
+  /* 필드로 데려간다. 예전에는 화면이 대진 화면 자리에 그대로 있어서, 폰에서는
+     경기가 시작됐는데도 **아래쪽 빈 기록창만** 보고 있게 됐다.
+     ⚠ `smooth` 로 두면 시작하자마자 화면이 흐르는데, 그 사이 8초짜리 계산이 끼어들면
+       스크롤이 끊긴다. 여기서는 곧바로 옮긴다. */
+  scrollToField("auto");
 
   const w = new Worker("src/engine/matchworker.js?v=da9413b7fe", { type: "module" });
   w.onmessage = e => {
@@ -1111,6 +1141,14 @@ function start() {
 function paintTeams(h, a) {
   $("#hCol").style.background = h.col; $("#hName").textContent = h.short;
   $("#aCol").style.background = a.col; $("#aName").textContent = a.short;
+}
+
+/* 전광판이 화면 맨 위에 오도록 옮긴다 — 그 바로 아래가 필드다.
+   폰에서 경기가 시작됐는데 화면은 그대로여서 "빈 곳만 보고 있다"는 제보에 대한 답이다.
+   ⚠ 전광판을 기준으로 잡는다. 필드(#cv)를 기준으로 하면 점수가 화면 위로 잘려 나간다. */
+function scrollToField(how) {
+  const b = document.querySelector(".board");
+  if (b) b.scrollIntoView({ behavior: how || "auto", block: "start" });
 }
 
 /* ── 재생 ─────────────────────────────────────────────────────
