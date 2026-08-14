@@ -212,13 +212,13 @@ h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
 </div>
 
 <script type="module">
-import { fatten, slimPack, squadSig, checkPack } from "./src/km26/kmsave.js?v=d3d835944f";
-import { planSig } from "./src/engine/teams.js?v=d3d835944f";
+import { fatten, slimPack, squadSig, sigKey, checkPack } from "./src/km26/kmsave.js?v=38e22109f1";
+import { planSig } from "./src/engine/teams.js?v=38e22109f1";
 /* ⚠ deriveSeed 는 rng.js 에서 바로 가져온다 — duel.js 를 거치면 6천 줄짜리 커널이
      화면에 딸려 올라온다. 경기는 일꾼이 돌리므로 화면에는 커널이 필요 없다. */
-import { deriveSeed } from "./src/engine/rng.js?v=d3d835944f";
+import { deriveSeed } from "./src/engine/rng.js?v=38e22109f1";
 import { kmPostMatch, kmPostPlan, getKmPack, findPlanId, kmBoardOn, myNick, rememberNick, NICK_MAX }
-  from "./src/board/kmboard.js?v=d3d835944f";
+  from "./src/board/kmboard.js?v=38e22109f1";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -248,8 +248,10 @@ function drawSlotPick(slots, a) {
   });
 }
 
-/* 지문은 `src/km26/kmsave.js` 의 것을 쓴다 — 라인업 화면과 **한 정의**여야 한다 */
+/* 지문은 `src/km26/kmsave.js` 의 것을 쓴다 — 라인업 화면과 **한 정의**여야 한다.
+   `sigOf` 는 씨앗용(244자쯤) · `keyOf` 는 게시판이 "같은 글인가"를 가릴 때 쓰는 16자리다. */
 const sigOf = p => planSig(Object.assign({}, p.plan, { id: p.team.id })) + "|" + squadSig(p);
+const keyOf = p => sigKey(sigOf(p));
 
 /* 어느 길로 들어왔든 **경기에 나올 스무 명**으로 맞춘다.
    ⚠ 저장 슬롯은 명단 전체(38명)를, 게시판은 줄인 팩(20명)을 담는다. 그대로 두면
@@ -357,7 +359,7 @@ async function play() {
     catch (e) { REACT = null; }
   }
 
-  const w = new Worker("src/engine/matchworker.js?v=d3d835944f", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=38e22109f1", { type: "module" });
   w.onmessage = ev => {
     w.terminate();
     $("#play").disabled = false;
@@ -664,12 +666,22 @@ function show(r) {
     line("크로스", h.cross, a.cross),
   ].join("");
 
-  $("#resultMore").innerHTML =
-    drawGoalLine() + drawMeta() + drawOrderLog() + drawResultLink() + drawHighlightList() + drawReactions();
-  bindResult();
+  paintResult();
 
   startReplay(r);        // 2D 재생 — 문자중계는 시각에 맞춰 흐른다
   record(r);
+}
+
+/* 결과 카드의 아랫부분을 한 번에 그린다.
+   ⚠ **여러 번 불린다.** 처음 그릴 때는 내 글 번호를 아직 모를 수 있고(그러면 결과 링크가
+     "아직 만들 수 없습니다"로 나온다), `record()` 가 지문으로 번호를 찾아내면 그때
+     링크를 만들 수 있으므로 다시 그려야 한다. 안 그러면 기록실에는 남았는데
+     링크 칸만 "아직 만들 수 없습니다"로 남는다(사용자 제보).
+   ⚠ 기록실 알림은 `lastRecNote` 에 들고 있어 다시 그려도 지워지지 않는다. */
+function paintResult() {
+  $("#resultMore").innerHTML =
+    drawGoalLine() + drawMeta() + drawOrderLog() + drawResultLink() + drawHighlightList() + drawReactions();
+  bindResult();
 }
 
 /* ── 결과 카드의 아랫부분 ──────────────────────────────────────
@@ -831,7 +843,7 @@ async function record(r) {
   if (!a || !a.id) { recNote("게시판에서 고른 상대와 붙은 경기만 기록실에 남습니다."); return; }
 
   let myId = (mineRow && mineRow.planId) || null;
-  if (!myId && mine) myId = await findPlanId(sigOf(mine));   // 이미 올려 둔 글이 있으면 그것
+  if (!myId && mine) myId = await findPlanId(keyOf(mine));   // 이미 올려 둔 글이 있으면 그것
   if (!myId) {
     recNote(`<b>내 라인업이 아직 게시판에 없습니다.</b> 기록실은 <b>글 두 개</b>를 가리키는 방식이라,
       내 라인업도 올라와 있어야 이 경기가 남습니다.
@@ -841,6 +853,7 @@ async function record(r) {
     return;
   }
   myPlanId = myId;
+  paintResult();               // 이제 결과 링크를 만들 수 있다 — 그 칸을 다시 그린다
   await sendMatch(r, myId, a);
 }
 
@@ -852,7 +865,7 @@ async function postThenRecord(r, btn) {
   recNote("올리는 중…");
   const res = await kmPostPlan({
     nick, team: mine.team.short, season: mine.season,
-    sig: sigOf(mine), pack: mine,          // 이미 스무 명으로 맞춘 팩이다
+    sig: keyOf(mine), pack: mine,          // 이미 스무 명으로 맞춘 팩이다
   });
   if (!res.ok || !res.id) {
     recNote(`<span style="color:var(--bad)">올리지 못했습니다 — ${esc(res.why || "글 번호를 받지 못했습니다")}</span>`);
@@ -861,12 +874,8 @@ async function postThenRecord(r, btn) {
   rememberNick(nick);
   hNick = nick;
   myPlanId = res.id;
+  paintResult();               // 링크를 이제 만들 수 있다
   await sendMatch(r, res.id, window.__awayRow);
-  /* 링크를 이제 만들 수 있다 — 결과 아랫부분을 다시 그린다.
-     `lastRecNote` 를 들고 있으므로 방금 띄운 기록실 알림은 그대로 남는다. */
-  $("#resultMore").innerHTML =
-    drawGoalLine() + drawMeta() + drawOrderLog() + drawResultLink() + drawHighlightList() + drawReactions();
-  bindResult();
 }
 
 async function sendMatch(r, myId, a) {
@@ -897,7 +906,7 @@ boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=d3d835944f";
+import { installNav } from "./src/ui/navscroll.js?v=38e22109f1";
 installNav();
 </script>
 </body>

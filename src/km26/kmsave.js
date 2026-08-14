@@ -32,7 +32,7 @@
    ⚠ 이 파일은 커널을 부르지 않습니다 — 페이지에 올려도 무겁지 않습니다.
    ───────────────────────────────────────────────────────────── */
 
-import { ctrLevel } from "../codec/duelcode.js?v=d3d835944f";
+import { ctrLevel } from "../codec/duelcode.js?v=38e22109f1";
 
 /** KMD26 이 선수에게서 쓰는 값 — `tools/gendata` 의 playerKeep 과 같아야 한다 */
 export const PLAYER_KEEP = [
@@ -376,6 +376,38 @@ export function squadSig(pack) {
     for (const k of Object.keys(q.attr || {}).sort()) put(k + q.attr[k]);
   }
   return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+/* ── 게시판에 쓰는 짧은 열쇠 ──────────────────────────────────
+   `sigOf`(= planSig + "|" + squadSig)는 **244자쯤** 됩니다. 자리·선수·슬라이더를
+   사람이 읽을 수 있게 그대로 늘어놓기 때문입니다. 그런데 게시판 표는
+
+       sig text not null check (char_length(sig) between 8 and 64)
+
+   라서 그대로 못 넣습니다. 예전에는 올릴 때 `slice(0, 64)` 로 **말없이 잘라서**
+   넣었는데, 그러면 두 가지가 한꺼번에 망가집니다.
+
+   ① **다시 찾을 수 없다.** 나중에 전체 지문으로 `findPlanId` 를 부르면 잘린 값과
+      달라 영영 안 걸립니다 — 게시판에 멀쩡히 올라와 있는데도
+      "내 라인업이 아직 게시판에 없습니다"가 떴습니다(사용자 제보).
+   ② **다른 라인업이 같은 글로 잡힌다.** 앞 64자는 구단 이름과 선발 여덟 자리쯤에서
+      끝납니다. 교체 명단이나 슬라이더만 바꾼 라인업은 앞부분이 똑같아서
+      `unique (sig)` 에 걸려 "이미 올라와 있습니다"로 거부됩니다.
+
+   그래서 **전체 지문을 16자리 열쇠로 접어서** 넣습니다. 길이가 늘 같고(8~64 안에
+   들어가고), 16진수뿐이라 주소 filter 에도 안전합니다. 표를 고칠 필요가 없습니다.
+
+   ⚠ 씨앗(`deriveSeed`)에는 **접기 전 지문**을 그대로 씁니다 — 이미 남은 경기의
+     결과를 흔들지 않으려는 것입니다. 접은 값은 "같은 글인가"를 가릴 때만 씁니다. */
+export function sigKey(sig) {
+  const s = String(sig || "");
+  let a = 0x811c9dc5, b = 0x01000193;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    a ^= c; a = Math.imul(a, 0x01000193) >>> 0;
+    b = (b + c) >>> 0; b = Math.imul(b, 0x85ebca6b) >>> 0; b ^= b >>> 13;
+  }
+  return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0");
 }
 
 /** 포지션 능숙도 열일곱 자리 — `data/players.json` 과 같은 목록이어야 한다 */

@@ -489,12 +489,12 @@ details .body th{background:var(--bg2);color:var(--txt)}
 </div>
 
 <script type="module">
-import { readSave, saveInfo, teamListOf, makePack, slimPack, fatten, squadSig, checkPack, PACK_KIND }
-  from "./src/km26/kmsave.js?v=d3d835944f";
-import { autoLineup, planSig } from "./src/engine/teams.js?v=d3d835944f";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=d3d835944f";
+import { readSave, saveInfo, teamListOf, makePack, slimPack, fatten, squadSig, sigKey,
+         checkPack, PACK_KIND } from "./src/km26/kmsave.js?v=38e22109f1";
+import { autoLineup, planSig } from "./src/engine/teams.js?v=38e22109f1";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=38e22109f1";
 import { kmBoardOn, kmPostPlan, listKmPlans, getKmPack, myNick, rememberNick, NICK_MAX, NOTE_MAX }
-  from "./src/board/kmboard.js?v=d3d835944f";
+  from "./src/board/kmboard.js?v=38e22109f1";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -594,14 +594,16 @@ function showAway() {
    경기는 **KM26 경기 화면**(`km-match.html`)이 돌립니다. 여기서는 짜 둔 라인업을
    그 화면이 읽을 수 있게 넣어 두고 넘어가기만 합니다.
    ⚠ 명단 팩이 15KB 라 주소(해시)에 담을 수 없어 `sessionStorage` 를 거칩니다. */
-/** 라인업 + 명단의 지문 — 게시판 중복 방지와 씨앗이 같은 값을 쓴다 */
+/** 라인업 + 명단의 지문 — 씨앗이 이 값을 쓴다 (244자쯤 된다) */
 const sigOf = p => planSig(Object.assign({}, p.plan, { id: p.team.id })) + "|" + squadSig(p);
+/** 게시판이 "같은 글인가"를 가릴 때 쓰는 16자리 열쇠 — 표가 64자까지만 받는다 */
+const keyOf = p => sigKey(sigOf(p));
 
 function stashMine() {
   if (!pack) return false;
   try {
     sessionStorage.setItem("kmd26.km26.mine", JSON.stringify({
-      pack: slimPack(pack), planId: myPlanId, sig: sigOf(pack),
+      pack: slimPack(pack), planId: myPlanId, sig: keyOf(pack),
     }));
     return true;
   } catch (e) { return false; }
@@ -639,9 +641,9 @@ async function loadOppo() {
 function drawOppo() {
   if (!oppoRows) return;
   const q = $("#oq").value.trim();
-  const mineSig = pack ? sigOf(pack) : "";
+  const mineKey = pack ? keyOf(pack) : "";           // 게시판에 실린 것과 같은 모양이어야 한다
   const list = oppoRows.filter(r => {
-    if (r.sig === mineSig) return false;             // 내 글은 상대가 될 수 없다
+    if (r.sig === mineKey) return false;             // 내 글은 상대가 될 수 없다
     if (!q) return true;
     const hay = (r.nick || "") + " " + (r.team || "") + " " + (r.note || "");
     return hay.includes(q) || choOf(hay).includes(choOf(q));
@@ -1248,7 +1250,7 @@ function doSlot(i, act) {
       team: pack.team.short, teamId: pack.team.id, season: pack.season,
       formation: pack.plan.formation,
       savedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
-      sig: sigOf(pack), planId: myPlanId,
+      sig: keyOf(pack), planId: myPlanId,
       pack: JSON.parse(JSON.stringify(pack)),
     };
     if (!writeSlots(list)) { slotMsg("bad", "저장 공간이 모자랍니다 — 다른 슬롯을 지워 주세요."); return; }
@@ -1318,7 +1320,7 @@ async function post() {
   $("#postMsg").textContent = "올리는 중…";
   const r = await kmPostPlan({
     nick, note, team: pack.team.short, season: pack.season,
-    sig: sigOf(pack),
+    sig: keyOf(pack),                        // ⚠ 접은 열쇠다 — 표가 64자까지만 받는다
     pack: slimPack(pack),
   });
   $("#post").disabled = false;
@@ -1341,7 +1343,7 @@ boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=d3d835944f";
+import { installNav } from "./src/ui/navscroll.js?v=38e22109f1";
 installNav();
 </script>
 </body>

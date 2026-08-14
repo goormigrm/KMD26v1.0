@@ -12,7 +12,7 @@
    ⚠ 표가 없으면 화면에서 KM26 게시판만 조용히 꺼집니다 — 게임의 나머지는 그대로입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=d3d835944f";
+import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=38e22109f1";
 
 export { NICK_MAX, NOTE_MAX, myNick, rememberNick };
 
@@ -100,6 +100,16 @@ export async function kmPostPlan(row) {
   const packText = JSON.stringify(row.pack);
   if (packText.length > 200000) return { ok: false, why: "명단이 너무 큽니다." };
 
+  /* ⚠ 지문은 **자르지 않습니다.** 예전에는 `slice(0, 64)` 로 말없이 잘라 넣었는데,
+     그러면 나중에 `findPlanId` 로 못 찾고(잘린 값과 다르다) 다른 라인업이 같은 글로
+     잡힙니다(앞 64자가 같다). 부르는 쪽이 `sigKey` 로 접어서 줘야 합니다.
+     길이가 안 맞으면 조용히 넘어가지 말고 **여기서 멈춥니다.** */
+  const sig = String(row.sig || "").trim();
+  if (sig.length < 8 || sig.length > 64) {
+    return { ok: false, why: `지문 길이가 규격에 안 맞습니다 (${sig.length}자). `
+      + `게시판 표는 8~64자만 받습니다 — sigKey() 로 접어서 넘겨야 합니다.` };
+  }
+
   let r;
   try {
     r = await fetch(`${BOARD.URL}/rest/v1/${PLANS}`, {
@@ -110,7 +120,7 @@ export async function kmPostPlan(row) {
         note: String(row.note || "").trim().slice(0, NOTE_MAX) || null,
         team: String(row.team || "").slice(0, 16),
         season: Number.isFinite(+row.season) ? +row.season : null,
-        sig: String(row.sig || "").slice(0, 64),
+        sig,
         pack: packText,
       }),
     });
@@ -122,7 +132,7 @@ export async function kmPostPlan(row) {
     /* sig 에 유일 제약이 걸려 있다 — 같은 라인업·같은 명단은 두 번 올릴 수 없다.
        이미 있는 글이라도 **번호는 알려 준다** (그 글로 경기를 남길 수 있어야 한다). */
     if (r.status === 409 || /duplicate key|unique/i.test(msg)) {
-      const id = await findPlanId(row.sig);
+      const id = await findPlanId(sig);
       return { ok: true, dup: true, id };
     }
     return { ok: false, why: msg };
@@ -130,7 +140,7 @@ export async function kmPostPlan(row) {
   markPosted();
   let id = null;
   try { const back = await r.json(); id = back && back[0] && back[0].id; } catch (e) { /* 본문이 없을 수도 */ }
-  if (id == null) id = await findPlanId(row.sig);
+  if (id == null) id = await findPlanId(sig);
   return { ok: true, id };
 }
 

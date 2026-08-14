@@ -410,11 +410,11 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink, ctrLevel } from "./src/codec/duelcode.js?v=d3d835944f";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=d3d835944f";
+import { encodePlan, inviteLink, ctrLevel } from "./src/codec/duelcode.js?v=38e22109f1";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=38e22109f1";
 import { boardOn, postPlan, NICK_MAX, NOTE_MAX, myNick, rememberNick }
-  from "./src/board/board.js?v=d3d835944f";
-import { teamStar } from "./src/ui/teamstar.js?v=d3d835944f";
+  from "./src/board/board.js?v=38e22109f1";
+import { teamStar } from "./src/ui/teamstar.js?v=38e22109f1";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -1455,7 +1455,7 @@ boot();
 </div>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=d3d835944f";
+import { installNav } from "./src/ui/navscroll.js?v=38e22109f1";
 installNav();
 </script>
 </body>

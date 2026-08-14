@@ -155,8 +155,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 <div id="list"></div>
 
 <script type="module">
-import { boardOn, listMatches, ago, matchQuery } from "./src/board/board.js?v=d3d835944f";
-import { resultLink } from "./src/codec/duelcode.js?v=d3d835944f";
+import { boardOn, listMatches, ago, matchQuery } from "./src/board/board.js?v=38e22109f1";
+import { resultLink } from "./src/codec/duelcode.js?v=38e22109f1";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -258,7 +258,7 @@ load();
 </div>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=d3d835944f";
+import { installNav } from "./src/ui/navscroll.js?v=38e22109f1";
 installNav();
 </script>
 </body>
