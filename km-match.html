@@ -39,6 +39,28 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 .st td.n{text-align:center;color:var(--sub)}
 .st td.h{text-align:right;font-weight:700}
 .st td.a{font-weight:700}
+/* ── 2D 필드 ────────────────────────────────────────────────
+   기본 경기 화면과 같은 캔버스입니다. 필드 위에는 아무 글자도 얹지 않습니다 —
+   이름표가 공이 닿기도 전에 무슨 장면인지 알려 주면 김이 샙니다. */
+.hl{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0f2415}
+.hl canvas{width:100%;display:block;background:#0f2415}
+.hl.idle canvas{filter:saturate(.62) brightness(.72)}
+.hl.idle.open canvas{filter:none}
+.hl .rep{position:absolute;left:9px;top:8px;background:#f8514966;border:1px solid #f85149;
+     color:#fff;font-size:11px;font-weight:800;border-radius:5px;padding:1px 7px;display:none}
+.hl.rep .rep{display:block}
+.tick{background:var(--bg3);border:1px solid var(--line);border-top:none;
+      border-radius:0 0 10px 10px;padding:7px 11px;font-size:12.5px;min-height:34px;color:var(--sub)}
+.tick b{color:var(--txt)}
+.board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;
+       background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:6px 11px;margin-bottom:8px}
+.board .t{font-weight:800;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board .t.a{text-align:right}
+.board .sc{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+.board .cl{font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+.ctrls{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ctrls button{font-size:12.5px;padding:6px 10px}
+.ctrls button.on{border-color:var(--km);color:var(--km)}
 #evts{max-height:420px;overflow-y:auto;background:var(--bg3);border:1px solid var(--line);
       border-radius:8px;padding:9px 11px;font-size:12.5px;line-height:1.9}
 #evts .t{color:var(--sub);font-weight:800;margin-right:4px}
@@ -124,6 +146,26 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
   <div class="sub" id="fp" style="margin-top:8px"></div>
   <table class="st" id="stats"></table>
   <div class="msg" id="recMsg"></div>
+</div>
+
+<div class="card" id="playCard" style="display:none">
+  <div class="board">
+    <div class="t" id="bH"></div>
+    <div><div class="sc" id="bS">0 : 0</div><div class="cl" id="bC" style="text-align:center">0'</div></div>
+    <div class="t a" id="bA"></div>
+  </div>
+  <div class="hl idle" id="hl">
+    <span class="rep">\u25cf \ub9ac\ud50c\ub808\uc774</span>
+    <canvas id="cv" width="700" height="440"></canvas>
+  </div>
+  <div class="tick" id="tick">\uacbd\uae30\ub97c \uc2dc\uc791\ud569\ub2c8\ub2e4.</div>
+  <div class="ctrls">
+    <button id="pp">\u23f8 \uc77c\uc2dc\uc815\uc9c0</button>
+    <button class="sp on" data-sp="1">1\ubc30</button>
+    <button class="sp" data-sp="2">2\ubc30</button>
+    <button class="sp" data-sp="4">4\ubc30</button>
+    <button id="skip">\u23e9 \ub05d\uae4c\uc9c0</button>
+  </div>
 </div>
 
 <div class="card" id="evtCard" style="display:none">
@@ -258,13 +300,251 @@ async function play() {
   });
 }
 
+
+/* ══ 2D 재생 ═══════════════════════════════════════════════════
+   기본 경기 화면(match.html)의 캔버스 코드를 그대로 옮겼습니다. 일꾼이 이미
+   `watch`(관전 트랙) · `clips`(결정적 장면) · `roster` 를 함께 보내 주므로
+   여기서는 **그리기만** 하면 됩니다.
+
+   ⚠ 화면이 시계를 앞지르면 안 됩니다 — 해설보다 먼저 골이 보이면 결과가 샙니다.
+     관전 헤드는 언제나 `(지금 분 + 1) × 60초` 를 넘지 않습니다. */
+const WATCH_STRIDE = 73;          // replay.js 의 WATCH_STRIDE 와 같아야 한다
+const OPEN_MINUTES = 3;           // 초반 몇 분은 빨리 감지 않는다
+const MIN_MS = 800;               // 1배속에서 한 분에 쓰는 시간
+let R = null, minute = 0, watchSec = 0, speed = 1, playing = false;
+let timer = null, rafId = null, drawnSec = -1, clipIdx = 0, evIdx = 0, inClip = false;
+
+const isLight = hex => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  return (((n >> 16 & 255) * 299 + (n >> 8 & 255) * 587 + (n & 255) * 114) / 1000) > 150;
+};
+
+function drawPitch(g, W, H, PAD) {
+  const X = x => PAD + x * (W - PAD * 2), Y = y => PAD + y * (H - PAD * 2);
+  const pw = X(1) - X(0), ph = Y(1) - Y(0);
+  g.fillStyle = "#12301b"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#14351e";
+  for (let i = 0; i < 8; i += 2) g.fillRect(X(i / 8), 0, pw / 8, H);
+  g.strokeStyle = "#ffffff44"; g.lineWidth = 1.6;
+  g.strokeRect(X(0), Y(0), pw, ph);
+  g.beginPath(); g.moveTo(X(.5), Y(0)); g.lineTo(X(.5), Y(1)); g.stroke();
+  g.beginPath(); g.arc(X(.5), Y(.5), ph * 0.16, 0, 7); g.stroke();
+  g.beginPath(); g.arc(X(.5), Y(.5), 2.6, 0, 7); g.fillStyle = "#ffffff88"; g.fill();
+  for (const right of [false, true]) {
+    const bw = pw * 0.16, gw = pw * 0.06, gd = 6;
+    const bx = right ? X(1) - bw : X(0), gx = right ? X(1) - gw : X(0);
+    g.strokeRect(bx, Y(.25), bw, ph * 0.5);
+    g.strokeRect(gx, Y(.38), gw, ph * 0.24);
+    g.strokeRect(right ? X(1) : X(0) - gd, Y(.43), gd, ph * 0.14);
+    g.beginPath(); g.arc(right ? X(1) - pw * 0.105 : X(0) + pw * 0.105, Y(.5), 2, 0, 7); g.fill();
+  }
+}
+
+function drawFrame(f) {
+  const cv = $("#cv"), g = cv.getContext("2d");
+  const W = cv.width, H = cv.height, PAD = 16;
+  const X = x => PAD + x * (W - PAD * 2), Y = y => PAD + y * (H - PAD * 2);
+  drawPitch(g, W, H, PAD);
+  if (!f) return;
+  for (let i = 0; i + 2 < f.a.length; i += 3) {
+    const id = f.a[i], x = f.a[i + 1], y = f.a[i + 2];
+    const p = R.roster[id] || {};
+    const col = p.gk ? "#e3b341" : (p.side === "h" ? R.home.col : R.away.col);
+    const r = p.gk ? 11.5 : 10.5;
+    g.beginPath(); g.arc(X(x), Y(y), r, 0, 7);
+    g.fillStyle = col; g.fill();
+    g.lineWidth = 1.6; g.strokeStyle = "#0009"; g.stroke();
+    if (id === f.o) {
+      g.beginPath(); g.arc(X(x), Y(y), r + 4, 0, 7);
+      g.strokeStyle = "#fff"; g.lineWidth = 2.2; g.stroke();
+    }
+    if (p.no !== "" && p.no != null) {
+      g.fillStyle = isLight(col) ? "#0b0f14" : "#fff";
+      g.font = "bold 11px system-ui,sans-serif"; g.textAlign = "center";
+      g.fillText(String(p.no), X(x), Y(y) + 4);
+    }
+  }
+  g.beginPath(); g.arc(X(f.r[0]), Y(f.r[1]), 5.5, 0, 7);
+  g.fillStyle = "#1c1c1c"; g.fill(); g.strokeStyle = "#ffffff55"; g.lineWidth = 1; g.stroke();
+  const bz = f.b[2] || 0, lift = Math.min(16, bz * 90);
+  if (lift > 1) {
+    g.beginPath(); g.ellipse(X(f.b[0]), Y(f.b[1]), 4.2, 2.2, 0, 0, 7);
+    g.fillStyle = "#0006"; g.fill();
+  }
+  g.beginPath(); g.arc(X(f.b[0]), Y(f.b[1]) - lift, 5 + lift * 0.08, 0, 7);
+  g.fillStyle = "#fff"; g.fill();
+  g.strokeStyle = "#0008"; g.lineWidth = 1; g.stroke();
+}
+
+const watchCount = () => (R && R.watch ? (R.watch.length / WATCH_STRIDE) | 0 : 0);
+
+function watchIndexAt(sec) {
+  const W = R.watch, n = watchCount();
+  if (!n) return -1;
+  if (sec <= W[0]) return 0;
+  if (sec >= W[(n - 1) * WATCH_STRIDE]) return n - 1;
+  let lo = 0, hi = n - 1;
+  while (lo + 1 < hi) {
+    const mid = (lo + hi) >> 1;
+    if (W[mid * WATCH_STRIDE] <= sec) lo = mid; else hi = mid;
+  }
+  const a = W[lo * WATCH_STRIDE], b = W[hi * WATCH_STRIDE];
+  return b > a ? lo + (sec - a) / (b - a) : lo;
+}
+
+/* ⚠ 자리 번호가 아니라 **선수 id 로** 짝을 맞춘다. 교체·퇴장으로 명단이 밀리면
+     두 선수가 서로에게 미끄러져 들어간다. */
+function watchFrameObj(i, j, k) {
+  const W = R.watch, A = i * WATCH_STRIDE, B = j * WATCH_STRIDE;
+  const L = o => W[A + o] + (W[B + o] - W[A + o]) * k;
+  const at = {};
+  for (let q = 7; q < WATCH_STRIDE; q += 3) { const id = W[B + q]; if (id) at[id] = q; }
+  const a = [];
+  for (let q = 7; q < WATCH_STRIDE; q += 3) {
+    const id = W[A + q];
+    if (!id) continue;
+    const o = at[id];
+    a.push(id,
+      o ? W[A + q + 1] + (W[B + o + 1] - W[A + q + 1]) * k : W[A + q + 1],
+      o ? W[A + q + 2] + (W[B + o + 2] - W[A + q + 2]) * k : W[A + q + 2]);
+  }
+  return { c: W[A], b: [L(1), L(2), L(3)], o: W[A + 4] | 0, r: [L(5), L(6)], a };
+}
+
+function drawWatchAt(sec) {
+  const fi = watchIndexAt(sec);
+  if (fi < 0) return drawFrame((R && R.form0) || null);
+  const i = Math.floor(fi), j = Math.min(watchCount() - 1, i + 1);
+  drawFrame(watchFrameObj(i, j, fi - i));
+}
+
+/* ── 시계 ─────────────────────────────────────────────────────── */
+function startClock() {
+  stopClock();
+  playing = true;
+  $("#pp").textContent = "\u23f8 \uc77c\uc2dc\uc815\uc9c0";
+  timer = setInterval(tickMinute, Math.max(60, MIN_MS / speed));
+  loop();
+}
+function stopClock() {
+  playing = false;
+  $("#pp").textContent = "\u25b6 \uc7ac\uc0dd";
+  if (timer) { clearInterval(timer); timer = null; }
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+}
+
+function loop() {
+  rafId = requestAnimationFrame(loop);
+  if (inClip) return;
+  /* 화면은 시계를 앞지르지 않는다 — 해설보다 먼저 골이 보이면 결과가 샌다 */
+  const cap = (minute + 1) * 60;
+  const step = (60 / Math.max(60, MIN_MS / speed)) * 16;
+  watchSec = Math.min(cap, watchSec + step);
+  if (Math.abs(watchSec - drawnSec) < 0.05) return;
+  drawnSec = watchSec;
+  drawWatchAt(watchSec);
+}
+
+function tickMinute() {
+  if (inClip) return;
+  minute++;
+  $("#bC").textContent = minute + "'";
+  $("#hl").classList.toggle("open", minute < OPEN_MINUTES);
+  flushEvents();
+  const c = (R.clips || [])[clipIdx];
+  if (c && Math.floor((c.min != null ? c.min : (c.f && c.f[0] ? c.f[0].c / 60 : 0))) <= minute) {
+    clipIdx++;
+    playClip(c);
+    return;
+  }
+  if (minute >= 90) { stopClock(); finish(); }
+}
+
+/** 결정적 장면 한 편 — 프레임을 그대로 돌린다. 그동안 시계는 멈춘다. */
+function playClip(c) {
+  const fs = c.f || c.frames || [];
+  if (!fs.length) return;
+  inClip = true;
+  const hl = $("#hl");
+  hl.classList.remove("idle");
+  hl.classList.toggle("rep", !!c.replay);
+  let i = 0;
+  const step = () => {
+    if (i >= fs.length) {
+      inClip = false;
+      hl.classList.add("idle"); hl.classList.remove("rep");
+      hl.classList.toggle("open", minute < OPEN_MINUTES);
+      watchSec = Math.max(watchSec, fs[fs.length - 1].c || watchSec);
+      return;
+    }
+    const f = fs[i++];
+    drawFrame(f);
+    setTimeout(step, Math.max(16, 42 / speed));
+  };
+  step();
+}
+
+/** 그 분까지의 문자중계를 흘린다 */
+function flushEvents() {
+  const box = $("#evts");
+  let added = false;
+  while (evIdx < (R.events || []).length) {
+    const e = R.events[evIdx];
+    if (!e.noTime && e.min > minute) break;
+    evIdx++;
+    added = true;
+    const k = e.type === "goal" ? "goal" : e.type === "order" ? "order" : e.type === "warn" ? "warn" : "";
+    const d = document.createElement("div");
+    d.innerHTML = `<span class="t">${e.noTime ? "" : e.min + "'"}</span><span class="${k}">${esc(e.txt || "")}</span>`;
+    box.appendChild(d);
+    $("#tick").innerHTML = `<b>${e.noTime ? "" : e.min + "' "}</b>${esc(e.txt || "")}`;
+    if (e.hg != null) $("#bS").textContent = `${e.hg} : ${e.ag}`;
+  }
+  if (added) box.scrollTop = box.scrollHeight;
+}
+
+function finish() {
+  minute = 90;
+  $("#bC").textContent = "\uacbd\uae30 \uc885\ub8cc";
+  flushEvents();
+  $("#bS").textContent = `${R.home.goals} : ${R.away.goals}`;
+  $("#resultCard").style.display = "";
+  $("#resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** 결과가 도착하면 재생을 준비한다 */
+function startReplay(r) {
+  R = r;
+  minute = 0; watchSec = 0; drawnSec = -1; clipIdx = 0; evIdx = 0; inClip = false;
+  $("#playCard").style.display = "";
+  $("#evtCard").style.display = "";
+  $("#evts").innerHTML = "";
+  $("#bH").textContent = r.home.short;
+  $("#bA").textContent = r.away.short;
+  $("#bS").textContent = "0 : 0";
+  $("#bC").textContent = "0'";
+  $("#hl").classList.add("idle", "open");
+  drawFrame(r.form0 || null);
+  $("#pp").onclick = () => (playing ? stopClock() : startClock());
+  $("#skip").onclick = () => { stopClock(); while (minute < 90) { minute++; flushEvents(); } finish(); };
+  document.querySelectorAll(".sp").forEach(b => b.onclick = () => {
+    speed = +b.dataset.sp;
+    document.querySelectorAll(".sp").forEach(x => x.classList.toggle("on", x === b));
+    if (playing) startClock();
+  });
+  $("#playCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  startClock();
+}
+
 function msg(cls, text) { $("#playMsg").className = "msg " + cls; $("#playMsg").textContent = text; }
 
 function show(r) {
-  msg("ok", "✓ 경기가 끝났습니다.");
+  msg("ok", "✓ 90분을 다 돌렸습니다 — 재생을 시작합니다.");
   const a = window.__awayRow;
-  $("#resultCard").style.display = "";
-  $("#evtCard").style.display = "";
+  /* ⚠ 결과 카드는 경기가 끝난 뒤에 연다(finish). 미리 열면 점수가 새어 나간다. */
+  $("#resultCard").style.display = "none";
   $("#score").innerHTML = `
     <div class="side"><div class="tm">${esc(r.home.short)}</div>
       <div class="nk">${esc(myNick() || "나")}</div></div>
@@ -284,11 +564,7 @@ function show(r) {
   $("#stats").innerHTML = rows.map(([n, h, x]) =>
     `<tr><td class="h">${h ?? 0}</td><td class="n">${esc(n)}</td><td class="a">${x ?? 0}</td></tr>`).join("");
 
-  $("#evts").innerHTML = (r.events || []).map(e => {
-    const k = e.type === "goal" ? "goal" : e.type === "order" ? "order" : e.type === "warn" ? "warn" : "";
-    return `<div><span class="t">${e.noTime ? "" : e.min + "'"}</span><span class="${k}">${esc(e.txt || "")}</span></div>`;
-  }).join("");
-
+  startReplay(r);        // 2D 재생 — 문자중계는 시각에 맞춰 흐른다
   record(r);
 }
 
