@@ -185,14 +185,18 @@ details .body th{background:var(--bg2);color:var(--txt)}
 .tac input[type=range]{flex:1;accent-color:var(--km)}
 .tac .val{min-width:74px;text-align:right;font-size:12px;font-weight:700}
 
-/* 슬롯 저장 */
-.slots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.sv{background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:8px 10px;
-    font-size:12.5px;cursor:pointer;min-width:118px}
+/* 슬롯 저장 — 2026 라인업 화면과 같은 모양(카드 격자 · 덮어쓰기/지우기 단추).
+   ⚠ 이름은 `.sv` 다. `.slot` 으로 지으면 위 **라인업 줄**(.slot)을 물려받는다. */
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:7px;margin-top:8px}
+.sv{position:relative;background:var(--bg3);border:1px solid var(--line);border-radius:9px;
+    padding:9px 10px;font-size:12.5px;cursor:pointer;text-align:left}
 .sv:hover{border-color:var(--km)}
-.sv .n{font-weight:800;color:var(--km)}
-.sv .d{color:var(--sub);font-size:11px}
-.sv.empty{opacity:.6}
+.sv.empty{border-style:dashed;opacity:.7}
+.sv .n{display:block;font-size:11px;color:var(--sub)}
+.sv .t{display:block;font-size:13.5px;font-weight:800;color:var(--km);margin-top:1px}
+.sv .d{display:block;color:var(--sub);font-size:11.5px}
+.sv .btns{position:absolute;top:5px;right:5px;display:flex;gap:3px}
+.sv .btns button{padding:1px 6px;font-size:11px;border-radius:5px;font-weight:800}
 
 /* ── 왼쪽 바 (다른 화면과 같은 구조) ───────────────────────────── */
 #app{display:flex;min-height:100vh}
@@ -264,9 +268,23 @@ details .body th{background:var(--bg2);color:var(--txt)}
     <div class="sub" id="meta">내 개리그 매니저 시즌 스쿼드를 그대로 들고 와서 붙습니다</div></div>
 </div>
 
-<!-- ① 세이브 불러오기 ─────────────────────────────────────────── -->
+<!-- ① 저장 슬롯 ───────────────────────────────────────────────
+     맨 위에 둔다 — 2026 라인업 화면과 같은 자리다.
+     ⚠ 한 번 저장해 두면 이 화면에 다시 와도 **세이브 파일을 또 고를 필요가 없다.**
+       불러온 명단이 슬롯에 통째로 들어 있기 때문이다(그래서 줄이지 않고 담는다). -->
 <div class="card">
-  <h2>① 개리그 매니저 세이브 파일을 불러옵니다</h2>
+  <h2>① 💾 저장 슬롯</h2>
+  <div class="sub">저장해 둔 라인업이 있으면 그 칸을 눌러 <b>바로 이어 합니다</b> —
+    세이브 파일을 다시 고르지 않아도 됩니다.</div>
+  <div class="slots" id="saveSlots"></div>
+  <!-- 덮어쓰기(💾)·지우기(✕)만 한 번 묻는다. 불러오기는 누르면 바로 올라온다 -->
+  <div class="note" id="slotAsk" style="display:none"></div>
+  <div class="msg" id="slotMsg"></div>
+</div>
+
+<!-- ② 세이브 불러오기 ─────────────────────────────────────────── -->
+<div class="card">
+  <h2>② 개리그 매니저 세이브 파일을 불러옵니다</h2>
   <div class="drop" id="drop">
     <div class="t">📂 세이브 파일 고르기</div>
     <div class="s"><code>klm2026_구단_2026_날짜.json</code> — 끌어다 놓아도 됩니다</div>
@@ -328,9 +346,9 @@ details .body th{background:var(--bg2);color:var(--txt)}
   </div>
 </div>
 
-<!-- ② 내 구단 ─────────────────────────────────────────────────── -->
+<!-- ③ 내 구단 ─────────────────────────────────────────────────── -->
 <div class="card" id="teamCard" style="display:none">
-  <h2>② 내 구단</h2>
+  <h2>③ 내 구단</h2>
   <div class="sub" id="saveInfo"></div>
   <div class="chips" id="chips"></div>
   <div class="note km">
@@ -339,20 +357,20 @@ details .body th{background:var(--bg2);color:var(--txt)}
   </div>
 </div>
 
-<!-- ③ 전술판 ──────────────────────────────────────────────────── -->
+<!-- ④ 아래부터 — 전술 · 조건부 지시 · 전술판 · 명단 ──────────────── -->
 <div id="main" style="display:none">
 
 <!-- ⚠ 카드 차례는 **2026 라인업 화면과 같게** 둡니다 —
      전술 → 조건부 지시 → 전술판 → 선발 → 교체 → 그 외 명단.
      두 화면을 오가는 사람이 매번 다시 찾지 않아도 되게 하려는 것입니다. -->
 <div class="card">
-  <h2>③ ⚙ 전술</h2>
+  <h2>④ ⚙ 전술</h2>
   <div class="sub">세이브에서 온 값이 이미 들어 있습니다. 그대로 써도 되고 여기서 고쳐도 됩니다.</div>
   <div id="tacs" style="margin-top:8px"></div>
 </div>
 
 <div class="card">
-  <h2>④ 📋 조건부 지시 <span class="sub">— 경기 중에는 아무도 버튼을 못 누릅니다</span></h2>
+  <h2>⑤ 📋 조건부 지시 <span class="sub">— 경기 중에는 아무도 버튼을 못 누릅니다</span></h2>
   <div class="sub"><b>여기가 사실상 승부처입니다.</b>
     여섯 칸까지 미리 적어 두면 그 상황이 오는 순간 저절로 발동합니다.</div>
   <div class="preset" id="ordPreset"></div>
@@ -364,7 +382,7 @@ details .body th{background:var(--bg2);color:var(--txt)}
 </div>
 
 <div class="card">
-  <h2>⑤ 전술판</h2>
+  <h2>⑥ 전술판</h2>
   <div class="sub" id="planNote"></div>
   <div style="display:flex;gap:7px;flex-wrap:wrap;margin:9px 0">
     <select id="formation" style="background:var(--bg3);color:var(--txt);border:1px solid var(--line);
@@ -389,25 +407,24 @@ details .body th{background:var(--bg2);color:var(--txt)}
 </div>
 
 <div class="card">
-  <h2>⑥ 선발</h2>
+  <h2>⑦ 선발</h2>
   <div id="xi"></div>
 </div>
 
 <div class="card">
-  <h2>⑦ 교체 명단 <span class="sub">— 순서가 곧 교체 순서입니다</span></h2>
+  <h2>⑧ 교체 명단 <span class="sub">— 순서가 곧 교체 순서입니다</span></h2>
   <div id="bench"></div>
 </div>
 
 <div class="card">
-  <h2>⑧ 그 외 명단</h2>
+  <h2>⑨ 그 외 명단</h2>
   <div class="sub" id="restNote">선발·교체에 없는 나머지 선수입니다. 누르면 어디에 세울지 고릅니다.</div>
   <div class="plist" id="rest"></div>
 </div>
 
 <div class="card">
-  <h2>⑨ 저장하고 붙기</h2>
-  <div class="sub">불러온 명단은 <b>이 브라우저에만</b> 남습니다. 슬롯을 누르면 그 자리에 저장합니다.</div>
-  <div class="slots" id="saveSlots"></div>
+  <h2>⑩ 올리고 붙기</h2>
+  <div class="sub">짜 둔 라인업은 <b>맨 위 저장 슬롯</b>에 넣어 두면 다음에 그대로 이어 합니다.</div>
   <div style="margin-top:11px">
     <button class="go" id="post">🧩 KM26 게시판에 올리기</button>
   </div>
@@ -422,11 +439,11 @@ details .body th{background:var(--bg2);color:var(--txt)}
     <div class="sub" style="margin-bottom:7px">올라온 라인업을 골라 <b>바로 붙습니다.</b>
       내 라인업은 위에서 올려 두면 남도 나와 붙을 수 있습니다.</div>
     <div class="find" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input id="oq" placeholder="\uac8c\uc2dc\ud310\uc5d0\uc11c \uc0c1\ub300 \ucc3e\uae30 \u2014 \ub2c9\ub124\uc784\u00b7\uad6c\ub2e8 \ud55c \uae00\uc790\ub9cc \ub123\uc5b4\ub3c4 \ub429\ub2c8\ub2e4"
+      <input id="oq" placeholder="닉네임 · 구단으로 찾기 — 한 글자만 넣어도 됩니다 (예: 안)"
              spellcheck="false" autocomplete="off"
              style="flex:1;min-width:170px;background:var(--bg3);color:var(--txt);border:1px solid var(--line);
                     border-radius:9px;padding:9px 12px;font-size:14px;font-family:inherit">
-      <button id="oload">\u21bb \ubd88\ub7ec\uc624\uae30</button>
+      <button id="oload">↻ 새로고침</button>
     </div>
     <div id="oppo" style="margin-top:8px"></div>
   </div>
@@ -436,13 +453,6 @@ details .body th{background:var(--bg2);color:var(--txt)}
     <div class="note km" id="awayNote"></div>
     <button class="big" id="play" style="margin-top:9px">⚔ 경기 화면으로</button>
     <div class="msg" id="playMsg"></div>
-  </div>
-  <div class="note km">
-    <b>가져온 명단은 51자 대전 코드를 만들지 않습니다.</b> 선수와 능력치가 사람마다 달라
-    51자 안에 담을 수 없기 때문입니다. 대신 <b>명단을 통째로</b> 게시판에 올리고,
-    상대는 그 글을 골라서 붙습니다.
-    <br>그래서 <b>KM26 명단끼리만</b> 붙습니다 — 기본 명단(29개 구단 1,024명)과는 섞이지 않고,
-    기록도 <a href="km-record.html">KM26 기록실</a>에 따로 쌓입니다.
   </div>
 </div>
 
@@ -463,7 +473,7 @@ details .body th{background:var(--bg2);color:var(--txt)}
 </div>
 
 <script type="module">
-import { readSave, saveInfo, teamListOf, makePack, slimPack, checkPack, PACK_KIND }
+import { readSave, saveInfo, teamListOf, makePack, slimPack, fatten, checkPack, PACK_KIND }
   from "./src/km26/kmsave.js?v=934f2923e8";
 import { autoLineup, planSig } from "./src/engine/teams.js?v=934f2923e8";
 import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=934f2923e8";
@@ -490,6 +500,7 @@ const SLIDER = {
 
 const SLOT_KEY = "kmd26.km26.slots";
 const SLOT_N = 5;
+const SLOT_KIND = "kmd26-km26slot";
 
 let DB = null, T = null, META = null;      // 기본 데이터 (표·별점 기준)
 let G = null;                              // 불러온 세이브
@@ -704,17 +715,42 @@ function choose(teamId) {
   const r = makePack(G, teamId, T, META, autoLineup);
   if (!r.ok) { $("#loadMsg").className = "msg bad"; $("#loadMsg").textContent = "✗ " + r.why; return; }
   pack = r.pack; baseNote = r.note;
+  myPlanId = null;                 // 새 명단이다 — 앞서 올린 글과 이어 붙이지 않는다
   $("#formation").value = pack.plan.formation;
   $("#main").style.display = "";
+  $("#reSave").disabled = false;   // 세이브가 있으니 되돌릴 곳이 있다
   drawAll();
   $("#main").scrollIntoView({ behavior: "smooth", block: "start" });
   loadOppo();
 }
 
-/* 자동으로 다시 짜거나, 세이브가 정한 대로 되돌린다 */
+/* 저장 슬롯에서 왔을 때의 ③ 카드 — 세이브가 없으므로 팩에 담긴 것만 보여 준다.
+   구단 칩은 누를 것이 없다(고를 다른 구단이 애초에 없다). */
+function showTeamFromPack() {
+  $("#saveInfo").innerHTML =
+    `${esc(String(pack.season || ""))} 시즌 · 선수 ${pack.squad.length}명 · 내 구단 `
+    + `<b style="color:var(--km)">${esc(pack.team.short || pack.team.id)}</b>`;
+  $("#chips").innerHTML = `<div class="chip on">
+      <span class="dot" style="background:${esc(pack.team.col || "#888")}"></span>
+      ${esc(pack.team.short || pack.team.id)} ⭐<span class="st">${pack.squad.length}명</span></div>`;
+  $("#teamCard").style.display = "";
+  $("#engineNote").style.display = "";
+}
+
+/* 자동으로 다시 짜거나, 세이브가 정한 대로 되돌린다.
+   ⚠ 저장 슬롯에서 온 경우에는 세이브 파일이 없다(`G === null`) — 되돌릴 곳이 없으므로
+     "↩ 세이브가 정한 대로"는 꺼 두고, "↻ 자동 배치"만 지금 명단으로 다시 짠다. */
 function rebuild(auto) {
   if (!pack) return;
   const keep = pack.plan.formation;
+  if (!G) {
+    if (!auto) return;
+    const lu = autoLineup(pack.squad, T, keep);
+    pack.plan.xi = lu.xi; pack.plan.bench = lu.bench;
+    baseNote = { autoXI: 11, benchAuto: 9 };
+    drawAll();
+    return;
+  }
   const r = makePack(G, pack.team.id, T, META, autoLineup);
   if (!r.ok) return;
   pack = r.pack; baseNote = r.note;
@@ -858,6 +894,10 @@ function drawOrders() {
 
 function drawNote() {
   const n = baseNote || {};
+  if (n.fromSlot) {
+    $("#planNote").innerHTML = `저장 슬롯 <b>${n.fromSlot}번</b>에서 불러온 라인업입니다.`;
+    return;
+  }
   const bits = [];
   if (n.keptSlots) bits.push(`세이브가 정한 자리 <b>${n.keptSlots}곳</b>을 그대로 씁니다`);
   if (n.autoXI) bits.push(`빈 자리 <b>${n.autoXI}곳</b>은 자동으로 채웠습니다`);
@@ -1106,38 +1146,134 @@ function putPlayer(pidStr) {
   drawPitch(); drawXI(); drawBench(); drawRest();
 }
 
-/* ── 저장 슬롯 ──────────────────────────────────────────────── */
+/* ── 저장 슬롯 ──────────────────────────────────────────────────
+   ⚠ 여기 담기는 팩은 **줄이지 않은 것**이다. 게시판에 올릴 때는 나올 수 있는
+     스무 명만 담지만(`slimPack`), 슬롯은 다음에 와서 **라인업을 다시 짜는** 자리라
+     명단 전체가 있어야 한다. 스무 명만 담으면 불러온 뒤 "그 외 명단"이 텅 빈다.
+   ⚠ 옛 슬롯(줄인 팩·`kind` 없음)도 그대로 읽는다 — `fatten` 이 되살려 준다. */
 function readSlots() {
-  try { return JSON.parse(localStorage.getItem(SLOT_KEY) || "[]"); } catch (e) { return []; }
+  try {
+    const a = JSON.parse(localStorage.getItem(SLOT_KEY) || "[]");
+    return Array.isArray(a) ? a.slice(0, SLOT_N) : [];
+  } catch (e) { return []; }
 }
+function writeSlots(a) {
+  try { localStorage.setItem(SLOT_KEY, JSON.stringify(a.slice(0, SLOT_N))); return true; }
+  catch (e) { return false; }
+}
+function slotMsg(cls, text) {
+  $("#slotMsg").className = "msg " + (cls || "");
+  $("#slotMsg").textContent = text || "";
+}
+
 function drawSlots() {
   const list = readSlots();
   $("#saveSlots").innerHTML = Array.from({ length: SLOT_N }, (_, i) => {
     const s = list[i];
-    return `<button class="sv${s ? "" : " empty"}" data-i="${i}">
-      <span class="n">${i + 1}. ${s ? esc(s.team) : "빈 칸"}</span>
-      <span class="d">${s ? esc(s.season + " · " + s.formation) : "여기에 저장"}</span>
-    </button>`;
+    if (!s) return `<div class="sv empty" data-i="${i}" data-act="save">
+      <span class="n">${i + 1}번</span>
+      <span class="t">빈 칸</span>
+      <span class="d">눌러서 지금 라인업 저장</span></div>`;
+    const n = s.pack && Array.isArray(s.pack.squad) ? s.pack.squad.length : 0;
+    return `<div class="sv" data-i="${i}" data-act="load">
+      <div class="btns">
+        <button data-i="${i}" data-act="save" title="이 슬롯에 덮어쓰기">💾</button>
+        <button data-i="${i}" data-act="del" title="지우기">✕</button>
+      </div>
+      <span class="n">${i + 1}번${s.savedAt ? " · " + esc(s.savedAt) : ""}</span>
+      <span class="t">${esc(s.team || "")}</span>
+      <span class="d">${esc([s.season, s.formation].filter(Boolean).join(" · "))}${n ? ` · ${n}명` : ""}</span>
+    </div>`;
   }).join("");
-  $("#saveSlots").querySelectorAll("[data-i]").forEach(b => b.onclick = () => useSlot(+b.dataset.i));
+
+  /* 누르면 **바로** 한다 — 저장해 둔 것을 없애는 경우에만 묻는다.
+     (2026 라인업 화면과 같은 규칙: 불러오기는 잃을 것이 없으므로 묻지 않는다) */
+  $("#saveSlots").querySelectorAll("[data-act]").forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    const i = +el.dataset.i, act = el.dataset.act, list = readSlots();
+    if (act === "load") return doSlot(i, "load");
+    if (act === "save" && !list[i]) return doSlot(i, "save");   // 빈 칸 — 잃을 것이 없다
+    askSlot(i, act, list[i]);
+  });
 }
-function useSlot(i) {
+
+function askSlot(i, act, s) {
+  if (!s) return;
+  const what = `<b>${i + 1}번 · ${esc(s.team || "")}</b>
+    <span class="sub">(${esc([s.season, s.formation].filter(Boolean).join(" · "))})</span>`;
+  const msg = {
+    save: `${what} 에 <b>지금 라인업을 덮어씁니다.</b> 그 칸에 있던 것은 사라집니다.`,
+    del:  `${what} 을 <b>지웁니다.</b> 되돌릴 수 없습니다.`,
+  }[act];
+  const ok = { save: "💾 덮어쓰기", del: "✕ 지우기" }[act];
+  const box = $("#slotAsk");
+  box.style.display = "";
+  box.innerHTML = `${msg}
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button id="askOk">${ok}</button><button id="askNo">취소</button>
+    </div>`;
+  $("#askOk").onclick = () => { closeAsk(); doSlot(i, act); };
+  $("#askNo").onclick = closeAsk;
+}
+function closeAsk() { $("#slotAsk").style.display = "none"; $("#slotAsk").innerHTML = ""; }
+
+function doSlot(i, act) {
   const list = readSlots();
-  if (pack) {
-    // 라인업을 만지고 있으면 저장, 아니면 불러오기
+  if (act === "save") {
+    if (!pack) { slotMsg("bad", "먼저 세이브를 불러와 라인업을 짜 주세요."); return; }
     /* 지문과 글 번호도 함께 담는다 — 경기 화면이 이 슬롯만 보고 붙을 수 있어야 한다
        (게시판에서 바로 오면 여기 있는 것이 내 라인업의 전부다) */
-    list[i] = { team: pack.team.short, season: pack.season, formation: pack.plan.formation,
-                sig: sigOf(pack), planId: myPlanId, pack: slimPack(pack) };
-    try { localStorage.setItem(SLOT_KEY, JSON.stringify(list)); } catch (e) {
-      $("#postMsg").className = "msg bad";
-      $("#postMsg").textContent = "저장 공간이 모자랍니다 — 다른 슬롯을 지워 주세요.";
-      return;
-    }
+    list[i] = {
+      kind: SLOT_KIND, ver: 1,
+      team: pack.team.short, teamId: pack.team.id, season: pack.season,
+      formation: pack.plan.formation,
+      savedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+      sig: sigOf(pack), planId: myPlanId,
+      pack: JSON.parse(JSON.stringify(pack)),
+    };
+    if (!writeSlots(list)) { slotMsg("bad", "저장 공간이 모자랍니다 — 다른 슬롯을 지워 주세요."); return; }
     drawSlots();
-    $("#postMsg").className = "msg ok";
-    $("#postMsg").textContent = `${i + 1}번 슬롯에 저장했습니다.`;
+    const bad = checkPack(pack, T);
+    slotMsg("ok", `${i + 1}번 슬롯에 저장했습니다.` + (bad ? ` (아직 ${bad})` : ""));
+  } else if (act === "del") {
+    list[i] = null;
+    if (!writeSlots(list)) { slotMsg("bad", "슬롯을 지우지 못했습니다."); return; }
+    drawSlots();
+    slotMsg("", `${i + 1}번 슬롯을 지웠습니다.`);
+  } else if (act === "load") {
+    closeAsk();
+    applySlot(list[i], i);
   }
+}
+
+/** 슬롯 한 벌을 화면에 올린다 — 세이브 파일 없이 여기서부터 이어 한다 */
+function applySlot(s, i) {
+  const p = s && s.pack ? fatten(JSON.parse(JSON.stringify(s.pack))) : null;
+  if (!p || !p.team || !Array.isArray(p.squad) || p.squad.length < 11 || !p.plan
+      || !T.formation[p.plan.formation]) {
+    slotMsg("bad", "✗ 이 슬롯을 읽지 못했습니다 — 세이브를 다시 불러와 주세요.");
+    return false;
+  }
+  if (!Array.isArray(p.plan.bench)) p.plan.bench = new Array(9).fill(null);
+  while (p.plan.bench.length < 9) p.plan.bench.push(null);
+  if (!Array.isArray(p.plan.cond)) p.plan.cond = [0, 0, 0, 0, 0, 0];
+  while (p.plan.cond.length < 6) p.plan.cond.push(0);
+  if (!p.plan.roles) p.plan.roles = {};
+
+  pack = p;
+  myPlanId = s.planId || null;
+  baseNote = { fromSlot: i + 1 };
+  G = null;                       // 세이브 파일은 없다 — "세이브가 정한 대로"는 못 쓴다
+  showTeamFromPack();
+  $("#formation").value = pack.plan.formation;
+  $("#main").style.display = "";
+  $("#reSave").disabled = true;
+  drawAll();
+  drawSlots();
+  slotMsg("ok", `${i + 1}번 슬롯을 불러왔습니다 — ${pack.team.short} · ${pack.plan.formation}`);
+  loadOppo();
+  $("#main").scrollIntoView({ behavior: "smooth", block: "start" });
+  return true;
 }
 
 /* ── 게시판에 올리기 ────────────────────────────────────────── */

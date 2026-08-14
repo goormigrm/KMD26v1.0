@@ -154,16 +154,16 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <div class="t a" id="bA"></div>
   </div>
   <div class="hl idle" id="hl">
-    <span class="rep">\u25cf \ub9ac\ud50c\ub808\uc774</span>
+    <span class="rep">● 리플레이</span>
     <canvas id="cv" width="700" height="440"></canvas>
   </div>
-  <div class="tick" id="tick">\uacbd\uae30\ub97c \uc2dc\uc791\ud569\ub2c8\ub2e4.</div>
+  <div class="tick" id="tick">경기를 시작합니다.</div>
   <div class="ctrls">
-    <button id="pp">\u23f8 \uc77c\uc2dc\uc815\uc9c0</button>
-    <button class="sp on" data-sp="1">1\ubc30</button>
-    <button class="sp" data-sp="2">2\ubc30</button>
-    <button class="sp" data-sp="4">4\ubc30</button>
-    <button id="skip">\u23e9 \ub05d\uae4c\uc9c0</button>
+    <button id="pp">⏸ 일시정지</button>
+    <button class="sp on" data-sp="1">1배</button>
+    <button class="sp" data-sp="2">2배</button>
+    <button class="sp" data-sp="4">4배</button>
+    <button id="skip">⏩ 끝까지</button>
   </div>
 </div>
 
@@ -267,9 +267,7 @@ async function boot() {
     $("#how").innerHTML = "먼저 두 가지가 있어야 합니다.<br>· " + need.join("<br>· ");
     return;
   }
-  $("#how").innerHTML = `결과는 <b>양쪽 라인업과 명단에서 함께 뽑은 씨앗</b>으로 정해집니다 —
-    마음에 드는 결과가 나올 때까지 돌려서 그것만 보내는 것은 불가능합니다.
-    <br>90분을 다 돌린 뒤 결과를 보여 주므로 <b>8초쯤</b> 걸립니다.`;
+  $("#how").innerHTML = `90분을 다 돌린 뒤 결과를 보여 주므로 <b>8초쯤</b> 걸립니다.`;
   $("#play").disabled = false;
   $("#play").onclick = play;
   window.__awayRow = a;
