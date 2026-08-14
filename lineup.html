@@ -74,9 +74,12 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
       align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;
       border:1px dashed #ffffff2e;color:#ffffff66;font-size:12px;font-weight:800;padding:4px}
 .cell.off{border-color:transparent;cursor:default}
-/* 이 포메이션이 쓰지 않는 자리 — 전술판은 스물다섯 칸을 다 그리지만
-   대전 코드에 담기는 것은 포메이션의 열한 칸뿐이다. 세울 수 없다는 걸 눈으로 알려 준다. */
-.cell.nf{border-style:dotted;border-color:#ffffff14;color:#ffffff26;cursor:not-allowed}
+/* 지금 모양이 쓰지 않는 자리 — 세울 수는 있다. 세우면 그 자리를 쓰는 모양으로 갈아탄다
+   (KM26 도 자리를 옮기면 포메이션이 따라 바뀐다). 흐리게 두되 막지는 않는다. */
+.cell.nf{border-style:dotted;border-color:#ffffff1a;color:#ffffff38}
+.cell.nf:hover{border-color:var(--gold);color:var(--gold)}
+.cell.nf .fx{display:block;font-size:9.5px;font-weight:800;color:#ffffff2e;margin-top:3px}
+.cell.nf:hover .fx{color:var(--gold)}
 .cell.has{border:1px solid var(--line);background:#0b0f14cc;color:var(--txt);padding:5px 4px}
 .cell.sel{border-color:var(--acc);box-shadow:0 0 0 2px #2ea8ff66}
 .cell.drop{border-color:var(--ok);border-style:dashed;background:#1a3a2455}
@@ -444,6 +447,35 @@ const slotsOf = f => ["GK", ...T.formation[f].map(s => s[1])];
      그러면 화면은 "선발 11명"이라고 하는데 정작 LCM 이 비어, 코드를 발급하는 순간
      "LCM 자리가 비어 있거나 명단에 없는 선수입니다" 로 막혔다. */
 const formSlots = () => new Set(slotsOf(formation));
+
+/* ── 자리를 옮기면 모양이 따라간다 ─────────────────────────────
+   KM26 은 선수를 다른 자리에 놓으면 포메이션 이름이 그 모양으로 바뀐다. 듀얼도 그렇게 한다.
+   ⚠ 다만 듀얼은 **표에 있는 열두 모양 중 하나**여야 한다 — 대전 코드가 포메이션을
+     4비트 색인으로 담기 때문이다(`duelcode.js`). 그래서 아무 모양이나 만들 수는 없고,
+     "그 자리를 쓰면서 지금 라인업을 가장 적게 흔드는" 모양으로 갈아탄다. */
+
+/** 이 자리를 쓰는 모양 중, `keep` 자리들을 가장 많이 그대로 두는 것 */
+function formationFor(slot, keep) {
+  let best = null, bs = -1;
+  for (const f of Object.keys(T.formation)) {
+    const s = new Set(slotsOf(f));
+    if (!s.has(slot)) continue;
+    let n = 0;
+    for (const k of keep) if (s.has(k)) n++;
+    // 같은 점수면 이름 순으로 고정한다 — 같은 조작이 늘 같은 결과를 내야 한다
+    if (n > bs) { bs = n; best = f; }
+  }
+  return best;
+}
+
+/** `need` 자리를 **전부** 담는 모양 (없으면 null) — 저장분을 되살릴 때 쓴다 */
+function formationCovering(need) {
+  for (const f of Object.keys(T.formation)) {
+    const s = new Set(slotsOf(f));
+    if (need.every(k => s.has(k))) return f;
+  }
+  return null;
+}
 const byId = id => DB.players[team].find(p => p.id === id);
 const slotOfPlayer = id => Object.keys(xi).find(s => xi[s] === id) || null;
 const benchIdxOf = id => { const i = bench.indexOf(id); return i < 0 ? null : i; };
@@ -566,13 +598,18 @@ function autoFill() {
    선발은 열한 명을 넘을 수 없다. 자리 자체가 열한 개인 게 아니라 전술판이
    모든 자리를 보여 주기 때문에, 여기서 막지 않으면 열두 명이 들어간다(실제로 그랬다). */
 function place(slot, id) {
-  // 이 포메이션에 없는 자리에는 세울 수 없다 (formSlots 주석 참고)
+  const from0 = slotOfPlayer(id);
+  // 지금 모양에 없는 자리다 — 그 자리를 쓰는 모양으로 갈아탄다 (formationFor 주석 참고)
   if (!formSlots().has(slot)) {
-    flash(`${formation} 에는 ${slot} 자리가 없습니다 — 포메이션을 바꾸면 그 자리가 열립니다.`);
-    sel = null;
+    if (!from0 && benchIdxOf(id) === null && xiCount() >= 11) {
+      flash("선발은 열한 명까지입니다. 먼저 한 명을 빼 주세요.");
+      sel = null;
+      return;
+    }
+    moveWithFormation(slot, id);
     return;
   }
-  const from = slotOfPlayer(id);   // 이미 선발이면 자리만 옮기는 것 — 인원은 그대로다
+  const from = from0;               // 이미 선발이면 자리만 옮기는 것 — 인원은 그대로다
   const cur = xi[slot];
   if (!from && cur == null && xiCount() >= 11) {
     flash("선발은 열한 명까지입니다. 먼저 한 명을 빼 주세요.");
@@ -591,6 +628,51 @@ function place(slot, id) {
       if (free >= 0) bench[free] = cur;
     }
   }
+  sel = null;
+}
+
+/**
+ * 지금 모양에 없는 자리에 세운다 — 그 자리를 쓰는 모양으로 갈아타고, 밀려난 선수는 다시 앉힌다.
+ *
+ * ⚠ 자리 하나만 보고 고르면 안 된다. 4-3-3 에서 LCM 을 LM 으로 옮기면 LM 을 쓰는 모양은
+ *   다섯 가지인데, 그중 LW·ST·RW 를 함께 쓰는 것은 3-4-3 뿐이다. 그래서 **지금 서 있는
+ *   나머지 자리까지 함께 보고** 가장 적게 흔드는 모양을 고른다.
+ */
+function moveWithFormation(slot, id) {
+  const from = slotOfPlayer(id);
+  // 옮기고 나서 그대로 두고 싶은 자리들 (떠나는 자리는 뺀다)
+  const keep = Object.keys(xi).filter(s => s !== from);
+  const f = formationFor(slot, keep);
+  if (!f) { flash(`${slot} 자리를 쓰는 포메이션이 없습니다.`); sel = null; return; }
+
+  const prev = formation;
+  formation = f;
+  $("#formation").value = f;
+
+  if (from) delete xi[from];
+  const bi = benchIdxOf(id);
+  if (bi !== null) bench[bi] = null;
+  const cur = xi[slot];
+  xi[slot] = id;
+
+  // 새 모양에 없는 자리에 남은 선수를 걷어낸다 (밀려난 사람도 함께)
+  const inForm = formSlots();
+  const loose = [];
+  if (cur != null && cur !== id) loose.push(cur);
+  for (const s of Object.keys(xi)) {
+    if (inForm.has(s) || s === slot) continue;
+    loose.push(xi[s]); delete xi[s];
+  }
+  // 빈 자리에 능숙도가 높은 사람부터 다시 앉힌다 — 손으로 다시 짜게 만들지 않는다
+  for (const s of slotsOf(f)) {
+    if (!loose.length) break;
+    if (xi[s] != null) continue;
+    loose.sort((a, b) => famOf(byId(b), s) - famOf(byId(a), s));
+    xi[s] = loose.shift();
+  }
+  for (const q of loose) { const i = bench.indexOf(null); if (i >= 0) bench[i] = q; }
+
+  flash(prev === f ? "" : `${slot} 자리를 쓰려고 포메이션을 ${prev} → ${f} 로 바꿨습니다.`);
   sel = null;
 }
 
@@ -863,10 +945,16 @@ function drawPitch() {
   // ⚠ #pitch 가 아니라 #pgrid 에 쓴다 — #pitch 안에는 코트 배경(.pmark)이 함께 있다
   $("#pgrid").innerHTML = rows.map(cells => `<div class="prow5">${cells.map(slot => {
     if (!slot) return `<div class="cell off"></div>`;
-    /* 이 포메이션이 안 쓰는 자리는 죽은 칸으로 그린다. data-slot 을 달지 않으므로
-       누르기·끌어다 놓기 대상이 아니다 — 아래 바인딩이 `.cell[data-slot]` 만 잡는다. */
+    /* 지금 모양이 안 쓰는 자리 — 흐리게 두되 누르기·끌어다 놓기는 그대로 받는다.
+       여기 세우면 그 자리를 쓰는 모양으로 갈아탄다. 어느 모양이 될지 미리 적어 준다. */
     if (!inForm.has(slot)) {
-      return `<div class="cell nf" title="${esc(formation)} 에는 없는 자리입니다">${esc(slot)}</div>`;
+      const to = formationFor(slot, Object.keys(xi));
+      // 어느 모양도 안 쓰는 자리(SW)는 갈 곳이 없다 — 아예 죽은 칸으로 둔다
+      if (!to) return `<div class="cell off" title="쓰이지 않는 자리입니다">${esc(slot)}</div>`;
+      const isDrop2 = sel && sel.kind === "player";
+      return `<div class="cell nf${isDrop2 ? " drop" : ""}" data-slot="${slot}" data-drop="1"
+        title="${esc(formation)} 에는 없는 자리입니다 — 여기 세우면 ${esc(to)} 로 바뀝니다">
+        ${esc(slot)}<span class="fx">→ ${esc(to)}</span></div>`;
     }
     const pid = xi[slot], p = pid != null ? byId(pid) : null;
     const isSel = sel && sel.kind === "slot" && sel.slot === slot;
@@ -912,12 +1000,11 @@ function drawPitch() {
 
 /** 두 자리를 통째로 맞바꾼다 — 한쪽이 비어 있으면 그냥 옮긴다 */
 function swapSlots(a, b) {
-  // 전술판이 바깥 자리를 이미 막고 있지만, 끌어다 놓기 경로도 함께 막는다
+  /* 한쪽이 지금 모양에 없는 자리면 "맞바꾸기" 가 아니라 "그 자리로 옮기기" 다 —
+     모양을 갈아타야 하므로 place() 에 넘긴다. */
   const inForm = formSlots();
-  if (!inForm.has(a) || !inForm.has(b)) {
-    flash(`${formation} 에는 ${inForm.has(a) ? b : a} 자리가 없습니다.`);
-    return;
-  }
+  if (!inForm.has(b) && xi[a] != null) return place(b, xi[a]);
+  if (!inForm.has(a) && xi[b] != null) return place(a, xi[b]);
   const pa = xi[a], pb = xi[b];
   if (pb != null) xi[a] = pb; else delete xi[a];
   if (pa != null) xi[b] = pa; else delete xi[b];
@@ -1151,14 +1238,20 @@ function applyPlan(p, where) {
   $("#formation").value = formation;
 
   const have = new Set(DB.players[team].map(q => q.id));
+  /* 예전 판에서 저장된 라인업에는 지금 모양에 없는 자리가 들어 있을 수 있다.
+     그대로 두면 화면은 "선발 11명"인데 코드 발급이 막힌다.
+     그 자리들을 **전부** 담는 모양이 있으면 그쪽으로 맞춰 준다 — 짜 둔 것을 지키는 쪽이 낫다. */
+  const savedSlots = Object.keys(p.xi || {}).filter(s => have.has(p.xi[s]));
+  if (!savedSlots.every(s => formSlots().has(s))) {
+    const cover = formationCovering(savedSlots);
+    if (cover) { formation = cover; $("#formation").value = cover; }
+  }
   const inForm = formSlots();
   let lost = 0;
-  const strays = [];        // 이 포메이션에 없는 자리에 서 있던 선수
+  const strays = [];        // 그래도 담을 모양이 없어 남은 선수
   xi = {};
   for (const s of Object.keys(p.xi || {})) {
     if (!have.has(p.xi[s])) { lost++; continue; }
-    /* 예전 판에서 저장된 라인업에는 포메이션 바깥 자리가 들어 있을 수 있다.
-       그대로 두면 화면은 "선발 11명"인데 코드 발급이 막힌다 — 걷어내서 교체 명단으로 내린다. */
     if (!inForm.has(s)) { strays.push(p.xi[s]); continue; }
     xi[s] = p.xi[s];
   }
