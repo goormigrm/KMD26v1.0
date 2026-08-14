@@ -12,7 +12,7 @@
    ⚠ 표가 없으면 화면에서 KM26 게시판만 조용히 꺼집니다 — 게임의 나머지는 그대로입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=14944fdacd";
+import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=d3d835944f";
 
 export { NICK_MAX, NOTE_MAX, myNick, rememberNick };
 
@@ -210,11 +210,49 @@ export function kmRecordsByPlan(matches) {
   return out;
 }
 
+/** 홈·원정을 합친 것 — {w,d,l,n,pts,rate}. 기본 갈래의 `totalOf` 와 같은 모양이다 */
+export function kmTotalOf(rec) {
+  const h = (rec && rec.h) || { w: 0, d: 0, l: 0 };
+  const a = (rec && rec.a) || { w: 0, d: 0, l: 0 };
+  const w = h.w + a.w, d = h.d + a.d, l = h.l + a.l, n = w + d + l;
+  return { w, d, l, n, pts: w * 3 + d, rate: n ? Math.round(w / n * 100) : 0 };
+}
+
+/** `3승 1무 2패` — 한 판도 안 붙었으면 빈 글자 */
+export function kmWdlText(r) {
+  if (!r || (r.w + r.d + r.l) === 0) return "";
+  return `${r.w}승 ${r.d}무 ${r.l}패`;
+}
+
 /** 경기당 승점 — 한 판 이긴 라인업이 9승 1패보다 위로 오지 않게 평균 쪽으로 당긴다 */
 const PRIOR_N = 1, PRIOR_PTS = 1.5;
 export function kmPlanScore(rec) {
-  if (!rec) return PRIOR_PTS;
-  const w = rec.h.w + rec.a.w, d = rec.h.d + rec.a.d, l = rec.h.l + rec.a.l;
-  const n = w + d + l;
-  return (w * 3 + d + PRIOR_N * PRIOR_PTS) / (n + PRIOR_N);
+  const t = kmTotalOf(rec);
+  return (t.pts + PRIOR_N * PRIOR_PTS) / (t.n + PRIOR_N);
+}
+
+/* ── 구단별 전적 ──────────────────────────────────────────────
+   ⚠ 같은 구단이라도 **사람마다 명단이 다릅니다**(각자의 세이브입니다).
+     그래서 이 값은 "그 구단으로 나온 사람들을 다 합쳐서 얼마나 이겼나"이지
+     구단 자체의 세기가 아닙니다. 화면에서 그렇게 적어 둬야 합니다.
+   ⚠ 이름은 경기 기록에 박힌 `h_team`/`a_team` 을 그대로 씁니다. 집계 칸을 따로
+     두지 않는 것은 라인업 전적과 같은 판단입니다(감춘 경기와 숫자가 어긋나지 않게). */
+export function kmRecordsByTeam(matches) {
+  const out = {};
+  const at = t => (out[t] = out[t] || {
+    h: { w: 0, d: 0, l: 0 }, a: { w: 0, d: 0, l: 0 }, gf: 0, ga: 0,
+  });
+  for (const m of matches || []) {
+    const hg = m.hg | 0, ag = m.ag | 0;
+    const ht = String(m.h_team || "").trim(), aw = String(m.a_team || "").trim();
+    if (ht) {
+      const r = at(ht); r.gf += hg; r.ga += ag;
+      if (hg > ag) r.h.w++; else if (hg < ag) r.h.l++; else r.h.d++;
+    }
+    if (aw) {
+      const r = at(aw); r.gf += ag; r.ga += hg;
+      if (ag > hg) r.a.w++; else if (ag < hg) r.a.l++; else r.a.d++;
+    }
+  }
+  return out;
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KMD26 · KM26 게시판</title>
+<title>KMD26 · KM26 전술 게시판</title>
 <style>
 :root{--bg:#0d1117;--bg2:#161b22;--bg3:#0b0f14;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;
       --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341;--km:#b98cff}
@@ -34,14 +34,45 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 .pl .tm{font-size:12px;font-weight:800;color:#1b0c33;background:var(--km);border-radius:6px;padding:2px 8px}
 .pl .nk{font-weight:800}
 .pl .se{font-size:11.5px;color:var(--sub)}
-.pl .rec{margin-left:auto;font-size:12px;font-variant-numeric:tabular-nums;color:var(--sub)}
-.pl .rec b{color:var(--txt)}
 .pl .nt{font-size:12.5px;color:var(--sub);margin-top:5px}
 .pl .ft{display:flex;gap:7px;align-items:center;margin-top:9px;border-top:1px solid #21262d;padding-top:8px}
 .pl .ft .ag{color:var(--sub);font-size:11.5px;flex:1}
 .pl button.pick{background:var(--km);color:#1b0c33;border-color:var(--km);font-size:12.5px;padding:6px 12px}
 .empty{padding:26px 14px;text-align:center;color:var(--sub);font-size:13px;
       background:var(--bg2);border:1px dashed var(--line);border-radius:10px;margin-top:12px}
+
+/* ── 전적 한 덩어리 ───────────────────────────────────────────
+   2026 전술 게시판(board.html)과 **같은 모양**입니다. 홈과 원정을 갈라서 보여 줍니다 —
+   같은 전술이라도 홈에서 밀어붙이는 것과 원정에서 받아치는 것은 다른 이야기입니다. */
+.rc{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:var(--sub);margin-top:6px}
+.rc.none{color:#5c6672;font-style:italic}
+.rc.side{gap:12px;border-top:1px dashed #262c35;padding-top:5px;margin-top:4px}
+.rc .wr{font-weight:800;font-size:12.5px;color:var(--txt);background:var(--bg3);
+     border:1px solid var(--line);border-radius:6px;padding:1px 8px;flex:none}
+.rc .wr.good{color:var(--ok);border-color:#1f4a2b}
+.rc .wr.bad{color:var(--bad);border-color:#5a2b2b}
+.rc .tot{font-variant-numeric:tabular-nums}
+
+/* 줄 세우기 · 보기 바꾸기 */
+.sortrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px}
+.sortrow .lb{font-size:11.5px;color:var(--sub);font-weight:700;margin-right:2px}
+.sortrow button{padding:5px 11px;font-size:12px}
+.sortrow button.on{border-color:var(--km);color:var(--km)}
+
+/* ── 구단별 전적 표 ───────────────────────────────────────────
+   가로로 넘칠 수 있으므로 표만 따로 굴린다(폰에서 본문이 옆으로 밀리지 않게). */
+.tbwrap{overflow-x:auto;margin-top:10px}
+table.tt{width:100%;border-collapse:collapse;font-size:12.5px;min-width:460px}
+table.tt th{color:var(--sub);text-align:right;font-size:11.5px;font-weight:700;
+     padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.tt th:nth-child(1),table.tt th:nth-child(2){text-align:left}
+table.tt td{padding:6px 8px;border-bottom:1px solid #21262d;text-align:right;
+     font-variant-numeric:tabular-nums;white-space:nowrap}
+table.tt td:nth-child(1){color:var(--sub);width:34px}
+table.tt td:nth-child(2){text-align:left;font-weight:800}
+table.tt .tmc{color:#1b0c33;background:var(--km);border-radius:6px;padding:1px 8px;font-size:11.5px;font-weight:800}
+table.tt .gd.p{color:var(--ok)} table.tt .gd.m{color:var(--bad)}
+table.tt tr.me td{background:#141021}
 
 #app{display:flex;min-height:100vh}
 #side{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
@@ -92,6 +123,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
   <div id="navScroll">
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
+    <a class="navbtn km on" href="km-board.html">🧩 KM26 전술 게시판<span class="k">가져온 명단으로 올라온 라인업</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
     <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
@@ -110,17 +142,26 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 
 <div class="card">
   <div class="find">
-    <input id="q" placeholder="닉네임 · 구단으로 찾기 — 한 글자만 넣어도 됩니다 (예: 안)"
+    <input id="q" placeholder="닉네임 · 구단 · 한 줄 소개로 찾기 — 한 글자만 넣어도 됩니다 (예: 안)"
            spellcheck="false" autocomplete="off">
     <button id="reload" title="목록을 다시 불러옵니다">↻ 새로고침</button>
     <span class="cnt" id="cnt"></span>
   </div>
+  <div class="sortrow">
+    <span class="lb">보기</span>
+    <button class="vw on" data-v="plan">🧩 전술별</button>
+    <button class="vw" data-v="team">🏟 구단별</button>
+    <span class="lb" style="margin-left:8px">줄 세우기</span>
+    <button class="so on" data-s="rec">성적순</button>
+    <button class="so" data-s="new">최신순</button>
+  </div>
   <div class="note">
     <b>여기 올라오는 것은 개리그 매니저 세이브에서 가져온 명단입니다.</b>
     선수와 능력치가 사람마다 다르므로 <b>기본 명단(29개 구단 1,024명)과는 섞이지 않습니다</b> —
-    여기 올라온 것끼리만 붙고, 기록도 <a href="km-record.html">KM26 기록실</a>에 따로 쌓입니다.
+    여기 올라온 것끼리만 붙고, 기록도 <a href="km-record.html">KM26 듀얼 기록실</a>에 따로 쌓입니다.
     <br>올리려면 <a href="km-lineup.html">KM26 라인업</a>에서 세이브를 불러온 뒤 올리기를 누르세요.
-    <br>성적은 <b>경기당 승점</b>으로 줄 세웁니다 — 한 판 이긴 라인업이 9승 1패보다 위로 오지 않습니다.
+    <br><b>승률과 전적</b>은 기록실에 남은 실제 경기로 매깁니다. 줄 세우기는 승률이 아니라
+    <b>경기당 승점</b>입니다 — 한 판 이긴 라인업이 <b>9승 1패</b>보다 위로 오면 안 되니까요.
   </div>
 </div>
 
@@ -130,14 +171,16 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 </div>
 
 <script type="module">
-import { kmBoardOn, listKmPlans, listKmMatches, kmRecordsByPlan, kmPlanScore, getKmPack }
-  from "./src/board/kmboard.js?v=14944fdacd";
+import { kmBoardOn, listKmPlans, listKmMatches, kmRecordsByPlan, kmRecordsByTeam,
+         kmTotalOf, kmWdlText, kmPlanScore, getKmPack, myNick }
+  from "./src/board/kmboard.js?v=d3d835944f";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-let plans = [], recs = {};
+let plans = [], recs = {}, teamRecs = {}, played = 0;
+let view = "plan", sortBy = "rec";
 
 /* 찾기 — 게시판과 같은 방식. 받아 둔 목록을 그 자리에서 거른다(초성도 된다) */
 const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
@@ -166,21 +209,40 @@ function ago(iso) {
   return Math.round(h / 24) + "일 전";
 }
 
-function recText(r) {
-  if (!r) return "아직 안 붙어 봄";
-  const w = r.h.w + r.a.w, d = r.h.d + r.a.d, l = r.h.l + r.a.l;
-  if (!(w + d + l)) return "아직 안 붙어 봄";
-  return `<b>${w}승 ${d}무 ${l}패</b> · 홈 ${r.h.w}-${r.h.d}-${r.h.l} · 원정 ${r.a.w}-${r.a.d}-${r.a.l}`;
+/* 전적 한 덩어리 — 2026 전술 게시판(board.html recHTML)과 같은 모양이다.
+   홈·원정을 갈라 두는 이유도 같다: 밀어붙이는 전술과 받아치는 전술은 다른 이야기다. */
+function recHTML(rec) {
+  const t = kmTotalOf(rec);
+  if (!t.n) return `<div class="rc none">아직 붙어 본 기록이 없습니다</div>`;
+  const cls = t.rate >= 60 ? " good" : (t.rate <= 30 ? " bad" : "");
+  return `<div class="rc">
+      <span class="wr${cls}">승률 ${t.rate}%</span>
+      <span class="tot">${t.n}판 ${kmWdlText(t)} · 승점 ${t.pts}</span>
+    </div>
+    <div class="rc side">
+      <span>🏠 ${kmWdlText(rec.h) || "기록 없음"}</span>
+      <span>✈ ${kmWdlText(rec.a) || "기록 없음"}</span>
+    </div>`;
 }
 
 function draw() {
+  $("#list").querySelectorAll("[data-id]").forEach(b => (b.onclick = null));
+  if (view === "team") { drawTeams(); return; }
+  drawPlans();
+}
+
+/* ── 전술별 ─────────────────────────────────────────────────── */
+function drawPlans() {
   const q = $("#q").value.trim();
-  const list = plans.filter(p => match(p, q))
-    .sort((a, b) => kmPlanScore(recs[b.id]) - kmPlanScore(recs[a.id]) || b.id - a.id);
+  const newer = (a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0) || b.id - a.id;
+  const list = plans.filter(p => match(p, q)).sort(sortBy === "new" ? newer
+    : ((a, b) => (kmPlanScore(recs[b.id]) - kmPlanScore(recs[a.id])) || newer(a, b)));
   $("#cnt").textContent = q ? `${list.length} / ${plans.length}` : `${plans.length}개`;
   if (!list.length) {
     $("#list").innerHTML = `<div class="empty">${plans.length
-      ? "찾는 라인업이 없습니다." : "아직 올라온 라인업이 없습니다. 첫 번째가 되어 보세요."}</div>`;
+      ? "찾는 라인업이 없습니다."
+      : `<b>아직 올라온 라인업이 없습니다.</b><br><span class="sub">첫 번째가 되어 보세요 —
+         <a href="km-lineup.html">KM26 라인업</a>에서 세이브를 불러와 올리면 됩니다.</span>`}</div>`;
     return;
   }
   $("#list").innerHTML = `<div class="plans">` + list.map(p => `
@@ -189,15 +251,64 @@ function draw() {
         <span class="tm">${esc(p.team)}</span>
         <span class="nk">${esc(p.nick)}</span>
         <span class="se">${p.season ? esc(p.season) + " 시즌" : ""}</span>
-        <span class="rec">${recText(recs[p.id])}</span>
       </div>
       ${p.note ? `<div class="nt">${esc(p.note)}</div>` : ""}
+      ${recHTML(recs[p.id])}
       <div class="ft">
         <span class="ag">${ago(p.created_at)}</span>
         <button class="pick" data-id="${p.id}">⚔ 이 라인업과 붙기</button>
       </div>
     </div>`).join("") + `</div>`;
   $("#list").querySelectorAll("[data-id]").forEach(b => b.onclick = () => choose(+b.dataset.id));
+}
+
+/* ── 구단별 ─────────────────────────────────────────────────── */
+function drawTeams() {
+  const q = $("#q").value.trim();
+  /* 올라온 라인업이 있는 구단은 경기가 없어도 줄을 세워 준다 —
+     "내 구단은 아직 아무도 안 붙었다"도 알아야 할 정보다. */
+  const names = new Set(Object.keys(teamRecs));
+  for (const p of plans) if (p.team) names.add(String(p.team).trim());
+  const planN = {};
+  for (const p of plans) { const t = String(p.team || "").trim(); if (t) planN[t] = (planN[t] || 0) + 1; }
+
+  const rows = [...names].filter(t => !q || t.includes(q) || choOf(t).includes(choOf(q)))
+    .map(t => ({ t, rec: teamRecs[t], tot: kmTotalOf(teamRecs[t]), plans: planN[t] || 0,
+                 gf: (teamRecs[t] || {}).gf || 0, ga: (teamRecs[t] || {}).ga || 0 }))
+    .sort((a, b) => (kmPlanScore(b.rec) - kmPlanScore(a.rec)) || b.tot.n - a.tot.n
+                 || a.t.localeCompare(b.t, "ko"));
+
+  $("#cnt").textContent = q ? `${rows.length} / ${names.size}` : `구단 ${names.size}개`;
+  if (!rows.length) {
+    $("#list").innerHTML = `<div class="empty">${names.size
+      ? "찾는 구단이 없습니다." : "아직 올라온 것이 없습니다."}</div>`;
+    return;
+  }
+  const me = (myNick() || "").trim();
+  const mine = new Set(plans.filter(p => me && p.nick === me).map(p => String(p.team || "").trim()));
+
+  $("#list").innerHTML = `<div class="tbwrap"><table class="tt">
+    <tr><th>#</th><th>구단</th><th>라인업</th><th>판</th><th>승</th><th>무</th><th>패</th>
+        <th>승점</th><th>승률</th><th>득</th><th>실</th><th>득실</th></tr>
+    ${rows.map((r, i) => {
+      const gd = r.gf - r.ga;
+      return `<tr${mine.has(r.t) ? ' class="me"' : ""}>
+        <td>${i + 1}</td>
+        <td><span class="tmc">${esc(r.t)}</span></td>
+        <td>${r.plans}</td>
+        <td>${r.tot.n}</td><td>${r.tot.w}</td><td>${r.tot.d}</td><td>${r.tot.l}</td>
+        <td>${r.tot.pts}</td>
+        <td>${r.tot.n ? r.tot.rate + "%" : "-"}</td>
+        <td>${r.gf}</td><td>${r.ga}</td>
+        <td class="gd ${gd > 0 ? "p" : gd < 0 ? "m" : ""}">${gd > 0 ? "+" : ""}${gd}</td>
+      </tr>`;
+    }).join("")}
+  </table></div>
+  <div class="note"><b>같은 구단이라도 사람마다 명단이 다릅니다</b> — 각자의 세이브에서 가져오기
+    때문입니다. 그래서 이 표는 구단 자체의 세기가 아니라 <b>그 구단으로 나온 사람들을
+    다 합친 성적</b>입니다.
+    ${me ? `<br>내 닉네임(<b>${esc(me)}</b>)으로 올린 구단은 줄이 옅게 칠해집니다.` : ""}
+    <br>‘라인업’ 칸은 그 구단으로 <b>올라온 글이 몇 개</b>인지입니다.</div>`;
 }
 
 /* 고른 글을 다음 화면으로 넘긴다.
@@ -224,9 +335,14 @@ async function load() {
   }
   $("#meta").textContent = "불러오는 중…";
   try {
-    const [ps, ms] = await Promise.all([listKmPlans(60), listKmMatches(200).catch(() => [])]);
-    plans = ps; recs = kmRecordsByPlan(ms);
-    $("#meta").textContent = `가져온 명단으로 올라온 라인업 ${plans.length}개 · 붙은 경기 ${ms.length}판`;
+    /* 전적은 **덤**이다 — 기록실을 못 읽어도 게시판 목록은 그대로 뜬다 */
+    const [ps, ms] = await Promise.all([listKmPlans(60), listKmMatches(400).catch(() => [])]);
+    plans = ps;
+    recs = kmRecordsByPlan(ms);
+    teamRecs = kmRecordsByTeam(ms);
+    played = ms.length;
+    $("#meta").textContent = `올라온 라인업 ${plans.length}개`
+      + (played ? ` · 기록실 경기 ${played}판으로 매긴 성적` : " · 아직 붙은 경기가 없습니다");
     draw();
   } catch (e) {
     $("#meta").textContent = "✗ " + (e.message || e);
@@ -236,11 +352,21 @@ async function load() {
 
 $("#q").oninput = draw;
 $("#reload").onclick = load;
+document.querySelectorAll(".vw").forEach(b => b.onclick = () => {
+  view = b.dataset.v;
+  document.querySelectorAll(".vw").forEach(x => x.classList.toggle("on", x === b));
+  draw();
+});
+document.querySelectorAll(".so").forEach(b => b.onclick = () => {
+  sortBy = b.dataset.s;
+  document.querySelectorAll(".so").forEach(x => x.classList.toggle("on", x === b));
+  draw();
+});
 load();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
+import { installNav } from "./src/ui/navscroll.js?v=d3d835944f";
 installNav();
 </script>
 </body>

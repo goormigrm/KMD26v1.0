@@ -265,6 +265,7 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
   <div id="navScroll">
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
+    <a class="navbtn km" href="km-board.html">🧩 KM26 전술 게시판<span class="k">가져온 명단으로 올라온 라인업</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
     <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn on" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
@@ -409,11 +410,11 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink, ctrLevel } from "./src/codec/duelcode.js?v=14944fdacd";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=14944fdacd";
+import { encodePlan, inviteLink, ctrLevel } from "./src/codec/duelcode.js?v=d3d835944f";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=d3d835944f";
 import { boardOn, postPlan, NICK_MAX, NOTE_MAX, myNick, rememberNick }
-  from "./src/board/board.js?v=14944fdacd";
-import { teamStar } from "./src/ui/teamstar.js?v=14944fdacd";
+  from "./src/board/board.js?v=d3d835944f";
+import { teamStar } from "./src/ui/teamstar.js?v=d3d835944f";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -1454,7 +1455,7 @@ boot();
 </div>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
+import { installNav } from "./src/ui/navscroll.js?v=d3d835944f";
 installNav();
 </script>
 </body>

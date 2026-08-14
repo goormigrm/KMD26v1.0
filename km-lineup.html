@@ -185,6 +185,12 @@ details .body th{background:var(--bg2);color:var(--txt)}
 .tac input[type=range]{flex:1;accent-color:var(--km)}
 .tac .val{min-width:74px;text-align:right;font-size:12px;font-weight:700}
 
+/* 게시판에 올리는 칸 — 닉네임 · 한 줄 소개 */
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bdin{flex:1;min-width:150px;background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+      border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit}
+.bdin:focus{outline:none;border-color:var(--km)}
+
 /* 슬롯 저장 — 2026 라인업 화면과 같은 모양(카드 격자 · 덮어쓰기/지우기 단추).
    ⚠ 이름은 `.sv` 다. `.slot` 으로 지으면 위 **라인업 줄**(.slot)을 물려받는다. */
 .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:7px;margin-top:8px}
@@ -252,6 +258,7 @@ details .body th{background:var(--bg2);color:var(--txt)}
   <div id="navScroll">
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km on" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
+    <a class="navbtn km" href="km-board.html">🧩 KM26 전술 게시판<span class="k">가져온 명단으로 올라온 라인업</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
     <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
@@ -425,19 +432,28 @@ details .body th{background:var(--bg2);color:var(--txt)}
 <div class="card">
   <h2>⑩ 올리고 붙기</h2>
   <div class="sub">짜 둔 라인업은 <b>맨 위 저장 슬롯</b>에 넣어 두면 다음에 그대로 이어 합니다.</div>
-  <div style="margin-top:11px">
-    <button class="go" id="post">🧩 KM26 게시판에 올리기</button>
+
+  <!-- 올리는 칸은 2026 라인업 화면과 같은 모양 — 닉네임 · 한 줄 소개 · 올리기.
+       ⚠ 예전에는 닉네임만 prompt() 로 물었다. 한 줄 소개를 적을 자리가 아예 없어서
+         게시판 목록이 "닉네임 · 구단"만 늘어선 모양이 됐다(표에는 칸이 있었다). -->
+  <div class="row" style="margin-top:11px">
+    <input id="bdNick" class="bdin" maxlength="16" placeholder="닉네임" style="flex:none;width:130px">
+    <input id="bdNote" class="bdin" maxlength="60"
+           placeholder="한 줄 소개 (없어도 됩니다 — 예: 높은 라인 압박, 측면 크로스)">
   </div>
+  <div style="margin-top:9px">
+    <button class="go" id="post">🧩 KM26 전술 게시판에 올리기</button>
+  </div>
+  <div class="sub" style="margin-top:6px">닉네임 · 한 줄 소개와 <b>경기에 나올 스무 명</b>·전술만
+    올라갑니다. 로그인도 개인정보도 없습니다.</div>
   <div class="msg" id="postMsg"></div>
 
-  <!-- 전술 게시판을 이 안에 띄운다.
-       KM26 갈래는 51자 코드가 없어 "코드를 발급해 게시판에 올린다"는 흐름이 아니다 —
-       라인업을 짜는 그 자리에서 올리고, 그 자리에서 상대를 고르는 것이 맞다.
-       그래서 게시판을 별도 화면으로 두지 않고 여기 넣었다(왼쪽 메뉴에서도 뺐다). -->
+  <!-- 게시판은 별도 화면(km-board.html)에도 있다. 여기 넣어 둔 것은 **짜던 자리에서
+       바로 상대를 고르는** 흐름을 위한 것이고, 전적·구단별 표까지 보려면 그 화면으로 간다. -->
   <div style="margin-top:13px;border-top:1px solid #21262d;padding-top:12px">
     <h2 style="margin-bottom:4px">🧩 전술 게시판에서 상대 고르기</h2>
     <div class="sub" style="margin-bottom:7px">올라온 라인업을 골라 <b>바로 붙습니다.</b>
-      내 라인업은 위에서 올려 두면 남도 나와 붙을 수 있습니다.</div>
+      전적·구단별 승률까지 보려면 <a href="km-board.html">KM26 전술 게시판</a>으로 가세요.</div>
     <div class="find" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input id="oq" placeholder="닉네임 · 구단으로 찾기 — 한 글자만 넣어도 됩니다 (예: 안)"
              spellcheck="false" autocomplete="off"
@@ -474,11 +490,11 @@ details .body th{background:var(--bg2);color:var(--txt)}
 
 <script type="module">
 import { readSave, saveInfo, teamListOf, makePack, slimPack, fatten, squadSig, checkPack, PACK_KIND }
-  from "./src/km26/kmsave.js?v=14944fdacd";
-import { autoLineup, planSig } from "./src/engine/teams.js?v=14944fdacd";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=14944fdacd";
-import { kmBoardOn, kmPostPlan, listKmPlans, getKmPack, myNick, rememberNick, NICK_MAX }
-  from "./src/board/kmboard.js?v=14944fdacd";
+  from "./src/km26/kmsave.js?v=d3d835944f";
+import { autoLineup, planSig } from "./src/engine/teams.js?v=d3d835944f";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=d3d835944f";
+import { kmBoardOn, kmPostPlan, listKmPlans, getKmPack, myNick, rememberNick, NICK_MAX, NOTE_MAX }
+  from "./src/board/kmboard.js?v=d3d835944f";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -548,6 +564,10 @@ async function boot() {
   $("#oq").oninput = drawOppo;
   $("#oload").onclick = loadOppo;
   drawSlots();
+  // 글자 수 상한은 게시판 규격에서 가져온다 — 두 곳에 적어 두면 언젠가 어긋난다
+  $("#bdNick").maxLength = NICK_MAX;
+  $("#bdNote").maxLength = NOTE_MAX;
+  $("#bdNick").value = myNick() || "";        // 지난번에 쓴 이름을 채워 둔다
   if (!kmBoardOn()) $("#post").disabled = true;
   showAway();
 }
@@ -1285,13 +1305,19 @@ async function post() {
     $("#postMsg").textContent = "✗ " + bad;
     return;
   }
-  const nick = (prompt("게시판에 쓸 닉네임 (최대 " + NICK_MAX + "자)", myNick() || "") || "").trim();
-  if (!nick) return;
+  const nick = String($("#bdNick").value || "").trim();
+  const note = String($("#bdNote").value || "").trim();
+  if (!nick) {
+    $("#postMsg").className = "msg bad";
+    $("#postMsg").textContent = "✗ 닉네임을 적어 주세요.";
+    $("#bdNick").focus();
+    return;
+  }
   $("#post").disabled = true;
   $("#postMsg").className = "msg";
   $("#postMsg").textContent = "올리는 중…";
   const r = await kmPostPlan({
-    nick, team: pack.team.short, season: pack.season,
+    nick, note, team: pack.team.short, season: pack.season,
     sig: sigOf(pack),
     pack: slimPack(pack),
   });
@@ -1300,9 +1326,11 @@ async function post() {
     rememberNick(nick);
     myPlanId = r.id || null;                 // 붙은 경기를 기록실에 남길 때 쓴다
     $("#postMsg").className = "msg ok";
-    $("#postMsg").textContent = r.dup
+    $("#postMsg").innerHTML = (r.dup
       ? "이미 같은 라인업이 올라와 있습니다 — 새로 올리지 않았습니다."
-      : "✓ 올렸습니다. KM26 게시판에서 볼 수 있습니다.";
+      : "✓ 올렸습니다.")
+      + ` <a href="km-board.html">KM26 전술 게시판에서 보기</a>`;
+    loadOppo();                              // 방금 올린 것이 아래 목록에도 보이게
   } else {
     $("#postMsg").className = "msg bad";
     $("#postMsg").textContent = "✗ " + r.why;
@@ -1313,7 +1341,7 @@ boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
+import { installNav } from "./src/ui/navscroll.js?v=d3d835944f";
 installNav();
 </script>
 </body>

@@ -137,7 +137,7 @@ export const DATA_COMPAT = [
 
 ```bash
 python tools/stamp_version.py
-cd tools/jscheck   && go run . ../../src ../../index.html ../../lineup.html ../../match.html ../../board.html ../../record.html ../../squad.html ../../km-lineup.html ../../km-match.html ../../km-record.html ../../km-board.html
+cd tools/jscheck   && go run . ../../src ../../index.html ../../lineup.html ../../match.html ../../board.html ../../record.html ../../squad.html ../../km-lineup.html ../../km-board.html ../../km-match.html ../../km-record.html
 cd tools/codecheck && go run . -root ../..
 cd tools/realmatch && go run . -root ../.. -home ulsan -away jeonbuk -record
 # KM26 세이브 읽기 — 세이브 파일이 있을 때만 (저장소에 두지 않는다)
@@ -235,7 +235,7 @@ python -m http.server 8123
 
 ## 8. 갈래가 둘입니다 — KM26 과 2026
 
-화면이 아홉 개인데 **두 갈래**로 나뉩니다. 고칠 때 어느 쪽인지 먼저 보세요.
+화면이 열 개인데 **두 갈래**로 나뉩니다. 고칠 때 어느 쪽인지 먼저 보세요.
 
 | | 2026 갈래 | KM26 갈래 |
 |---|---|---|
@@ -243,12 +243,13 @@ python -m http.server 8123
 | 주고받는 것 | **51자 대전 코드** | **명단 팩**(약 15KB) — 코드에 담기지 않는다 |
 | 표 | `plans` · `matches` | `plans_km` · `matches_km` |
 | 시드 | `deriveSeed(코드A, 코드B)` | `deriveSeed(sigA, sigB)` — `planSig`+명단 해시 |
-| 화면 | `lineup` `board` `record` `match` | `km-lineup`(게시판 내장) `km-match` `km-record` |
+| 화면 | `lineup` `board` `record` `match` | `km-lineup`(게시판 내장) `km-board` `km-match` `km-record` |
 
 > ⚠ **KM26 갈래는 원정 쪽 선수 id 를 늘 옮깁니다**(`prepareSides` 의 `forceShift`).
 > 기본 명단은 id 가 리그 전체에서 유일하지만, 세이브에서 가져온 명단은 **세이브 안에서만**
 > 유일합니다. 다른 세이브끼리 붙이면 같은 번호가 서로 다른 선수일 수 있습니다.
 
-> ⚠ **`km-board.html` 은 왼쪽 바에 없습니다.** 게시판을 `km-lineup` 화면 안에 넣었기
-> 때문입니다(KM26 갈래는 코드 발급이 없어 "라인업 짜는 자리에서 올리고 고르는" 흐름이
-> 맞습니다). 파일은 남아 있고 직접 주소로 열립니다.
+> ⚠ **게시판이 두 자리에 있습니다.** `km-board.html`(왼쪽 바 · 전적과 구단별 표까지)과
+> `km-lineup` 안의 목록(짜던 자리에서 바로 상대 고르기)입니다. 한때 화면을 없애고
+> 라인업 안에만 뒀는데, **전적을 볼 자리가 사라져서** 되돌렸습니다(2026-08-14 사용자 요청).
+> 목록을 고칠 때는 **두 곳 다** 보세요 — 찾기는 두 곳 다 초성이 됩니다.
