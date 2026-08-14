@@ -270,7 +270,7 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <input type="file" id="impJson" accept=".json,application/json" style="display:none">
       <span class="sub">슬롯은 이 브라우저에만 남습니다. 다른 기기로 옮기거나 남에게 주려면 파일로 내보내세요.</span>
   </div>
-  <!-- 슬롯은 누르면 바로 적용하지 않는다 — 여기서 한 번 묻는다 -->
+  <!-- 덮어쓰기(💾)·지우기(✕) 만 여기서 한 번 묻는다. 불러오기는 누르면 바로 올라온다 -->
   <div class="note" id="slotAsk" style="display:none"></div>
   <!-- 구단을 고르기 전에는 아래 안내문(#hint)이 없으므로, 슬롯 관련 알림은 여기에 띄운다 -->
   <div class="note" id="slotNote" style="display:none"></div>
@@ -648,12 +648,15 @@ function putBench(i, id) {
 }
 
 /* 경고는 안내문 자리에 잠깐 띄운다.
-   ⚠ 곧바로 draw() 가 이어지므로 화면에 직접 쓰면 그 자리에서 덮인다 — 상태로 들고 있어야 한다. */
-let flashMsg = null, flashT = null;
-function flash(msg) {
+   ⚠ 곧바로 draw() 가 이어지므로 화면에 직접 쓰면 그 자리에서 덮인다 — 상태로 들고 있어야 한다.
+   @param ok 잘 됐다는 알림이면 true — 같은 자리를 쓰되 ⚠ 대신 ✔ 를 단다
+             ("슬롯을 불러왔습니다" 에 경고 표시가 붙으면 뭔가 잘못된 줄 안다) */
+let flashMsg = null, flashOk = false, flashT = null;
+function flash(msg, ok) {
   flashMsg = msg;
+  flashOk = !!ok;
   clearTimeout(flashT);
-  flashT = setTimeout(() => { flashMsg = null; drawHint(); }, 2600);
+  flashT = setTimeout(() => { flashMsg = null; flashOk = false; drawHint(); }, 2600);
 }
 
 function tapSlot(slot) {
@@ -896,13 +899,16 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeProfile
 function drawHint() {
   let h;
   // 구단을 고르기 전에는 전술판(#hint)이 화면에 없다 — 그럴 때는 슬롯 카드에 띄운다
+  const fl = () => flashOk
+    ? `<span style="color:var(--ok);font-weight:700">✔ ${esc(flashMsg)}</span>`
+    : `<span class="warn">⚠ ${esc(flashMsg)}</span>`;
   if (flashMsg && $("#main").style.display === "none") {
     $("#slotNote").style.display = "";
-    $("#slotNote").innerHTML = `<span class="warn">⚠ ${esc(flashMsg)}</span>`;
+    $("#slotNote").innerHTML = fl();
     return;
   }
   if ($("#slotNote").style.display !== "none" && !flashMsg) $("#slotNote").style.display = "none";
-  if (flashMsg) { $("#hint").innerHTML = `<span class="warn">⚠ ${esc(flashMsg)}</span>`; return; }
+  if (flashMsg) { $("#hint").innerHTML = fl(); return; }
   if (sel && sel.kind === "slot") h = `<b>${sel.slot}</b> 자리에 세울 선수를 고르세요. 오른쪽 목록이 그 자리 <b>능숙도 순</b>으로 정렬됩니다.`;
   else if (sel && sel.kind === "player") h = `<b>${esc(byId(sel.id).name)}</b> 선수를 세울 자리를 고르세요.`;
   else if (sel && sel.kind === "bench") h = `교체 <b>S${sel.i + 1}</b> — 투입할 자리를 누르거나, 다른 선수를 눌러 이 칸에 넣으세요.`;
@@ -1299,6 +1305,7 @@ function drawSlots() {
     if (!s) return `<div class="slot empty" data-i="${i}" data-act="save">
       <div class="n">${i + 1}번</div><div class="t">비어 있음</div>
       <div class="f">눌러서 지금 라인업 저장</div></div>`;
+    // 카드를 누르면 바로 불러온다 — 무엇이 올라오는지 카드에 다 적혀 있다
     return `<div class="slot" data-i="${i}" data-act="load">
       <div class="btns">
         <button data-i="${i}" data-act="save" title="이 슬롯에 덮어쓰기">💾</button>
@@ -1313,25 +1320,28 @@ function drawSlots() {
   $("#slots").querySelectorAll("[data-act]").forEach(el => el.onclick = e => {
     e.stopPropagation();
     const i = +el.dataset.i, act = el.dataset.act, list = loadSlots();
-    // 빈 칸에 저장하는 것만 바로 한다 — 잃을 것이 없다.
-    // 불러오기·덮어쓰기·지우기는 되돌릴 수 없으므로 한 번 묻는다.
-    if (act === "save" && !list[i]) return doSlot(i, "save");
-    askSlot(i, act, list[i]);
+    /* 누르면 **바로** 한다 — 무언가를 없애는 경우에만 묻는다.
+       ⚠ 예전에는 불러오기도 물었는데, 확인 상자가 카드에서 멀리 떨어진 **아래쪽**에
+         떠서 폰에서는 "눌렀는데 아무 일도 안 일어나고 이상한 게 떴다"로 읽혔다.
+         불러오기는 저장해 둔 것을 건드리지 않으므로 묻지 않는다. */
+    if (act === "load") return doSlot(i, "load");
+    if (act === "save" && !list[i]) return doSlot(i, "save");   // 빈 칸 — 잃을 것이 없다
+    askSlot(i, act, list[i]);        // 덮어쓰기 · 지우기만 묻는다 (되돌릴 수 없다)
   });
 }
 
-/* ── 슬롯을 만지기 전에 한 번 묻는다 ──────────────────────────
-   슬롯 한 칸에는 열한 명과 전술이 다 들어 있어서, 잘못 누르면 짜 둔 것이 한 번에 사라진다. */
+/* ── 저장해 둔 것을 없애기 전에 한 번 묻는다 ──────────────────
+   슬롯 한 칸에는 열한 명과 전술이 다 들어 있어서, 잘못 누르면 저장해 둔 것이 한 번에 사라진다.
+   ⚠ **불러오기는 여기 없다.** 저장해 둔 것을 건드리지 않으므로 누르면 바로 올라온다. */
 function askSlot(i, act, s) {
   if (!s && act !== "save") return;
   const what = s ? `<b>${i + 1}번 · ${esc(s.name || s.id)}</b>
       <span class="sub">(${esc(s.formation || "")} · 선발 ${Object.keys(s.xi || {}).length}명)</span>` : `<b>${i + 1}번</b>`;
   const msg = {
-    load: `${what} 을 불러옵니다. ${team ? "지금 편집 중인 배치·전술은 사라집니다." : ""}`,
     save: `${what} 에 <b>지금 라인업을 덮어씁니다.</b> 그 칸에 있던 것은 사라집니다.`,
     del:  `${what} 을 <b>지웁니다.</b> 되돌릴 수 없습니다.`,
   }[act];
-  const ok = { load: "✔ 불러오기", save: "💾 덮어쓰기", del: "✕ 지우기" }[act];
+  const ok = { save: "💾 덮어쓰기", del: "✕ 지우기" }[act];
   const box = $("#slotAsk");
   box.style.display = "";
   box.innerHTML = `${msg}
@@ -1358,7 +1368,18 @@ function doSlot(i, act) {
   } else if (act === "del") {
     list[i] = null; saveSlots(list); drawSlots();
   } else if (act === "load" && list[i]) {
-    if (applyPlan(list[i], `${i + 1}번 슬롯`)) drawSlots();
+    closeAsk();                     // 덮어쓰기·지우기를 묻던 상자가 열려 있으면 접는다
+    if (!applyPlan(list[i], `${i + 1}번 슬롯`)) return;
+    drawSlots();
+    /* 폰에서는 슬롯 칸이 맨 위, 전술판은 한참 아래에 있다. 아무 말도 없으면
+       "눌렀는데 아무 일도 안 일어났다"로 보이므로, 무엇이 올라왔는지 알리고
+       전술판까지 끌어다 준다. applyPlan 이 경고를 띄웠으면 그 경고를 덮지 않는다. */
+    // ⚠ flash() 는 상태만 바꾼다 — 화면에 올리려면 drawHint() 를 이어서 불러야 한다
+    if (!flashMsg) {
+      flash(`${i + 1}번 슬롯을 불러왔습니다 — ${list[i].name || list[i].id} · ${list[i].formation || ""}`, true);
+      drawHint();
+    }
+    $("#main").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 
