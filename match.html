@@ -46,12 +46,12 @@ button:disabled{opacity:.45;cursor:default}
 .bar2>i{display:block;height:100%;background:var(--ok);width:0}
 
 /* ── 해설 ─────────────────────────────────────────────────────
-   아래에서 채워 위로 올라옵니다 — 가장 새 줄이 맨 위(필드 화면 바로 아래)에 옵니다.
-   짧을 때는 바닥에 붙어 있게 안쪽 상자에 margin-top:auto 를 줍니다
-   (justify-content:flex-end 로 하면 넘칠 때 위쪽이 잘려 스크롤이 안 됩니다). */
+   **위에서 채워 아래로 밀려 내려갑니다.** 가장 새 줄이 맨 위(필드 화면 바로 아래)에 오고,
+   지나간 줄이 아래로 내려갑니다.
+   ⚠ 예전에는 안쪽 상자에 margin-top:auto 를 줘서 바닥에 붙여 두었다. 그러면 경기 초반
+     몇 줄 없을 때 상자 위쪽이 통째로 비어, 2D 바로 아래가 검게 죽은 것처럼 보였다. */
 .log{height:340px;overflow:auto;border:1px solid var(--line);border-radius:9px;background:var(--bg3);
      padding:6px 4px;display:flex;flex-direction:column}
-.log>.in{margin-top:auto}
 .ev{display:flex;gap:9px;padding:4px 8px;font-size:13px;line-height:1.55;border-radius:6px}
 .ev .m{color:var(--sub);font-size:11.5px;min-width:32px;text-align:right;padding-top:2px;
        font-variant-numeric:tabular-nums;flex:none}
@@ -351,8 +351,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=6f1f369ad1";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=6f1f369ad1";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=8becaaf894";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=8becaaf894";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -367,10 +367,23 @@ let sceneMode = "all";
 let lastPlans = null;
 const SCENE_MIN = { all: 1, goal: 5, off: 99 };
 
-/* 1분을 몇 밀리초에 흘려보낼지. 1배속이면 90분 경기가 1분 12초쯤 걸린다.
+/* 1분을 몇 밀리초에 흘려보낼지.
    경기를 먼저 다 돌려 놓고 재생만 하므로, 배속은 엔진 속도와 아무 상관이 없다.
    ⚠ 예전 640ms 는 눈으로 따라가기에 빨랐다 — 0.8배로 늦춰 800ms 로 둔다. */
 const MS_PER_MIN = 800;
+
+/* ── 경기 초반은 빨리 감지 않는다 ──────────────────────────────
+   결정적 장면이 없는 구간이라 관전 화면이 37배쯤 빨리 흘렀다. 해설도 몇 줄 없어서
+   "시작했는데 화면이 죽어 있다"로 보였다. 첫 몇 분만은 **장면 재생과 같은 속도**로 흘린다.
+
+   1분 = 엔진 150장, 한 장이 50ms(FRAME_MS) 이므로 7,500ms 다.
+   ⚠ replay.js 의 WATCH_FULL_UNTIL(초) 과 **같은 구간이어야 한다** —
+     거기서 이 구간만 한 장도 빠뜨리지 않고 담아 준다. 안 맞으면 초반이 뚝뚝 끊긴다.
+   재생 시간은 3분 × 7.5초 = 22.5초 늘어난다. 배속 버튼은 여기에도 그대로 걸린다. */
+const OPEN_MINUTES = 3;
+const MS_PER_MIN_OPEN = 7500;
+const msPerMin = () => (minute < OPEN_MINUTES ? MS_PER_MIN_OPEN : MS_PER_MIN);
+let tickMs = 0;                 // 지금 걸려 있는 간격 — 구간이 바뀌면 다시 건다
 
 async function boot() {
   try {
@@ -775,7 +788,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=6f1f369ad1", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=8becaaf894", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -818,7 +831,8 @@ function resume() {
   if (!R || playing) return;
   playing = true;
   $("#play").textContent = "⏸ 일시정지";
-  timer = setInterval(tick, MS_PER_MIN / speed);
+  tickMs = msPerMin() / speed;
+  timer = setInterval(tick, tickMs);
 }
 function pause() {
   playing = false;
@@ -877,10 +891,12 @@ function tick() {
     return;
   }
   if (idx >= R.events.length && minute >= 90) finish();
+  // 초반 구간을 벗어났으면 그 자리에서 새 간격으로 다시 건다
+  if (playing && tickMs !== msPerMin() / speed) { pause(); resume(); }
 }
 
-/* 로그는 안쪽 상자(.in)에 쌓는다 — "아래에 붙이기"(margin-top:auto)가 그 상자에 걸려 있다.
-   새 줄은 맨 위에 붙는다 — 필드 화면 바로 아래가 언제나 가장 새 소식이 된다. */
+/* 로그는 안쪽 상자(.in)에 쌓는다. 새 줄은 맨 위에 붙고 지나간 줄이 아래로 밀려 내려간다 —
+   필드 화면 바로 아래가 언제나 가장 새 소식이 된다. */
 function logBox() {
   let box = $("#log > .in");
   if (!box) { box = document.createElement("div"); box.className = "in"; $("#log").appendChild(box); }
@@ -1192,7 +1208,8 @@ function watchLoop(now) {
   const dt = watchLast ? Math.min(250, now - watchLast) : 0;   // 탭이 잠들었다 깨도 안 튀게
   watchLast = now;
   if (playing) {
-    watchSec += dt / (MS_PER_MIN / speed) * 60;
+    // 초반 구간은 msPerMin() 이 커서 그만큼 천천히 흐른다 (OPEN_MINUTES 주석 참고)
+    watchSec += dt / (msPerMin() / speed) * 60;
     const cap = (minute + 1) * 60;     // 해설(분)을 앞지르지 않는다
     if (watchSec > cap) watchSec = cap;
   }

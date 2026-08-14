@@ -16,12 +16,13 @@
    | 트랙 | 촘촘함 | 쓰임 |
    |---|---|---|
    | 관전(watch) | 1.6초에 한 장 | 장면과 장면 사이 — 어둡게, 계속 움직인다 |
+   | 관전 — 초반   | 0.2초에 한 장 | 처음 몇 분(WATCH_FULL_UNTIL)은 빨리 감지 않는다 |
    | 장면(clip)  | 0.2초에 한 장 | 골·선방·PK·퇴장 — 밝게, 시계를 멈추고 본다 |
 
    ⚠ 난수를 쓰지 않습니다. 경기 결과에 영향을 주면 안 됩니다.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim } from "./kernel.js?v=6f1f369ad1";
+import { MatchSim } from "./kernel.js?v=8becaaf894";
 
 /* ── 장면(clip) 규격 — KM26 의 HL_* 상수를 프레임 수로 옮긴 것 ──────────
    한 프레임이 엔진 0.2초다. 경기 시계는 두 배로 흐르므로 화면에서는 두 배로 보인다. */
@@ -46,6 +47,13 @@ export const REPLAY_POST = 13;
 export const WATCH_EVERY = 8;
 export const WATCH_SLOTS = 22;                        // 한 장에 담는 선수 자리 수
 export const WATCH_STRIDE = 7 + WATCH_SLOTS * 3;      // clock,bx,by,bz,owner,rx,ry + 22×(id,x,y)
+
+/* 경기 초반은 **한 장도 빠뜨리지 않고** 담는다 (경기 시계 기준 초).
+   결정적 장면이 없는 구간이라 화면이 빨리 감겨, 시작하자마자 죽은 화면처럼 보였다.
+   여기만큼은 장면 클립과 같은 촘촘함으로 담아 두고, 화면도 같은 속도로 흘린다
+   (match.html 의 OPEN_MINUTES 와 **같은 값이어야 한다**).
+   3분이면 450장(≈130KB)이 더 든다 — 첫인상을 사는 값으로는 싸다. */
+export const WATCH_FULL_UNTIL = 180;
 
 const r3 = v => Math.round(v * 1000) / 1000;
 
@@ -154,8 +162,11 @@ export function installReplay() {
     /* 킥오프 한 장은 따로 챙겨 둔다 — 관전 트랙이 아직 비어 있는 첫 순간에 세워 둘 화면 */
     if (!this._frame0) this._frame0 = pack(last);
 
-    // 관전 트랙 — 띄엄띄엄 남긴다. 장면 클립과 달리 경기 내내 끊기지 않는다
-    if (++this._wn % WATCH_EVERY === 0) pushWatch(this._watch, last);
+    // 관전 트랙 — 경기 내내 끊기지 않는다. 초반만 촘촘히, 그 뒤로는 띄엄띄엄
+    this._wn++;
+    if (last.clock < WATCH_FULL_UNTIL || this._wn % WATCH_EVERY === 0) {
+      pushWatch(this._watch, last);
+    }
 
     const p = this._pend;
     if (!p) return;
