@@ -32,7 +32,7 @@
    ⚠ 이 파일은 커널을 부르지 않습니다 — 페이지에 올려도 무겁지 않습니다.
    ───────────────────────────────────────────────────────────── */
 
-import { ctrLevel } from "../codec/duelcode.js?v=934f2923e8";
+import { ctrLevel } from "../codec/duelcode.js?v=14944fdacd";
 
 /** KMD26 이 선수에게서 쓰는 값 — `tools/gendata` 의 playerKeep 과 같아야 한다 */
 export const PLAYER_KEEP = [
@@ -348,6 +348,34 @@ export function fatten(pack) {
     return o;
   });
   return Object.assign({}, pack, { slim: 0, squad });
+}
+
+/* ── 명단 지문 ────────────────────────────────────────────────
+   같은 라인업이라도 **명단이 다르면 다른 경기**다. 선수 능력치가 사람마다 달라
+   라인업만으로는 같은 글인지 가릴 수 없다.
+
+   ⚠ **경기에 나올 스무 명만** 센다. 줄인 팩(게시판·`slimPack`)과 안 줄인 팩(저장 슬롯)이
+     **같은 값**을 내야 하기 때문이다. 예전에는 `squad` 전체를 세서, 같은 라인업인데도
+     어느 길로 왔느냐에 따라(게시판에서 왔으면 20명 · 슬롯에서 왔으면 38명) 지문이 갈렸다.
+     지문은 곧 씨앗이라 **같은 두 라인업이 다른 경기를 내는** 일이 벌어진다.
+     결과 링크가 성립하려면 이 값이 길과 무관해야 한다.
+   ⚠ 고치면 이미 게시판에 올라간 글의 `sig` 와 어긋난다. KM26 갈래를 공개하기 전에만
+     고칠 수 있다. */
+export function squadSig(pack) {
+  const p = (pack && pack.plan) || {};
+  const play = new Set(Object.keys(p.xi || {}).map(s => p.xi[s])
+    .concat(p.bench || []).filter(v => v != null));
+  let h = 0x811c9dc5;
+  const put = s => {
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  };
+  const list = ((pack && pack.squad) || []).filter(q => play.has(q.id))
+    .slice().sort((a, b) => a.id - b.id);
+  for (const q of list) {
+    put(q.id + ":" + q.name + ":" + q.ovr + ":");
+    for (const k of Object.keys(q.attr || {}).sort()) put(k + q.attr[k]);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
 }
 
 /** 포지션 능숙도 열일곱 자리 — `data/players.json` 과 같은 목록이어야 한다 */

@@ -424,12 +424,12 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
-    <a class="navbtn km" href="km-record.html">📜 KM26 기록실<span class="k">가져온 명단 경기 기록</span></a>
+    <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn" href="board.html">🗂 2026 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
     <a class="navbtn" href="record.html">🏛 2026 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
     <a class="navbtn on" href="match.html">⚽ 2026 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
-    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+    <a class="navbtn" href="squad.html">👥 2026 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
@@ -556,11 +556,11 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=934f2923e8";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=934f2923e8";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=14944fdacd";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=14944fdacd";
 import { boardOn, listPlans, listMatches, ago, matchQuery, postMatch, nicksForCodes, myNick,
-         recordsByCode, totalOf, planScore, wdlText } from "./src/board/board.js?v=934f2923e8";
-import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=934f2923e8";
+         recordsByCode, totalOf, planScore, wdlText } from "./src/board/board.js?v=14944fdacd";
+import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=14944fdacd";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -1113,7 +1113,7 @@ function start() {
        스크롤이 끊긴다. 여기서는 곧바로 옮긴다. */
   scrollToField("auto");
 
-  const w = new Worker("src/engine/matchworker.js?v=934f2923e8", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=14944fdacd", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -2050,7 +2050,7 @@ boot();
 </div>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=934f2923e8";
+import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
 installNav();
 </script>
 </body>

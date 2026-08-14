@@ -120,12 +120,12 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
-    <a class="navbtn km" href="km-record.html">📜 KM26 기록실<span class="k">가져온 명단 경기 기록</span></a>
+    <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn" href="board.html">🗂 2026 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
     <a class="navbtn on" href="record.html">🏛 2026 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
     <a class="navbtn" href="match.html">⚽ 2026 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
-    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+    <a class="navbtn" href="squad.html">👥 2026 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
@@ -154,8 +154,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 <div id="list"></div>
 
 <script type="module">
-import { boardOn, listMatches, ago, matchQuery } from "./src/board/board.js?v=934f2923e8";
-import { resultLink } from "./src/codec/duelcode.js?v=934f2923e8";
+import { boardOn, listMatches, ago, matchQuery } from "./src/board/board.js?v=14944fdacd";
+import { resultLink } from "./src/codec/duelcode.js?v=14944fdacd";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -257,7 +257,7 @@ load();
 </div>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=934f2923e8";
+import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
 installNav();
 </script>
 </body>

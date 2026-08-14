@@ -253,12 +253,12 @@ details .body th{background:var(--bg2);color:var(--txt)}
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km on" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
-    <a class="navbtn km" href="km-record.html">📜 KM26 기록실<span class="k">가져온 명단 경기 기록</span></a>
+    <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn" href="board.html">🗂 2026 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
     <a class="navbtn" href="record.html">🏛 2026 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
     <a class="navbtn" href="match.html">⚽ 2026 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
-    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+    <a class="navbtn" href="squad.html">👥 2026 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
@@ -473,12 +473,12 @@ details .body th{background:var(--bg2);color:var(--txt)}
 </div>
 
 <script type="module">
-import { readSave, saveInfo, teamListOf, makePack, slimPack, fatten, checkPack, PACK_KIND }
-  from "./src/km26/kmsave.js?v=934f2923e8";
-import { autoLineup, planSig } from "./src/engine/teams.js?v=934f2923e8";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=934f2923e8";
+import { readSave, saveInfo, teamListOf, makePack, slimPack, fatten, squadSig, checkPack, PACK_KIND }
+  from "./src/km26/kmsave.js?v=14944fdacd";
+import { autoLineup, planSig } from "./src/engine/teams.js?v=14944fdacd";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=14944fdacd";
 import { kmBoardOn, kmPostPlan, listKmPlans, getKmPack, myNick, rememberNick, NICK_MAX }
-  from "./src/board/kmboard.js?v=934f2923e8";
+  from "./src/board/kmboard.js?v=14944fdacd";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -1292,7 +1292,7 @@ async function post() {
   $("#postMsg").textContent = "올리는 중…";
   const r = await kmPostPlan({
     nick, team: pack.team.short, season: pack.season,
-    sig: planSig(Object.assign({}, pack.plan, { id: pack.team.id })) + "|" + squadSig(pack),
+    sig: sigOf(pack),
     pack: slimPack(pack),
   });
   $("#post").disabled = false;
@@ -1309,23 +1309,11 @@ async function post() {
   }
 }
 
-/* 명단 지문 — 같은 라인업이라도 **명단이 다르면 다른 글**이다.
-   선수 능력치가 사람마다 다르므로 라인업만으로는 같은 글인지 가릴 수 없다. */
-function squadSig(p) {
-  let h = 0x811c9dc5;
-  const put = s => { for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } };
-  for (const q of p.squad.slice().sort((a, b) => a.id - b.id)) {
-    put(q.id + ":" + q.name + ":" + q.ovr + ":");
-    for (const k of Object.keys(q.attr).sort()) put(k + q.attr[k]);
-  }
-  return (h >>> 0).toString(16).padStart(8, "0");
-}
-
 boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=934f2923e8";
+import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
 installNav();
 </script>
 </body>

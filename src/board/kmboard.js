@@ -12,7 +12,7 @@
    ⚠ 표가 없으면 화면에서 KM26 게시판만 조용히 꺼집니다 — 게임의 나머지는 그대로입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=934f2923e8";
+import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=14944fdacd";
 
 export { NICK_MAX, NOTE_MAX, myNick, rememberNick };
 

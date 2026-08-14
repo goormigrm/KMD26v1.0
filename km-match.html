@@ -34,11 +34,46 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 .vs .nk{font-size:12px;color:var(--sub)}
 .vs .mid{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;
      background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:4px 16px;white-space:nowrap}
-.st{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
-.st td{padding:3px 8px}
-.st td.n{text-align:center;color:var(--sub)}
-.st td.h{text-align:right;font-weight:700}
-.st td.a{font-weight:700}
+.st{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.st td{padding:5px 8px;border-bottom:1px solid #21262d}
+.st td.n{text-align:center;color:var(--sub);font-size:12px;width:40%}
+.st td.h{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.st td.a{font-weight:700;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ── 조건부 지시 요약 · 다시 보기 · 팬 반응 ────────────────────
+   기본 경기 화면(match.html)과 **같은 모양**이어야 합니다. 두 갈래를 오가는 사람이
+   같은 것을 다른 생김새로 두 번 배우지 않게 하려는 것입니다. */
+.ordlog{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.ordlog>div{background:#0b0f14;border:1px solid var(--line);border-left:3px solid var(--gold);
+     border-radius:6px;padding:5px 9px;font-size:12.5px;color:#e6ddc4}
+.ordlog b{color:var(--gold);font-variant-numeric:tabular-nums}
+.hlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px;margin-top:8px}
+.hlist button{padding:6px 8px;font-size:12px;text-align:left;font-weight:700}
+.hlist .k{display:block;font-size:11px;color:var(--sub);font-weight:600}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:700px){ .rgrid{grid-template-columns:1fr} }
+.rh{font-size:12.5px;font-weight:800;color:var(--sub);margin-bottom:5px}
+.rmsg{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--line);
+      border-radius:7px;padding:6px 9px;font-size:12.5px;margin-bottom:5px;line-height:1.5}
+.rmsg.up{border-left-color:var(--ok)}
+.rmsg.dn{border-left-color:var(--bad)}
+.rmsg .nick{color:var(--acc);font-size:11.5px;margin-right:4px}
+.rmsg .who{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px}
+.rmsg .av{font-size:13px}
+.rmsg .tx{line-height:1.5}
+.rmsg .tag{font-size:10px;font-weight:800;border-radius:4px;padding:0 5px;border:1px solid var(--line);color:var(--sub)}
+.rmsg .tag.riv{color:#d2a8ff;border-color:#553a7a}
+.rmsg .tag.troll{color:var(--bad);border-color:#6d2b28}
+.rmsg .vote{margin-left:auto;font-size:10.5px;color:var(--sub);white-space:nowrap}
+.rmsg.riv{background:#10131c;border-color:#2b2440}
+.rmsg.troll{background:#1b1113;border-color:#5a2b2b}
+.rmsg.troll .nick{color:var(--bad)}
+.rside{padding:5px 12px;font-size:12.5px}
+.rside.on{border-color:var(--km);color:var(--km)}
+.lnk{flex:1;min-width:240px;background:var(--bg3);color:var(--acc);border:1px solid var(--line);
+     border-radius:7px;padding:6px 9px;font-size:12px;font-family:inherit}
+h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
 /* ── 2D 필드 ────────────────────────────────────────────────
    기본 경기 화면과 같은 캔버스입니다. 필드 위에는 아무 글자도 얹지 않습니다 —
    이름표가 공이 닿기도 전에 무슨 장면인지 알려 주면 김이 샙니다. */
@@ -117,12 +152,12 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
   <div id="navScroll"><a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
     <a class="navbtn km on" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
-    <a class="navbtn km" href="km-record.html">📜 KM26 기록실<span class="k">가져온 명단 경기 기록</span></a>
+    <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn" href="board.html">🗂 2026 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
     <a class="navbtn" href="record.html">🏛 2026 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
     <a class="navbtn" href="match.html">⚽ 2026 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
-    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a></div>
+    <a class="navbtn" href="squad.html">👥 2026 선수단<span class="k">29개 구단 1,024명</span></a></div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
 
@@ -140,11 +175,11 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 </div>
 
 <div class="card" id="resultCard" style="display:none">
-  <h2>결과</h2>
+  <h2>경기 기록</h2>
   <div class="vs" id="score"></div>
-  <div class="sub" id="fp" style="margin-top:8px"></div>
   <table class="st" id="stats"></table>
-  <div class="msg" id="recMsg"></div>
+  <!-- 득점 · 주심 · 지문 · 조건부 지시 · 결과 링크 · 다시 보기 · 경기 뒤 반응 -->
+  <div id="resultMore"></div>
 </div>
 
 <div class="card" id="playCard" style="display:none">
@@ -176,12 +211,13 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 </div>
 
 <script type="module">
-import { fatten, checkPack } from "./src/km26/kmsave.js?v=934f2923e8";
-import { planSig } from "./src/engine/teams.js?v=934f2923e8";
+import { fatten, slimPack, squadSig, checkPack } from "./src/km26/kmsave.js?v=14944fdacd";
+import { planSig } from "./src/engine/teams.js?v=14944fdacd";
 /* ⚠ deriveSeed 는 rng.js 에서 바로 가져온다 — duel.js 를 거치면 6천 줄짜리 커널이
      화면에 딸려 올라온다. 경기는 일꾼이 돌리므로 화면에는 커널이 필요 없다. */
-import { deriveSeed } from "./src/engine/rng.js?v=934f2923e8";
-import { kmPostMatch, myNick } from "./src/board/kmboard.js?v=934f2923e8";
+import { deriveSeed } from "./src/engine/rng.js?v=14944fdacd";
+import { kmPostMatch, kmPostPlan, getKmPack, findPlanId, kmBoardOn, myNick, rememberNick, NICK_MAX }
+  from "./src/board/kmboard.js?v=14944fdacd";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -193,6 +229,8 @@ const AWAY_KEY = "kmd26.km26.away";     // KM26 게시판에서 고른 상대
 
 let T = null, META = null, REACT = null;
 let mine = null, away = null, mineRow = null;
+let hNick = null, aNick = null;      // 화면·기록에 붙일 이름 (링크로 열면 올린 사람 이름)
+let fromLink = false;                // 결과 링크로 열려 자동으로 도는 중인가
 
 /** 저장해 둔 라인업이 여럿이면 어느 것으로 붙을지 묻는다 */
 function drawSlotPick(slots, a) {
@@ -209,17 +247,14 @@ function drawSlotPick(slots, a) {
   });
 }
 
-/** 명단 지문 — 같은 라인업이라도 **명단이 다르면 다른 경기**다 */
-function squadSig(p) {
-  let h = 0x811c9dc5;
-  const put = s => { for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } };
-  for (const q of p.squad.slice().sort((a, b) => a.id - b.id)) {
-    put(q.id + ":" + q.name + ":" + q.ovr + ":");
-    for (const k of Object.keys(q.attr).sort()) put(k + q.attr[k]);
-  }
-  return (h >>> 0).toString(16).padStart(8, "0");
-}
+/* 지문은 `src/km26/kmsave.js` 의 것을 쓴다 — 라인업 화면과 **한 정의**여야 한다 */
 const sigOf = p => planSig(Object.assign({}, p.plan, { id: p.team.id })) + "|" + squadSig(p);
+
+/* 어느 길로 들어왔든 **경기에 나올 스무 명**으로 맞춘다.
+   ⚠ 저장 슬롯은 명단 전체(38명)를, 게시판은 줄인 팩(20명)을 담는다. 그대로 두면
+     같은 라인업인데 길에 따라 씨앗이 갈려 **다른 경기**가 나온다. 결과 링크가
+     성립하려면 여기서 한 모양으로 맞춰야 한다. */
+const normPack = p => (p ? slimPack(fatten(p)) : null);
 
 const readJSON = (store, key) => {
   try { return JSON.parse(store.getItem(key) || "null"); } catch (e) { return null; }
@@ -235,6 +270,33 @@ async function boot() {
     return;
   }
 
+  /* ── 결과 링크로 열린 경우 ────────────────────────────────────
+     `#m=<내 글 번호>,<상대 글 번호>` 다. 51자 코드가 없는 갈래라 링크에 담는 것은
+     **게시판 글 두 개**다. 그 둘이면 명단·전술이 그대로 나오므로 같은 경기를
+     누구든 다시 볼 수 있다(2026 갈래의 결과 링크와 같은 성질). */
+  const L = /[#&]m=(\d+),(\d+)/.exec(location.hash || "");
+  if (L) {
+    fromLink = true;
+    $("#how").innerHTML = "결과 링크를 여는 중… <span class='sub'>게시판에서 명단 두 벌을 받아 옵니다.</span>";
+    try {
+      const [rh, ra] = await Promise.all([getKmPack(+L[1]), getKmPack(+L[2])]);
+      mine = normPack(rh.pack); away = normPack(ra.pack);
+      mineRow = { planId: rh.id };
+      hNick = rh.nick || "익명"; aNick = ra.nick || "익명";
+      window.__awayRow = { id: ra.id, nick: aNick };
+    } catch (e) {
+      $("#how").innerHTML = `<span style="color:var(--bad)">결과 링크를 열지 못했습니다 — ${esc(e.message || e)}</span>
+        <br><span class="sub">글이 지워졌거나 게시판에 닿지 못했습니다.</span>`;
+      return;
+    }
+    drawVs();
+    $("#how").innerHTML = `<b>결과 링크</b>로 열었습니다 — 올라온 명단 두 벌로 <b>같은 경기</b>를 다시 돌립니다.`;
+    $("#play").disabled = false;
+    $("#play").onclick = play;
+    play();                      // 링크는 열자마자 시작한다 (2026 결과 링크와 같다)
+    return;
+  }
+
   let m = readJSON(sessionStorage, MINE_KEY);
   const a = readJSON(sessionStorage, AWAY_KEY);
   /* 게시판에서 바로 오면 세션에 내 라인업이 없다 — **저장 슬롯**에서 고르게 한다.
@@ -245,23 +307,16 @@ async function boot() {
     else if (slots.length > 1) { drawSlotPick(slots, a); return; }
   }
   mineRow = m;
-  mine = m ? fatten(m.pack || m) : null;
-  away = a ? fatten(a.pack) : null;
+  mine = normPack(m && (m.pack || m));
+  away = normPack(a && a.pack);
+  hNick = myNick() || "나";
+  aNick = (a && a.nick) || "상대";
 
   const need = [];
   if (!mine) need.push(`<a href="km-lineup.html">KM26 라인업</a>에서 세이브를 불러와 라인업을 짜고 <b>저장 슬롯에 저장</b>해 주세요`);
-  if (!away) need.push(`<a href="km-board.html">KM26 전술 게시판</a>에서 상대를 골라 주세요`);
+  if (!away) need.push(`<a href="km-lineup.html">KM26 라인업</a>의 <b>전술 게시판</b>에서 상대를 골라 주세요`);
 
-  $("#vs").innerHTML = `
-    <div class="side">
-      <div class="tm">${mine ? esc(mine.team.short) : "—"}</div>
-      <div class="nk">${mine ? esc(myNick() || "나") + " · 홈" : "내 라인업 없음"}</div>
-    </div>
-    <div class="mid">VS</div>
-    <div class="side a">
-      <div class="tm">${away ? esc(away.team.short) : "—"}</div>
-      <div class="nk">${away ? esc((a && a.nick) || "상대") + " · 원정" : "상대 없음"}</div>
-    </div>`;
+  drawVs();
 
   if (need.length) {
     $("#how").innerHTML = "먼저 두 가지가 있어야 합니다.<br>· " + need.join("<br>· ");
@@ -271,6 +326,19 @@ async function boot() {
   $("#play").disabled = false;
   $("#play").onclick = play;
   window.__awayRow = a;
+}
+
+function drawVs() {
+  $("#vs").innerHTML = `
+    <div class="side">
+      <div class="tm">${mine ? esc(mine.team.short) : "—"}</div>
+      <div class="nk">${mine ? esc(hNick || "나") + " · 홈" : "내 라인업 없음"}</div>
+    </div>
+    <div class="mid">VS</div>
+    <div class="side a">
+      <div class="tm">${away ? esc(away.team.short) : "—"}</div>
+      <div class="nk">${away ? esc(aNick || "상대") + " · 원정" : "상대 없음"}</div>
+    </div>`;
 }
 
 async function play() {
@@ -288,7 +356,7 @@ async function play() {
     catch (e) { REACT = null; }
   }
 
-  const w = new Worker("src/engine/matchworker.js?v=934f2923e8", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=14944fdacd", { type: "module" });
   w.onmessage = ev => {
     w.terminate();
     $("#play").disabled = false;
@@ -561,61 +629,274 @@ function startReplay(r) {
 
 function msg(cls, text) { $("#playMsg").className = "msg " + cls; $("#playMsg").textContent = text; }
 
+const pct = (ok, n) => (n ? Math.round(ok / n * 100) + "%" : "-");
+
 function show(r) {
   msg("ok", "✓ 90분을 다 돌렸습니다 — 재생을 시작합니다.");
-  const a = window.__awayRow;
+  R = r;
   /* ⚠ 결과 카드는 경기가 끝난 뒤에 연다(finish). 미리 열면 점수가 새어 나간다. */
   $("#resultCard").style.display = "none";
   $("#score").innerHTML = `
     <div class="side"><div class="tm">${esc(r.home.short)}</div>
-      <div class="nk">${esc(myNick() || "나")}</div></div>
+      <div class="nk">${esc(hNick || "나")}</div></div>
     <div class="mid">${r.home.goals} : ${r.away.goals}</div>
     <div class="side a"><div class="tm">${esc(r.away.short)}</div>
-      <div class="nk">${esc((a && a.nick) || "상대")}</div></div>`;
-  $("#fp").innerHTML = `결과 지문 <code>${esc(r.fp)}</code> · 씨앗 <code>${r.seed}</code>
-    — 같은 두 라인업이면 누가 돌려도 이 값이 나옵니다.`;
+      <div class="nk">${esc(aNick || "상대")}</div></div>`;
 
-  const S = r.stats || {}, tot = Math.max(1, (S.h.poss || 0) + (S.a.poss || 0));
-  const rows = [
-    ["점유율", Math.round((S.h.poss || 0) / tot * 100) + "%", Math.round((S.a.poss || 0) / tot * 100) + "%"],
-    ["슈팅", S.h.shot, S.a.shot], ["유효 슈팅", S.h.sot, S.a.sot],
-    ["패스", S.h.pass, S.a.pass], ["파울", S.h.foul, S.a.foul],
-    ["경고", S.h.yel, S.a.yel], ["퇴장", S.h.red, S.a.red],
-  ];
-  $("#stats").innerHTML = rows.map(([n, h, x]) =>
-    `<tr><td class="h">${h ?? 0}</td><td class="n">${esc(n)}</td><td class="a">${x ?? 0}</td></tr>`).join("");
+  /* 표는 **기본 경기 화면과 같은 열한 줄**이다.
+     ⚠ 예전에는 `poss`·`sot`·`yel` 로 읽고 있었다. 엔진이 내는 이름이 아니라
+       열한 줄 중 여러 칸이 조용히 0 으로 찍혔다. */
+  const s = r.stats || {}, h = s.h || {}, a = s.a || {};
+  const P = r.possession || { h: 0, a: 0 };
+  const line = (k, hv, av) => `<tr><td class="h">${hv ?? 0}</td><td class="n">${esc(k)}</td><td class="a">${av ?? 0}</td></tr>`;
+  $("#stats").innerHTML = [
+    line("점유율", P.h + "%", P.a + "%"),
+    line("슈팅", h.shot, a.shot),
+    line("유효 슈팅", h.shotOn, a.shotOn),
+    line("패스", h.pass, a.pass),
+    line("패스 성공률", pct(h.passOk, h.pass), pct(a.passOk, a.pass)),
+    line("태클", h.tackle, a.tackle),
+    line("파울", h.foul, a.foul),
+    line("경고 · 퇴장", `${h.yellow ?? 0} · ${h.red ?? 0}`, `${a.yellow ?? 0} · ${a.red ?? 0}`),
+    line("코너", h.corner, a.corner),
+    line("오프사이드", h.offside, a.offside),
+    line("크로스", h.cross, a.cross),
+  ].join("");
+
+  $("#resultMore").innerHTML =
+    drawGoalLine() + drawMeta() + drawOrderLog() + drawResultLink() + drawHighlightList() + drawReactions();
+  bindResult();
 
   startReplay(r);        // 2D 재생 — 문자중계는 시각에 맞춰 흐른다
   record(r);
 }
 
-/* 기록실에 남긴다 — 글 두 개를 가리키는 방식이라 **양쪽 다 게시판에 올라와 있어야** 한다 */
+/* ── 결과 카드의 아랫부분 ──────────────────────────────────────
+   기본 경기 화면(match.html)의 차례를 그대로 따른다 —
+   득점 → 주심·지문 → 조건부 지시 → 결과 링크 → 다시 보기 → 경기 뒤 반응. */
+
+function drawGoalLine() {
+  if (!R.goalLine || !R.goalLine.length) return "";
+  return `<div class="note"><b>득점</b> — ${R.goalLine.map(g =>
+    `${g.min}' ${esc(g.n || "")} <span class="sub">(${esc(g.side === "h" ? R.home.short : R.away.short)})</span>`
+  ).join(" · ")}</div>`;
+}
+
+function drawMeta() {
+  return `<div class="note">
+    주심 ${esc(R.referee || "-")} · 계산 ${R.elapsedMs}ms
+    <br>씨앗 <code>${R.seed.toString(16)}</code> · 결과 지문 <code>${esc(R.fp)}</code>
+    <br><span class="sub">같은 명단·같은 라인업끼리 붙으면 언제 어디서 돌려도 이 지문이 나옵니다.</span></div>`;
+}
+
+/* 조건부 지시 요약 — "발동한 건지 아닌 건지 알 수가 없다"에 대한 답이다.
+   ⚠ 발동했더라도 **이미 그 상태였으면** 줄이 남지 않는다(orders.js 의 `changed`). */
+function drawOrderLog() {
+  const rows = (R.events || []).filter(e => e.type === "order");
+  if (!rows.length) {
+    return `<div class="note"><b>📋 조건부 지시</b> — 이 경기에서는 발동한 지시가 없습니다.
+      <br><span class="sub">KM26 라인업 화면에서 <b>"60분에 지고 있으면 → 총공세"</b> 처럼 미리 적어 두면
+      조건이 맞는 순간 자동으로 실행되고, 그 시각이 여기 남습니다.
+      경기 중에는 아무도 버튼을 못 누르므로 여기가 승부처입니다.
+      <br>조건이 맞았더라도 전술이 <b>이미 그 상태였다면</b> 바꿀 것이 없어 줄이 남지 않습니다.</span></div>`;
+  }
+  return `<div class="note"><b>📋 조건부 지시</b> — ${rows.length}건 발동
+    <div class="ordlog">${rows.map(e => `<div><b>${esc(String(e.min ?? ""))}'</b>
+      ${e.t ? `<span style="color:${esc(e.col || "#a9b4c0")}">${esc(e.t)}</span>` : ""}
+      ${esc((e.txt || "").replace(/^📋\s*/, ""))}</div>`).join("")}</div></div>`;
+}
+
+/* ── 결과 링크 ────────────────────────────────────────────────
+   KM26 갈래에는 51자 코드가 없다. 대신 **게시판 글 두 개**를 가리킨다 —
+   그 둘이면 명단·전술이 그대로 나오므로 같은 경기를 누구든 다시 볼 수 있다.
+   ⚠ 그래서 **양쪽 다 게시판에 올라와 있어야** 링크가 나온다. */
+let myPlanId = null;             // record() 가 찾아 두면 링크도 이 값을 쓴다
+
+function drawResultLink() {
+  const head = `<h3>🔗 결과 링크</h3>`;
+  const a = window.__awayRow;
+  const myId = myPlanId || (mineRow && mineRow.planId);
+  const rec = `<h3>🏛 KM26 듀얼 기록실</h3><div class="note" id="recBox">${lastRecNote}</div>`;
+  if (!myId || !a || !a.id) {
+    return head + `<div class="note"><b>아직 링크를 만들 수 없습니다.</b>
+      링크에 담기는 것은 게시판에 올라온 <b>글 두 개</b>라서, 양쪽 다 올라와 있어야 합니다.
+      <br><span class="sub">바로 아래 칸에서 내 라인업을 올리면 링크도 함께 나옵니다.</span></div>` + rec;
+  }
+  const link = `${location.origin}${location.pathname}#m=${myId},${a.id}`;
+  return head + `
+    <div class="row" style="margin-top:8px">
+      <input id="resLink" readonly value="${esc(link)}" class="lnk">
+      <button id="copyRes">복사</button>
+    </div>
+    <div class="note">이 링크를 열면 <b>같은 경기가 그대로</b> 재생됩니다 — 올라온 명단 두 벌에서
+      씨앗이 나오기 때문입니다. 상대에게 보내 결과 지문 <code>${esc(R.fp)}</code> 이 같은지 맞춰 보세요.</div>`
+    + rec;
+}
+
+function drawHighlightList() {
+  if (!R.clips || !R.clips.length) return "";
+  return `<h3>다시 보기</h3>
+    <div class="hlist">${R.clips.map((c, i) =>
+      `<button data-c="${i}">${c.min}' <span class="k">${esc(kindLabel(c))}</span></button>`).join("")}</div>`;
+}
+
+const KIND_N = { goal: "골", miss: "결정적 기회", save: "선방", pen: "페널티킥", red: "퇴장" };
+/* ⚠ 커널은 오프사이드·VAR 로 취소된 골에도 goal 을 붙인다 — 득점 기록에 없으면 취소된 것이다 */
+const goalOf = c => (R.goalLine || []).find(g => g.side === c.side && Math.abs((g.min || 0) - c.min) <= 1) || null;
+const kindLabel = c => (c.kind === "goal" && !goalOf(c)) ? "득점 취소" : (KIND_N[c.kind] || c.kind);
+
+/* ── 경기 뒤 반응 ─────────────────────────────────────────────
+   문구 표는 KM26 원본에서 그대로 가져온 것이다. 어느 쪽 팬 시선으로 볼지 고를 수 있다. */
+let reactSide = "h";
+
+function drawReactions() {
+  if (!R.react || !R.react.h) return "";
+  return `<h3>경기 뒤 반응</h3>
+    <div class="row" style="margin:8px 0">
+      <button class="rside on" data-s="h">${esc(R.home.short)} 팬</button>
+      <button class="rside" data-s="a">${esc(R.away.short)} 팬</button>
+    </div>
+    <div id="reactBox">${reactHTML()}</div>`;
+}
+
+function reactHTML() {
+  const r = R.react[reactSide];
+  if (!r) return "";
+  const tone = t => t > 0 ? "up" : t < 0 ? "dn" : "";
+  const nOf = n => (n >= 1000 ? (n / 1000).toFixed(1) + "천" : String(n));
+  const us = reactSide === "h" ? R.home.short : R.away.short;
+  const them = reactSide === "h" ? R.away.short : R.home.short;
+
+  const soc = x => `<div class="rmsg ${tone(x.tone)}${x.rival ? " riv" : ""}">
+      <div class="who"><span class="av">${esc(x.emoji || "💬")}</span>
+        <b class="nick">${esc(x.nick || "")}</b>
+        ${x.rival ? `<span class="tag riv">${esc(them)} 팬</span>` : ""}</div>
+      <div class="tx">${esc(x.txt)}</div></div>`;
+
+  const brd = x => `<div class="rmsg ${tone(x.tone)}${x.rival ? " riv" : ""}${x.troll ? " troll" : ""}">
+      <div class="who"><b class="nick">${esc(x.emoji || "")}${esc(x.nick || "")}</b>
+        ${x.rival ? `<span class="tag riv">타팬</span>` : ""}
+        ${x.troll ? `<span class="tag troll">상주</span>` : ""}
+        ${x.label ? `<span class="tag">${esc(x.label)}</span>` : ""}
+        <span class="vote">👍 ${nOf(x.up || 0)} · 👎 ${nOf(x.dn || 0)}
+          <span class="sub">· 조회 ${nOf(x.views || 0)}</span></span></div>
+      <div class="tx">${esc(x.txt)}</div></div>`;
+
+  return `<div class="rgrid">
+      <div>
+        <div class="rh">📱 소셜미디어 <span class="sub">${esc(us)} 팬 타임라인 · 타팬 반응 포함</span></div>
+        ${r.social.map(soc).join("") || `<div class="sub" style="padding:8px">조용합니다.</div>`}
+      </div>
+      <div>
+        <div class="rh">💬 FM코리아 <span class="sub">추천·조회수는 글 반응입니다</span></div>
+        ${r.fmk.map(brd).join("") || `<div class="sub" style="padding:8px">글이 없습니다.</div>`}
+      </div>
+    </div>`;
+}
+
+/** 결과 카드 안의 버튼들 — 다시 보기 · 링크 복사 · 팬 시선 바꾸기 */
+function bindResult() {
+  $("#resultMore").querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
+    stopClock();                       // 끝난 뒤에도 시계를 다시 걸지 않는다
+    playClip(R.clips[+b.dataset.c]);
+    $("#playCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  const cr = $("#copyRes");
+  if (cr) cr.onclick = () => {
+    const t = $("#resLink"); t.select();
+    navigator.clipboard?.writeText(t.value).then(
+      () => { cr.textContent = "복사됨 ✓"; setTimeout(() => { cr.textContent = "복사"; }, 1600); },
+      () => { cr.textContent = "Ctrl+C"; });
+  };
+  $("#resultMore").querySelectorAll(".rside").forEach(b => b.onclick = () => {
+    reactSide = b.dataset.s;
+    $("#resultMore").querySelectorAll(".rside").forEach(x => x.classList.toggle("on", x === b));
+    $("#reactBox").innerHTML = reactHTML();
+  });
+}
+
+/* ── KM26 듀얼 기록실에 남긴다 ─────────────────────────────────
+   글 두 개를 가리키는 방식이라 **양쪽 다 게시판에 올라와 있어야** 한다.
+
+   ⚠ 예전에는 `mineRow.planId` 가 없으면 그 자리에서 포기했다. 그런데 그 값은
+     **라인업 화면에서 그 순간 올린 경우에만** 들어 있다. 저장 슬롯에서 왔거나,
+     지난번에 이미 올려 둔 경우에는 비어 있어서 — 게시판에 멀쩡히 올라와 있는데도
+     "먼저 게시판에 올려야 합니다"가 떴다. 그래서 **지문으로 먼저 찾아본다.**
+   ⚠ 그래도 없으면 아직 안 올린 것이 맞다. 막다른 안내 대신 **여기서 올릴 버튼**을 준다.
+     올리는 것은 남에게 보이는 일이라 스스로 누를 때만 한다. */
 async function record(r) {
   const a = window.__awayRow;
-  const myId = mineRow && mineRow.planId;
-  if (!myId || !a || !a.id) {
-    $("#recMsg").className = "msg";
-    $("#recMsg").textContent =
-      "이 경기는 기록실에 안 올라갑니다 — 내 라인업을 먼저 KM26 전술 게시판에 올려야 합니다.";
+  if (!kmBoardOn()) { recNote("게시판이 아직 설정되지 않아 기록실에 남기지 않습니다."); return; }
+  if (!a || !a.id) { recNote("게시판에서 고른 상대와 붙은 경기만 기록실에 남습니다."); return; }
+
+  let myId = (mineRow && mineRow.planId) || null;
+  if (!myId && mine) myId = await findPlanId(sigOf(mine));   // 이미 올려 둔 글이 있으면 그것
+  if (!myId) {
+    recNote(`<b>내 라인업이 아직 게시판에 없습니다.</b> 기록실은 <b>글 두 개</b>를 가리키는 방식이라,
+      내 라인업도 올라와 있어야 이 경기가 남습니다.
+      <div class="row" style="margin-top:8px"><button id="postNow">🧩 지금 올리고 기록실에 남기기</button></div>`);
+    const b = $("#postNow");
+    if (b) b.onclick = () => postThenRecord(r, b);
     return;
   }
+  myPlanId = myId;
+  await sendMatch(r, myId, a);
+}
+
+/** 내 라인업을 올린 뒤 이어서 경기를 남긴다 — 사용자가 버튼을 눌렀을 때만 */
+async function postThenRecord(r, btn) {
+  const nick = (prompt("게시판에 쓸 닉네임 (최대 " + NICK_MAX + "자)", myNick() || "") || "").trim();
+  if (!nick) return;
+  btn.disabled = true;
+  recNote("올리는 중…");
+  const res = await kmPostPlan({
+    nick, team: mine.team.short, season: mine.season,
+    sig: sigOf(mine), pack: mine,          // 이미 스무 명으로 맞춘 팩이다
+  });
+  if (!res.ok || !res.id) {
+    recNote(`<span style="color:var(--bad)">올리지 못했습니다 — ${esc(res.why || "글 번호를 받지 못했습니다")}</span>`);
+    return;
+  }
+  rememberNick(nick);
+  hNick = nick;
+  myPlanId = res.id;
+  await sendMatch(r, res.id, window.__awayRow);
+  /* 링크를 이제 만들 수 있다 — 결과 아랫부분을 다시 그린다.
+     `lastRecNote` 를 들고 있으므로 방금 띄운 기록실 알림은 그대로 남는다. */
+  $("#resultMore").innerHTML =
+    drawGoalLine() + drawMeta() + drawOrderLog() + drawResultLink() + drawHighlightList() + drawReactions();
+  bindResult();
+}
+
+async function sendMatch(r, myId, a) {
+  recNote("기록실에 남기는 중…");
   const res = await kmPostMatch({
     fp: r.fp, hPlan: myId, aPlan: a.id,
-    hNick: myNick(), hTeam: mine.team.short,
-    aNick: a.nick, aTeam: away.team.short,
+    hNick: hNick, hTeam: mine.team.short,
+    aNick: aNick, aTeam: away.team.short,
     hg: r.home.goals, ag: r.away.goals,
   });
-  $("#recMsg").className = "msg " + (res.ok ? "ok" : "bad");
-  $("#recMsg").textContent = res.ok
-    ? (res.dup ? "이미 같은 경기가 기록실에 있습니다." : "✓ KM26 기록실에 남겼습니다.")
-    : "기록실에 남기지 못했습니다 — " + res.why;
+  recNote(res.ok
+    ? (res.dup
+        ? `이미 올라와 있는 경기입니다. <a href="km-record.html">기록실에서 보기</a>`
+        : `이 경기를 남겼습니다 ✓ <a href="km-record.html">기록실에서 보기</a>`)
+    : `<span style="color:var(--warn)">남기지 못했습니다 — ${esc(res.why)}</span>
+       <br><span class="sub">경기 결과와 다시 보기는 그대로입니다.</span>`);
+}
+
+/** 기록실 칸은 `drawResultLink` 가 늘 그려 둔다 — 여기서는 그 안만 바꾼다 */
+let lastRecNote = "";
+function recNote(html) {
+  lastRecNote = html;
+  const box = $("#recBox");
+  if (box) box.innerHTML = html;
 }
 
 boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=934f2923e8";
+import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
 installNav();
 </script>
 </body>

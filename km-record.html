@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KMD26 · KM26 기록실</title>
+<title>KMD26 · KM26 듀얼 기록실</title>
 <style>
 :root{--bg:#0d1117;--bg2:#161b22;--bg3:#0b0f14;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;
       --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341;--km:#b98cff}
@@ -43,6 +43,9 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
       border-top:1px solid #21262d;padding-top:8px}
 .meta .ag{color:var(--sub);font-size:11.5px;flex:1}
 .meta .fp{color:var(--sub);font-size:11px;font-family:ui-monospace,Consolas,monospace}
+.meta .again{flex:none;background:var(--bg3);border:1px solid var(--line);border-radius:7px;
+     padding:4px 10px;font-size:12px;font-weight:800;color:var(--km)}
+.meta .again:hover{border-color:var(--km)}
 .empty{padding:26px 14px;text-align:center;color:var(--sub);font-size:13px;
       background:var(--bg2);border:1px dashed var(--line);border-radius:10px;margin-top:12px}
 
@@ -97,18 +100,18 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
     <a class="navbtn km" href="km-lineup.html">🎮 KM26 라인업<span class="k">스쿼드 가져오기 · 상대 고르기</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
-    <a class="navbtn km on" href="km-record.html">📜 KM26 기록실<span class="k">가져온 명단 경기 기록</span></a>
+    <a class="navbtn km on" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
     <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn" href="board.html">🗂 2026 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
     <a class="navbtn" href="record.html">🏛 2026 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
     <a class="navbtn" href="match.html">⚽ 2026 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
-    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+    <a class="navbtn" href="squad.html">👥 2026 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
 
 <div class="top">
-  <div><h1>KM26 기록실</h1>
+  <div><h1>KM26 듀얼 기록실</h1>
     <div class="sub" id="meta">불러오는 중…</div></div>
 </div>
 
@@ -131,7 +134,7 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 </div>
 
 <script type="module">
-import { kmBoardOn, listKmMatches } from "./src/board/kmboard.js?v=934f2923e8";
+import { kmBoardOn, listKmMatches } from "./src/board/kmboard.js?v=14944fdacd";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -172,7 +175,7 @@ function draw() {
   if (!list.length) {
     $("#list").innerHTML = `<div class="empty">${rows.length
       ? "찾는 경기가 없습니다."
-      : "아직 붙은 경기가 없습니다. <a href='km-board.html'>KM26 게시판</a>에서 상대를 골라 보세요."}</div>`;
+      : "아직 붙은 경기가 없습니다. <a href='km-lineup.html'>KM26 라인업</a>에서 상대를 골라 보세요."}</div>`;
     return;
   }
   $("#list").innerHTML = `<div class="recs">` + list.map(m => `
@@ -191,6 +194,9 @@ function draw() {
       <div class="meta">
         <span class="ag">${ago(m.created_at)}</span>
         <span class="fp">지문 ${esc(m.fp)}</span>
+        <!-- 기록은 **글 두 개**를 가리킨다. 그 둘이면 같은 경기가 그대로 나오므로
+             여기서 바로 다시 볼 수 있다(2026 기록실의 "다시 보기"와 같은 자리다). -->
+        <a class="again" href="km-match.html#m=${m.h_plan | 0},${m.a_plan | 0}">▶ 다시 보기</a>
       </div>
     </div>`).join("") + `</div>`;
 }
@@ -219,7 +225,7 @@ load();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=934f2923e8";
+import { installNav } from "./src/ui/navscroll.js?v=14944fdacd";
 installNav();
 </script>
 </body>
