@@ -393,11 +393,11 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=04894c7433";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=04894c7433";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=da9413b7fe";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=da9413b7fe";
 import { boardOn, postPlan, NICK_MAX, NOTE_MAX, myNick, rememberNick }
-  from "./src/board/board.js?v=04894c7433";
-import { teamStar } from "./src/ui/teamstar.js?v=04894c7433";
+  from "./src/board/board.js?v=da9413b7fe";
+import { teamStar } from "./src/ui/teamstar.js?v=da9413b7fe";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

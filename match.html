@@ -153,6 +153,13 @@ button:disabled{opacity:.45;cursor:default}
      padding:1px 6px;font-size:11px;font-weight:800;color:var(--gold)}
 .bdrow .nt{flex:1;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bdrow .ag{flex:none;color:var(--sub);font-size:11px}
+/* 라인업 승률 — 듀얼 기록실의 경기로 낸 값. 자리가 좁아 뱃지는 승률만 두고
+   전적(홈·원정 갈라서)은 줄에 마우스를 올리면 나오는 설명에 담는다. */
+.bdrow .wr{flex:none;font-size:11px;font-weight:800;border-radius:5px;padding:1px 6px;
+     background:#161b22;border:1px solid var(--line);color:var(--sub);font-variant-numeric:tabular-nums}
+.bdrow .wr.good{color:var(--ok);border-color:#1f4a2b}
+.bdrow .wr.bad{color:var(--bad);border-color:#5a2b2b}
+.bdrow .wr .n{font-weight:600;opacity:.7;font-size:10px}
 .bdempty{padding:14px;text-align:center;color:var(--sub);font-size:12.5px}
 
 /* ── 득점자 패널 (KM26 방식) ─────────────────────────────────
@@ -513,11 +520,11 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=04894c7433";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=04894c7433";
-import { boardOn, listPlans, ago, matchQuery, postMatch, nicksForCodes, myNick }
-  from "./src/board/board.js?v=04894c7433";
-import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=04894c7433";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=da9413b7fe";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=da9413b7fe";
+import { boardOn, listPlans, listMatches, ago, matchQuery, postMatch, nicksForCodes, myNick,
+         recordsByCode, totalOf, planScore, wdlText } from "./src/board/board.js?v=da9413b7fe";
+import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=da9413b7fe";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -820,7 +827,7 @@ function drawCodeRow() {
    목록에서 한 줄을 누르면 그 코드가 원정 칸에 그대로 들어간다 — 그 뒤는
    손으로 붙여넣은 것과 똑같은 길을 탄다(검사·경기 시작까지).
    전체 목록·자세한 화면은 board.html 이 따로 있다. 여기는 그 자리에서 바로 붙기 위한 것이다. */
-let boardRows = null;
+let boardRows = null, boardRec = {};
 
 async function openBoard() {
   const box = $("#boardList");
@@ -834,6 +841,9 @@ async function openBoard() {
       게시판을 불러오지 못했습니다 — ${esc(e.message)}</div>`;
     return;
   }
+  /* 라인업 성적 — 듀얼 기록실의 경기를 대전 코드로 맞춰 그 자리에서 센다.
+     **덤**이라 못 읽어도 목록은 그대로 뜬다(기록실 표가 없는 경우 등). */
+  try { boardRec = recordsByCode(await listMatches(400)); } catch (e) { boardRec = {}; }
   // 찾기 칸은 불러오고 나서 띄운다 — 목록이 없는데 찾기 칸만 있으면 이상하다
   $("#boardTools").style.display = boardRows.length ? "" : "none";
   drawBoardList();
@@ -857,12 +867,25 @@ function drawBoardList() {
       <br><span class="sub">닉네임이나 구단 이름의 일부를 넣어 보세요 — 초성도 됩니다.</span></div>`;
     return;
   }
-  box.innerHTML = hits.map(({ r, i }) => `<div class="bdrow" data-b="${i}">
-    <span class="nk">${esc(r.nick || "")}</span>
-    <span class="tm2">${esc(r.team || "")}</span>
-    <span class="nt">${esc(r.note || "")}</span>
-    <span class="ag">${esc(ago(r.created_at))}</span>
-  </div>`).join("");
+  /* 잘 통하는 전술이 위로. 경기 수가 적으면 평균 쪽으로 당겨 줄 세운다
+     (한 판 이긴 라인업이 9승 1패보다 위로 오면 안 된다 — board.js planScore) */
+  hits.sort((x, y) => planScore(boardRec[y.r.code]) - planScore(boardRec[x.r.code]));
+  box.innerHTML = hits.map(({ r, i }) => {
+    const t = totalOf(boardRec[r.code]);
+    // 홈·원정을 갈라 보여 준다 — 자리가 좁으므로 제목(title)에 담고 뱃지는 승률만
+    const tip = t.n ? `${t.n}판 ${wdlText({ w: t.w, d: t.d, l: t.l })} · 승점 ${t.pts}\n`
+      + `🏠 ${wdlText((boardRec[r.code] || {}).h) || "기록 없음"}`
+      + ` · ✈ ${wdlText((boardRec[r.code] || {}).a) || "기록 없음"}` : "아직 붙어 본 기록이 없습니다";
+    const rate = t.n ? Math.round(t.w / t.n * 100) : -1;
+    return `<div class="bdrow" data-b="${i}" title="${esc(tip)}">
+      <span class="nk">${esc(r.nick || "")}</span>
+      <span class="tm2">${esc(r.team || "")}</span>
+      ${t.n ? `<span class="wr${rate >= 60 ? " good" : (rate <= 30 ? " bad" : "")}">${rate}%
+        <span class="n">${t.n}판</span></span>` : ""}
+      <span class="nt">${esc(r.note || "")}</span>
+      <span class="ag">${esc(ago(r.created_at))}</span>
+    </div>`;
+  }).join("");
   box.querySelectorAll("[data-b]").forEach(el => el.onclick = () => {
     const r = boardRows[+el.dataset.b];
     const ta = $("#awayCode");
@@ -1044,7 +1067,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=04894c7433", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=da9413b7fe", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {

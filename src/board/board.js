@@ -195,6 +195,53 @@ export async function nicksForCodes(codes) {
   return out;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   라인업 성적 — 기록실의 경기로 게시판의 전술을 평가한다
+
+   기록실에는 **어느 코드가 어느 코드와 붙어 몇 대 몇이었는지**가 다 남아 있습니다.
+   게시판의 라인업도 코드로 구분되므로, 둘을 코드로 맞추면 그 전술이 실제로
+   **얼마나 통했는지**가 나옵니다 — 따로 집계를 저장할 필요가 없습니다.
+
+   ⚠ 홈과 원정을 **갈라서** 셉니다. 같은 전술이라도 홈에서 밀어붙이는 것과 원정에서
+     받아치는 것은 다른 이야기라, 합쳐 놓으면 그 차이가 사라집니다.
+   ⚠ 무승부는 무승부입니다 — 승점 3/1/0.
+   ═══════════════════════════════════════════════════════════════ */
+
+/** 기록실 경기 목록 → {대전코드: {h:{w,d,l}, a:{w,d,l}}} */
+export function recordsByCode(matches) {
+  const out = {};
+  const at = c => (out[c] || (out[c] = { h: { w: 0, d: 0, l: 0 }, a: { w: 0, d: 0, l: 0 } }));
+  for (const m of matches || []) {
+    const hg = m.hg | 0, ag = m.ag | 0;
+    if (m.h_code) { const r = at(m.h_code).h; if (hg > ag) r.w++; else if (hg < ag) r.l++; else r.d++; }
+    if (m.a_code) { const r = at(m.a_code).a; if (ag > hg) r.w++; else if (ag < hg) r.l++; else r.d++; }
+  }
+  return out;
+}
+
+/** 홈·원정을 합친 것 — {w,d,l,n,pts} */
+export function totalOf(rec) {
+  const h = (rec && rec.h) || { w: 0, d: 0, l: 0 }, a = (rec && rec.a) || { w: 0, d: 0, l: 0 };
+  const w = h.w + a.w, d = h.d + a.d, l = h.l + a.l;
+  return { w, d, l, n: w + d + l, pts: w * 3 + d };
+}
+
+/* 줄 세우는 값 — **경기당 승점**. 표본이 적으면 평균(1.5점) 쪽으로 당긴다.
+   ⚠ 그냥 승률로 줄 세우면 **한 판 이긴 라인업이 9승 1패보다 위로 옵니다.**
+     아직 아무도 안 붙어 본 라인업(0경기)은 딱 평균 자리에 서서, 새 글이 맨 아래로
+     가라앉지도 않고 이유 없이 맨 위에 오지도 않습니다. */
+export const PRIOR_N = 1, PRIOR_PTS = 1.5;
+export function planScore(rec) {
+  const t = totalOf(rec);
+  return (t.pts + PRIOR_PTS) / (t.n + PRIOR_N);
+}
+
+/** "3승 1무 2패" — 없으면 빈 문자열 */
+export function wdlText(r) {
+  if (!r || (r.w + r.d + r.l) === 0) return "";
+  return `${r.w}승 ${r.d}무 ${r.l}패`;
+}
+
 /* ── 찾기 ──────────────────────────────────────────────────────
    닉네임 · 구단 · 한 줄 소개를 한꺼번에 봅니다.
 

@@ -61,6 +61,21 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 .plan .tg.old{color:var(--warn);border-color:#5c4a1c}
 .plan .nt{color:var(--sub);font-size:12.5px;line-height:1.45;min-height:18px;
       overflow-wrap:anywhere}
+/* ── 라인업 성적 ───────────────────────────────────────────────
+   듀얼 기록실의 경기를 대전 코드로 맞춰 낸 값입니다. 홈·원정을 갈라서 봅니다. */
+.rc{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:var(--sub)}
+.rc.none{color:#5c6672;font-style:italic}
+.rc.side{gap:12px;color:var(--sub);border-top:1px dashed #262c35;padding-top:5px;margin-top:1px}
+.rc .wr{font-weight:800;font-size:12.5px;color:var(--txt);background:var(--bg3);
+     border:1px solid var(--line);border-radius:6px;padding:1px 8px;flex:none}
+.rc .wr.good{color:var(--ok);border-color:#1f4a2b}
+.rc .wr.bad{color:var(--bad);border-color:#5a2b2b}
+.rc .tot{font-variant-numeric:tabular-nums}
+/* 줄 세우기 — 성적순이 기본 */
+.sortrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px}
+.sortrow .lb{font-size:11.5px;color:var(--sub);font-weight:700;margin-right:2px}
+.sortrow .srt{padding:4px 11px;font-size:11.5px;border-radius:14px;color:var(--sub)}
+.sortrow .srt.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .plan .btns{display:flex;gap:6px;margin-top:auto}
 .plan .btns a,.plan .btns button{flex:1;text-align:center;font-size:12.5px;padding:7px 8px}
 .plan .btns a{background:var(--ok);color:#04260e;border:1px solid var(--ok);border-radius:8px;
@@ -144,18 +159,29 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
     <span class="cnt" id="cnt"></span>
   </div>
   <div class="quick" id="quick"></div>
+  <!-- 줄 세우기 — 기본은 성적순. "잘 통하는 전술이 위에" 가 이 목록의 쓸모다 -->
+  <div class="sortrow">
+    <span class="lb">줄 세우기</span>
+    <button class="srt on" data-s="score">🏆 성적순</button>
+    <button class="srt" data-s="new">🕘 최신순</button>
+  </div>
   <div class="note" id="hint">
     <b>상대가 접속해 있을 필요가 없습니다.</b> 남겨 둔 라인업과 붙습니다 —
     골라서 <b>이 라인업과 붙기</b>를 누르면 경기 화면이 그 코드를 든 채로 열립니다.
     내 라인업을 올리려면 <a href="lineup.html">라인업 화면</a>에서 <b>🔗 대전 코드 발급</b>을 누르세요.
+    <br><b>승률과 전적</b>은 <a href="record.html">듀얼 기록실</a>에 남은 실제 경기로 매깁니다 —
+    붙을 때마다 저절로 쌓입니다. <b>홈과 원정을 갈라</b> 보여 줍니다.
+    <span class="sub">경기 수가 적으면 순위가 평균 쪽으로 당겨집니다 —
+    한 판 이긴 라인업이 <b>9승 1패</b>보다 위로 오면 안 되니까요.</span>
   </div>
 </div>
 
 <div id="list"></div>
 
 <script type="module">
-import { boardOn, listPlans, ago, matchQuery } from "./src/board/board.js?v=04894c7433";
-import { decodePlan } from "./src/codec/duelcode.js?v=04894c7433";
+import { boardOn, listPlans, listMatches, ago, matchQuery,
+         recordsByCode, totalOf, planScore, wdlText } from "./src/board/board.js?v=da9413b7fe";
+import { decodePlan } from "./src/codec/duelcode.js?v=da9413b7fe";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -163,6 +189,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 let DB = null, T = null;      // 선수 데이터 — 코드를 풀어 포메이션·구단 색을 보여 주는 데만 쓴다
 let ROWS = null;              // 게시판에서 받아 둔 줄들 (찾기는 여기서 거른다)
 let SHORT = {};               // 구단 약칭 → 구단 (색을 칠하려고)
+let REC = {};                 // 대전코드 → 성적 (듀얼 기록실의 경기로 낸 것)
+let sortBy = "score";         // "score" 성적순 · "new" 최신순
 
 /* 데이터를 못 읽어도 게시판은 뜨게 둡니다 — 목록·찾기·붙기는 데이터가 없어도 됩니다.
    데이터는 포메이션 뱃지와 구단 색을 더하는 **덤**입니다. */
@@ -210,7 +238,17 @@ async function load() {
       <br><span class="sub">잠시 뒤 <b>↻ 새로고침</b>을 눌러 보세요.</span></div>`;
     return;
   }
-  $("#meta").textContent = `올라온 라인업 ${ROWS.length}개 · 새것부터`;
+  /* 성적은 **덤**이다 — 기록실 표가 없거나 못 읽어도 게시판은 그대로 뜬다.
+     따로 집계를 저장하지 않고, 경기 목록을 코드로 맞춰 그 자리에서 센다. */
+  let played = 0;
+  try {
+    const ms = await listMatches(400);
+    REC = recordsByCode(ms);
+    played = ms.length;
+  } catch (e) { REC = {}; }
+
+  $("#meta").textContent = `올라온 라인업 ${ROWS.length}개` +
+    (played ? ` · 기록실 경기 ${played}판으로 매긴 성적` : "");
   drawQuick();
   draw();
 }
@@ -230,6 +268,25 @@ function drawQuick() {
   });
 }
 
+/* ── 라인업 성적 한 덩어리 ─────────────────────────────────────
+   듀얼 기록실에 남은 경기를 대전 코드로 맞춰 낸 값입니다(board.js recordsByCode).
+   **홈과 원정을 갈라서** 보여 줍니다 — 같은 전술이라도 홈에서 밀어붙이는 것과
+   원정에서 받아치는 것은 다른 이야기라, 합쳐 놓으면 그 차이가 사라집니다. */
+function recHTML(rec) {
+  const t = totalOf(rec);
+  if (!t.n) return `<div class="rc none">아직 붙어 본 기록이 없습니다</div>`;
+  const rate = Math.round(t.w / t.n * 100);
+  const cls = rate >= 60 ? " good" : (rate <= 30 ? " bad" : "");
+  return `<div class="rc">
+      <span class="wr${cls}">승률 ${rate}%</span>
+      <span class="tot">${t.n}판 ${wdlText({ w: t.w, d: t.d, l: t.l })} · 승점 ${t.pts}</span>
+    </div>
+    <div class="rc side">
+      <span>🏠 ${wdlText(rec.h) || "기록 없음"}</span>
+      <span>✈ ${wdlText(rec.a) || "기록 없음"}</span>
+    </div>`;
+}
+
 function draw() {
   const box = $("#list");
   if (!ROWS) return;
@@ -246,6 +303,13 @@ function draw() {
     return;
   }
   const hits = ROWS.filter(r => matchQuery(r, q));
+  /* 줄 세우기 — 기본은 **성적순**입니다. "잘 통하는 전술이 위에" 가 이 목록의 쓸모니까요.
+     ⚠ 그냥 승률로 세우면 **한 판 이긴 라인업이 9승 1패보다 위**로 옵니다.
+       planScore 가 경기 수가 적은 쪽을 평균으로 당겨 그걸 막습니다(board.js 주석).
+     ⚠ 동점이면 새것을 위로 — 안 그러면 순서가 들쭉날쭉해 보입니다. */
+  const newer = (a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0);
+  hits.sort(sortBy === "new" ? newer
+    : ((a, b) => (planScore(REC[b.code]) - planScore(REC[a.code])) || newer(a, b)));
   $("#cnt").textContent = q.trim() ? `${hits.length} / ${ROWS.length}개` : `${ROWS.length}개`;
   if (!hits.length) {
     // 조사("울산 로")가 어색해지므로 찾는 말을 앞에 따로 세운다
@@ -268,6 +332,7 @@ function draw() {
         ${p && p.old ? `<span class="tg old">옛 판 코드</span>` : ""}
         ${p && p.bad ? `<span class="tg old">읽을 수 없는 코드</span>` : ""}
       </div>
+      ${recHTML(REC[r.code])}
       <div class="nt">${esc(r.note || "")}</div>
       <div class="btns">
         <a href="match.html#c=${encodeURIComponent(r.code)}">⚽ 이 라인업과 붙기</a>
@@ -286,6 +351,11 @@ function draw() {
 
 $("#q").oninput = draw;
 $("#reload").onclick = load;
+document.querySelectorAll(".srt").forEach(b => b.onclick = () => {
+  sortBy = b.dataset.s;
+  document.querySelectorAll(".srt").forEach(x => x.classList.toggle("on", x === b));
+  draw();
+});
 
 /* 데이터를 먼저 읽고 목록을 부릅니다 — 포메이션 뱃지를 그리려면 데이터가 있어야 합니다.
    데이터가 없어도 loadData 는 조용히 넘어가므로 목록은 어차피 뜹니다. */
