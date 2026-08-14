@@ -14,7 +14,7 @@
    ⚠ 발동은 분 경계에서만 봅니다 — 커널 aiTacticCheck 를 붙인 자리와 같습니다.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim } from "./kernel.js?v=0631260f6e";
+import { MatchSim } from "./kernel.js?v=934f2923e8";
 
 /* 조건 — 4비트(0~15). 0 은 "빈 칸"이라 쓰지 않습니다. */
 export const CONDS = [

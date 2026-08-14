@@ -10,12 +10,12 @@
      먼저 다 돌린 뒤 재생하면 1·2·4배속도 되감기도 공짜입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { runHeadless, deriveSeed } from "./duel.js?v=0631260f6e";
-import { checkLineup, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=0631260f6e";
-import { encodePlan } from "../codec/duelcode.js?v=0631260f6e";
-import { makeReactions } from "./reactions.js?v=0631260f6e";
-import { slotRating } from "./kernel.js?v=0631260f6e";
-import { installEngineContext } from "./stubs.js?v=0631260f6e";
+import { runHeadless, deriveSeed } from "./duel.js?v=934f2923e8";
+import { checkLineup, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=934f2923e8";
+import { encodePlan } from "../codec/duelcode.js?v=934f2923e8";
+import { makeReactions } from "./reactions.js?v=934f2923e8";
+import { slotRating } from "./kernel.js?v=934f2923e8";
+import { installEngineContext } from "./stubs.js?v=934f2923e8";
 
 /* 연습 모드의 상대를 여기서 짠다 — 화면이 아니라 일꾼에서.
    "어려움"이 쓰는 slotRating 은 커널 함수라 화면에 올릴 수 없다(6천 줄). */
@@ -63,8 +63,14 @@ self.onmessage = (e) => {
          "코드가 같으면 같은 경기"가 성립한다 — 화면 문구도 그렇게 약속하고 있다.
        ⚠ 선수 id 를 옮기기 **전**에 뽑는다. prepareSides 가 같은 구단끼리 붙을 때
          원정 쪽 id 를 +100000 하므로, 그 뒤에 뽑으면 두 사람의 값이 어긋난다. */
+    /* KM26 갈래는 51자 코드가 없다 — 선수와 능력치가 사람마다 달라 코드에 담기지 않는다.
+       시드는 화면이 `planSig + 명단 해시` 로 미리 뽑아 넘긴다(`e.data.seed`).
+       그래도 "양쪽 라인업이 다 들어간 값"이라는 성질은 그대로라, 마음에 드는 결과가
+       나올 때까지 돌려서 그것만 보내는 것은 여전히 불가능하다. */
+    const km = !!e.data.km;
+
     let codeA = null, codeB = null;
-    if (!practice) {
+    if (!practice && !km) {
       const cc = e.data.codeCtx;
       if (!cc) throw new Error("대전 코드 문맥이 없습니다 — 시드를 뽑을 수 없습니다");
       const ctx = { order: cc.order, tables: cc.tables, players, dataHash: cc.dataHash };
@@ -78,8 +84,9 @@ self.onmessage = (e) => {
       }
     }
 
-    // 같은 구단이면 원정 쪽 선수 id·이름표·색을 갈라 놓는다 (teams.js 참고)
-    const { H, A, home, away } = prepareSides(teams, players, homePlan, awayPlan);
+    /* 같은 구단이면 원정 쪽 선수 id·이름표·색을 갈라 놓는다 (teams.js 참고).
+       KM26 갈래는 다른 구단이라도 늘 옮긴다 — 세이브가 다르면 같은 번호가 다른 선수다. */
+    const { H, A, home, away } = prepareSides(teams, players, homePlan, awayPlan, { forceShift: km });
 
     for (const [side, t, plan] of [["홈", H, home], ["원정", A, away]]) {
       const bad = checkLineup(t, plan.xi);
@@ -88,7 +95,7 @@ self.onmessage = (e) => {
 
     /* 연습은 매 판 새 시드다. 대전의 "같은 라인업이면 한 판만 성립"은 결과를 골라
        보낼 수 없게 하려는 규칙이라 대전에만 해당한다(설계서 단계 A). */
-    const seed = practice ? ((e.data.seed >>> 0) || 1) : deriveSeed(codeA, codeB);
+    const seed = (practice || km) ? ((e.data.seed >>> 0) || 1) : deriveSeed(codeA, codeB);
 
     // 연습 상대만 스스로 지시를 바꾼다 (rules.js 의 aiTacticCheck 래퍼가 이 스위치를 본다)
     A.autoTactic = !!awayPlan.autoTactic;

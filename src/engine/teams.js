@@ -10,7 +10,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* 역습 단계(0~4) 판정은 코덱과 **한 곳**에서 온다 — 두 벌을 두면 반드시 어긋난다 */
-import { ctrLevel } from "../codec/duelcode.js?v=0631260f6e";
+import { ctrLevel } from "../codec/duelcode.js?v=934f2923e8";
 
 /** 깊은 복사 — 능력치·능숙도까지 새 객체로 (JSON 데이터라 이걸로 충분합니다) */
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -289,14 +289,19 @@ export function sideLabels(meta) {
  *          home·away 는 **엔진에 넘길** 라인업(같은 구단이면 id 가 옮겨진 것).
  *          시드를 뽑을 때는 원본 plan 을 그대로 쓸 것.
  */
-export function prepareSides(teamsMeta, playersDB, homePlan, awayPlan) {
+export function prepareSides(teamsMeta, playersDB, homePlan, awayPlan, opt = {}) {
   const same = homePlan.id === awayPlan.id;
+  /* ⚠ KM26 갈래는 **언제나** 옮긴다(`forceShift`). 기본 명단은 선수 id 가 1~1024 로
+     리그 전체에서 유일하지만, KM26 세이브에서 가져온 명단은 **세이브 안에서만** 유일하다.
+     서로 다른 세이브끼리 붙이면 다른 구단이라도 같은 번호가 서로 다른 선수일 수 있고,
+     그러면 커널 byId() 가 원정 슈터를 찾을 때 홈 선수를 잡는다(DEVELOPMENT "선수 id" 절). */
+  const shift = same || !!opt.forceShift;
   const home = homePlan;
-  const away = same ? shiftPlan(awayPlan) : awayPlan;
+  const away = shift ? shiftPlan(awayPlan) : awayPlan;
 
   const H = buildTeam(teamsMeta[home.id], playersDB[home.id], home);
   const A = buildTeam(teamsMeta[away.id],
-    same ? shiftRoster(playersDB[away.id]) : playersDB[away.id], away);
+    shift ? shiftRoster(playersDB[away.id]) : playersDB[away.id], away);
 
   if (same) {
     const L = sideLabels(teamsMeta[home.id]);

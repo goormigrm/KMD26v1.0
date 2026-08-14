@@ -12,7 +12,7 @@
    ⚠ 표가 없으면 화면에서 KM26 게시판만 조용히 꺼집니다 — 게임의 나머지는 그대로입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=0631260f6e";
+import { BOARD, boardOn, NICK_MAX, NOTE_MAX, myNick, rememberNick } from "./board.js?v=934f2923e8";
 
 export { NICK_MAX, NOTE_MAX, myNick, rememberNick };
 
@@ -85,7 +85,10 @@ export async function getKmPack(id) {
  * @param {object} row {nick, note, team, season, sig, pack}
  * ⚠ `sig` 는 **라인업 + 명단**의 지문이어야 한다. 라인업만으로는 같은 글인지 가릴 수 없다 —
  *   같은 포메이션·같은 자리라도 선수 능력치가 사람마다 다르기 때문이다.
- * @returns {{ok:boolean, dup?:boolean, why?:string}}
+ * @returns {{ok:boolean, id?:number, dup?:boolean, why?:string}}
+ *   ⚠ `id` 를 반드시 돌려준다 — 기록실이 **글 두 개**를 가리키는 방식이라
+ *     내 글 번호를 모르면 붙은 경기를 남길 수 없다. 이미 올라와 있으면(dup)
+ *     `sig` 로 찾아서 그 번호를 준다.
  */
 export async function kmPostPlan(row) {
   if (!kmBoardOn()) return { ok: false, why: "KM26 게시판이 아직 설정되지 않았습니다." };
@@ -101,7 +104,7 @@ export async function kmPostPlan(row) {
   try {
     r = await fetch(`${BOARD.URL}/rest/v1/${PLANS}`, {
       method: "POST",
-      headers: headers({ Prefer: "return=minimal" }),
+      headers: headers({ Prefer: "return=representation" }),
       body: JSON.stringify({
         nick,
         note: String(row.note || "").trim().slice(0, NOTE_MAX) || null,
@@ -116,12 +119,31 @@ export async function kmPostPlan(row) {
   }
   if (!r.ok) {
     const msg = await readErr(r);
-    /* sig 에 유일 제약이 걸려 있다 — 같은 라인업·같은 명단은 두 번 올릴 수 없다 */
-    if (r.status === 409 || /duplicate key|unique/i.test(msg)) return { ok: true, dup: true };
+    /* sig 에 유일 제약이 걸려 있다 — 같은 라인업·같은 명단은 두 번 올릴 수 없다.
+       이미 있는 글이라도 **번호는 알려 준다** (그 글로 경기를 남길 수 있어야 한다). */
+    if (r.status === 409 || /duplicate key|unique/i.test(msg)) {
+      const id = await findPlanId(row.sig);
+      return { ok: true, dup: true, id };
+    }
     return { ok: false, why: msg };
   }
   markPosted();
-  return { ok: true };
+  let id = null;
+  try { const back = await r.json(); id = back && back[0] && back[0].id; } catch (e) { /* 본문이 없을 수도 */ }
+  if (id == null) id = await findPlanId(row.sig);
+  return { ok: true, id };
+}
+
+/** 지문으로 글 번호를 찾는다 — 이미 올라와 있을 때 쓴다 */
+export async function findPlanId(sig) {
+  if (!kmBoardOn() || !sig) return null;
+  try {
+    const q = `select=id&sig=eq.${encodeURIComponent(String(sig))}&limit=1`;
+    const r = await fetch(`${BOARD.URL}/rest/v1/${PLANS}?${q}`, { headers: headers() });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    return rows.length ? rows[0].id : null;
+  } catch (e) { return null; }
 }
 
 /* ── 듀얼 기록실 ─────────────────────────────────────────────── */
