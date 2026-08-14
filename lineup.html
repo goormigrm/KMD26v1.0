@@ -921,7 +921,9 @@ function drawHint() {
   else if (sel && sel.kind === "player") h = `<b>${esc(byId(sel.id).name)}</b> 선수를 세울 자리를 고르세요.`;
   else if (sel && sel.kind === "bench") h = `교체 <b>S${sel.i + 1}</b> — 투입할 자리를 누르거나, 다른 선수를 눌러 이 칸에 넣으세요.`;
   else h = `<b>끌어서 옮기거나</b>, 자리와 선수를 차례로 누르면 됩니다. 전술판 안에서 끌면 두 선수가 <b>맞바뀝니다</b>.
-    <br>능숙도가 낮은 자리에도 세울 수 있습니다 — 지고 있을 때 센터백을 최전방에 올리는 것처럼요.`;
+    <br>능숙도가 낮은 자리에도 세울 수 있습니다 — 지고 있을 때 센터백을 최전방에 올리는 것처럼요.
+    <br><span class="sub">전술판 칸은 <b>자리를 고르는 일</b>만 합니다.
+    선수 능력치는 아래 <b>선발 명단</b>과 <b>선수 목록</b>의 <b>프로필</b>에서 봅니다.</span>`;
   $("#hint").innerHTML = h;
 }
 
@@ -984,11 +986,14 @@ function drawPitch() {
       ${r ? `<span class="role">${esc(r.k)} · ${esc(r.duty)}</span>` : ""}
       <span class="who"><span class="fdot" style="background:${lv.c}"></span>
         <span class="nm">${esc(p.name)}</span></span>
-      <span class="sl">${esc(slot)}</span><button class="pf" data-pf="${p.id}" title="세부 능력치 보기">프로필</button>
+      <span class="sl">${esc(slot)}</span>
     </div>`;
   }).join("")}</div>`).join("");
 
-  bindProfile($("#pgrid"));
+  /* ⚠ **전술판 칸에는 프로필 버튼을 두지 않습니다.**
+     칸 하나가 64px(폰에서는 56px)뿐이라, 선수를 바꾸려고 누른 손가락이 프로필 버튼에
+     걸려 능력치 창이 열리는 일이 잦았습니다(제보). 칸은 **자리를 고르는 일** 하나만 합니다.
+     프로필은 아래 선발 명단·선수 목록·교체 명단에서 봅니다 — 거기는 줄이 넓어 안 겹칩니다. */
   /* 흐린 칸도 누르기·떨어뜨리기를 **받기는 한다** — 세워 주지는 않고 왜 안 되는지만 알린다.
      아무 반응이 없으면 "끌어다 놓기가 고장 났다"로 읽힌다(실제로 그런 제보를 받았다). */
   $("#pgrid").querySelectorAll(".cell[data-nf]").forEach(el => {
