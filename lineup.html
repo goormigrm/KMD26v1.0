@@ -164,6 +164,8 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .codeout{background:#1a1608;border:1px solid #5c4a1c;border-left:3px solid var(--gold);
      border-radius:8px;padding:11px 13px;margin-top:10px;font-size:12.5px;color:var(--txt)}
 .codeout b{color:var(--gold)}
+/* 전술 게시판에 올리는 칸 — 코드 상자 안에 이어 붙인다 */
+.bdpost{margin-top:10px;padding-top:9px;border-top:1px dashed #5c4a1c}
 .codeout input{flex:1;min-width:220px;background:var(--bg2);color:var(--gold);
      border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px;font-family:monospace}
 
@@ -384,8 +386,9 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=d63e0771e9";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=d63e0771e9";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=df176035ce";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=df176035ce";
+import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=df176035ce";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -831,7 +834,23 @@ function showCode() {
       <button id="copyLink">링크 복사</button>
     </div>
     <div class="sub" style="margin-top:6px">코드가 담는 것 — 구단·포메이션·선발 열한 명·교체 아홉 명·
-      역할·임무·슬라이더 여덟 개·역습·조건부 지시 여섯 칸. 한 글자만 어긋나도 체크섬에서 걸립니다.</div>`;
+      역할·임무·슬라이더 여덟 개·역습·조건부 지시 여섯 칸. 한 글자만 어긋나도 체크섬에서 걸립니다.</div>
+    ${boardOn() ? `
+    <div class="bdpost">
+      <b>📋 전술 게시판에 올리기</b> — 상대를 못 구해도 됩니다. 올려 두면 다른 사람이
+      <b>경기 화면에서 골라</b> 이 라인업과 붙습니다.
+      <div class="row" style="margin-top:7px">
+        <input id="bdNick" maxlength="${NICK_MAX}" placeholder="닉네임"
+          style="flex:none;width:120px;background:var(--bg2);color:var(--txt);
+                 border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px">
+        <input id="bdNote" maxlength="${NOTE_MAX}" placeholder="한 줄 소개 (없어도 됩니다)"
+          style="flex:1;min-width:150px;background:var(--bg2);color:var(--txt);
+                 border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px">
+        <button id="bdPost">올리기</button>
+      </div>
+      <div class="sub" id="bdMsg" style="margin-top:6px">
+        닉네임과 이 코드만 올라갑니다. 로그인도 개인정보도 없습니다.</div>
+    </div>` : ""}`;
   const copy = (el, btn) => {
     const t = $(el);
     t.select();
@@ -841,6 +860,30 @@ function showCode() {
   };
   $("#copyCode").onclick = () => copy("#codeTxt", "#copyCode");
   $("#copyLink").onclick = () => copy("#linkTxt", "#copyLink");
+  /* 게시판에 올리기 — 여기서 하는 이유는 **코드가 방금 여기서 나왔기** 때문이다.
+     페이지를 옮기거나 코드를 다시 복사해 붙일 일이 없어야 한다(그게 안 하는 이유였다). */
+  if (boardOn() && $("#bdPost")) {
+    const say = (t, bad) => {
+      const el = $("#bdMsg");
+      el.textContent = t;
+      el.style.color = bad ? "var(--bad)" : "var(--ok)";
+    };
+    $("#bdPost").onclick = async () => {
+      const btn = $("#bdPost");
+      btn.disabled = true; say("올리는 중…");
+      try {
+        await postPlan({
+          nick: $("#bdNick").value, note: $("#bdNote").value,
+          team: DB.teams[team].short, code, dataHash: DB.meta.dataHash,
+        });
+        say("올렸습니다 ✓ 이제 다른 사람이 경기 화면에서 이 라인업을 고를 수 있습니다.");
+        btn.textContent = "올림 ✓";
+      } catch (e) {
+        say(e.message, true);
+        btn.disabled = false;
+      }
+    };
+  }
   // 발급 버튼이 화면 아래쪽에 있으면 코드 상자가 접힌 채로 나올 수 있다 — 끌어와서 보여 준다
   box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }

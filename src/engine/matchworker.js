@@ -10,12 +10,12 @@
      먼저 다 돌린 뒤 재생하면 1·2·4배속도 되감기도 공짜입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { runHeadless, deriveSeed } from "./duel.js?v=d63e0771e9";
-import { checkLineup, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=d63e0771e9";
-import { encodePlan } from "../codec/duelcode.js?v=d63e0771e9";
-import { makeReactions } from "./reactions.js?v=d63e0771e9";
-import { slotRating } from "./kernel.js?v=d63e0771e9";
-import { installEngineContext } from "./stubs.js?v=d63e0771e9";
+import { runHeadless, deriveSeed } from "./duel.js?v=df176035ce";
+import { checkLineup, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=df176035ce";
+import { encodePlan } from "../codec/duelcode.js?v=df176035ce";
+import { makeReactions } from "./reactions.js?v=df176035ce";
+import { slotRating } from "./kernel.js?v=df176035ce";
+import { installEngineContext } from "./stubs.js?v=df176035ce";
 
 /* 연습 모드의 상대를 여기서 짠다 — 화면이 아니라 일꾼에서.
    "어려움"이 쓰는 slotRating 은 커널 함수라 화면에 올릴 수 없다(6천 줄). */

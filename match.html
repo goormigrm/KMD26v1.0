@@ -97,6 +97,21 @@ button:disabled{opacity:.45;cursor:default}
 .hl.idle.open canvas{filter:none}
 .hl.idle.open .badge{color:var(--ok)}
 
+/* ── 전술 게시판 ─────────────────────────────────────────────
+   남이 남겨 둔 라인업 목록. 페이지를 옮기지 않고 이 자리에서 골라 바로 붙는다. */
+.bdlist{margin-top:7px;max-height:260px;overflow:auto;border:1px solid var(--line);
+     border-radius:8px;background:var(--bg3)}
+.bdrow{display:flex;align-items:center;gap:8px;padding:7px 9px;cursor:pointer;
+     border-bottom:1px solid #1b2028;font-size:12.5px}
+.bdrow:last-child{border-bottom:0}
+.bdrow:hover{background:#161b22}
+.bdrow .nk{font-weight:800;flex:none;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bdrow .tm2{flex:none;background:#161b22;border:1px solid var(--line);border-radius:5px;
+     padding:1px 6px;font-size:11px;font-weight:800;color:var(--gold)}
+.bdrow .nt{flex:1;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bdrow .ag{flex:none;color:var(--sub);font-size:11px}
+.bdempty{padding:14px;text-align:center;color:var(--sub);font-size:12.5px}
+
 /* ── 득점자 패널 (KM26 방식) ─────────────────────────────────
    골이 들어간 순간 GOAL · 득점자 · 도움을 화면 한가운데 큼직하게 띄운다. */
 .gp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -312,6 +327,13 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
         <div class="cl">상대가 준 코드를 여기에 붙여넣으세요 (Ctrl+V)</div>
         <textarea id="awayCode" class="cin" rows="2" spellcheck="false"
                   placeholder="KM26D1-…"></textarea>
+        <!-- 전술 게시판 — 상대가 접속해 있지 않아도 남겨 둔 라인업과 붙는다.
+             board.js 가 아직 설정되지 않았으면 통째로 숨는다. -->
+        <div id="boardPick" style="display:none;margin-top:7px">
+          <button id="boardOpen" class="go code" style="padding:7px 10px;font-size:12.5px">
+            📋 전술 게시판에서 고르기</button>
+          <div id="boardList" class="bdlist" style="display:none"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -368,8 +390,9 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=d63e0771e9";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=d63e0771e9";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=df176035ce";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=df176035ce";
+import { boardOn, listPlans, ago } from "./src/board/board.js?v=df176035ce";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -459,6 +482,11 @@ async function boot() {
   $("#awayAi").onchange = () => { drawAiChips(); describe(); };
   $("#homeCode").oninput = describe;
   $("#awayCode").oninput = describe;
+  $("#boardOpen").onclick = () => {
+    const box = $("#boardList");
+    if (box.style.display !== "none") { box.style.display = "none"; return; }   // 다시 누르면 접는다
+    openBoard();
+  };
 
   /* 링크로 들어온 경우 (설계서 4-1)
      #c=<코드>        상대가 건넨 초대 링크 — 그 팀을 원정에 앉힌다
@@ -641,6 +669,45 @@ function planSources(teamId, side) {
 function drawCodeRow() {
   $("#homeCodeBox").style.display = $("#homePlan").value === "code" ? "" : "none";
   $("#awayCodeBox").style.display = $("#awayPlan").value === "code" ? "" : "none";
+  // 게시판은 설정된 경우에만 보인다 (src/board/board.js · docs/전술게시판-설정.md)
+  $("#boardPick").style.display = boardOn() ? "" : "none";
+}
+
+/* ── 전술 게시판에서 고르기 ────────────────────────────────────
+   목록에서 한 줄을 누르면 그 코드가 원정 칸에 그대로 들어간다 — 그 뒤는
+   손으로 붙여넣은 것과 똑같은 길을 탄다(검사·경기 시작까지). */
+let boardRows = null;
+
+async function openBoard() {
+  const box = $("#boardList");
+  box.style.display = "";
+  box.innerHTML = `<div class="bdempty">불러오는 중…</div>`;
+  try {
+    boardRows = await listPlans(40);
+  } catch (e) {
+    box.innerHTML = `<div class="bdempty" style="color:var(--bad)">
+      게시판을 불러오지 못했습니다 — ${esc(e.message)}</div>`;
+    return;
+  }
+  if (!boardRows.length) {
+    box.innerHTML = `<div class="bdempty">아직 올라온 라인업이 없습니다.<br>
+      <span class="sub">라인업 화면에서 코드를 발급하면 거기서 올릴 수 있습니다 —
+      첫 번째가 되어 보세요.</span></div>`;
+    return;
+  }
+  box.innerHTML = boardRows.map((r, i) => `<div class="bdrow" data-b="${i}">
+    <span class="nk">${esc(r.nick || "")}</span>
+    <span class="tm2">${esc(r.team || "")}</span>
+    <span class="nt">${esc(r.note || "")}</span>
+    <span class="ag">${esc(ago(r.created_at))}</span>
+  </div>`).join("");
+  box.querySelectorAll("[data-b]").forEach(el => el.onclick = () => {
+    const r = boardRows[+el.dataset.b];
+    const ta = $("#awayCode");
+    ta.value = r.code;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));   // describe() 가 바로 검사한다
+    box.style.display = "none";
+  });
 }
 
 /**
@@ -805,7 +872,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=d63e0771e9", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=df176035ce", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
