@@ -267,15 +267,27 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 .tab{background:var(--bg2);border:1px solid var(--line);color:var(--sub);border-radius:7px;
      padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer}
 .tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:5px}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:5px}
 .chips.src{grid-template-columns:1fr}
 .chip{display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--line);
       border-radius:7px;padding:6px 8px;font-size:12.5px;font-weight:700;cursor:pointer;
       color:var(--txt);text-align:left;min-width:0}
 .chip:hover{border-color:var(--acc)}
 .chip.on{border-color:var(--acc);background:#12283d;box-shadow:inset 0 0 0 1px var(--acc)}
-.chip .b{width:4px;height:16px;border-radius:2px;flex:none}
+.chip .b{width:4px;height:22px;border-radius:2px;flex:none}
 .chip .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── 구단 칩의 전력 별점 ───────────────────────────────────────
+   라인업·선수단 화면과 같은 눈금입니다(src/ui/teamstar.js). 어느 화면에서 골라도
+   같은 별이 보여야 하므로 값은 그 모듈 하나에서 옵니다.
+   ⚠ 별 다섯 개 + 숫자가 칩 폭을 넘기지 않게 — 넘치면 숫자가 테두리 밖으로 나갑니다.
+     `.chips` 칸을 102px 로 넓히고, 그래도 넘치면 잘라 냅니다. */
+.chip .ci{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;flex:1}
+.chip .cs{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;overflow:hidden}
+.chip .csv{font-size:10px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums;flex:none}
+.stars{position:relative;display:inline-block;color:#39404d;letter-spacing:.5px;margin-right:-.5px;
+       font-size:11px;white-space:nowrap;line-height:1;flex:none}
+.stars::before{content:'★★★★★';position:absolute;left:0;top:0;width:var(--pct,0%);
+       overflow:hidden;color:var(--gold);white-space:nowrap}
 /* 코드 붙여넣는 칸 — 눌러서 붙여넣기 하는 자리라 넓게 둔다 */
 .codebox{margin-top:8px}
 .codebox .cl{font-size:11.5px;color:var(--sub);font-weight:700;margin-bottom:4px}
@@ -327,8 +339,11 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
   /* 대진 고르기 */
   .sideBox{padding:9px 10px}
   .sideBox .sh{font-size:12.5px} .sideBox .sh2{font-size:11px}
-  .chips{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
+  .chips{grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:4px}
   .chip{font-size:11.5px;padding:5px 6px}
+  .chip .b{height:20px}
+  .stars{font-size:10px}
+  .chip .csv{font-size:9.5px}
   textarea.cin{font-size:11.5px;min-height:46px}
   .mycode{font-size:11.5px;padding:8px 10px}
   .bdrow{font-size:11.5px;padding:6px 7px}
@@ -477,9 +492,10 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=074bd45315";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=074bd45315";
-import { boardOn, listPlans, ago, matchQuery } from "./src/board/board.js?v=074bd45315";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=6dce78598a";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=6dce78598a";
+import { boardOn, listPlans, ago, matchQuery } from "./src/board/board.js?v=6dce78598a";
+import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=6dce78598a";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -683,10 +699,14 @@ function drawTeamChips(side) {
   const cur = $(`#${side}Sel`).value;
   const lg = LG[side];
   $(`#${side}Teams`).innerHTML = DB.order[lg].map(id => {
-    const t = DB.teams[id];
-    return `<button class="chip${id === cur ? " on" : ""}" data-t="${id}">
+    const t = DB.teams[id], v = teamStar(DB.players, id);
+    // 별점은 라인업·선수단 화면과 같은 눈금이다 (src/ui/teamstar.js)
+    return `<button class="chip${id === cur ? " on" : ""}" data-t="${id}"
+      title="${esc(t.name)} · 구단 전력 ${v.toFixed(1)}★">
       <span class="b" style="background:${esc(t.col)}"></span>
-      <span class="t">${esc(t.short)}</span></button>`;
+      <span class="ci"><span class="t">${esc(t.short)}</span>
+        <span class="cs">${starsHTML(v)}<span class="csv">${v.toFixed(1)}</span></span>
+      </span></button>`;
   }).join("");
   $(`#${side}Teams`).querySelectorAll("[data-t]").forEach(b =>
     b.onclick = () => setSel(`#${side}Sel`, b.dataset.t));
@@ -995,7 +1015,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=074bd45315", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=6dce78598a", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {

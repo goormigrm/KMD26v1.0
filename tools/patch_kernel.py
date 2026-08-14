@@ -324,7 +324,7 @@ function aiSubOnce(M, sd, key, diff, m){
   }
   return false;
 }
-""" + "\n",
+""",  # ⚠ 끝에 빈 줄을 붙이지 않는다 — 원본이 여기 한 줄만 두어 앵커가 어긋났었다
     repl=r"""
 function aiSubs(M, minNow){
   const m = (minNow!=null) ? minNow : M.min;
@@ -430,7 +430,7 @@ function aiSubOnce(M, sd, key, diff, m){
   }
   return false;
 }
-""" + "\n",
+""",  # find 와 짝을 맞춘다 — 여기서 줄 수가 달라지면 원본 구조가 흐트러진다
   ),
 
   dict(
@@ -449,6 +449,36 @@ function aiSubOnce(M, sd, key, diff, m){
       "    this.syncClock();\n"
       "    // [KMD26 SUB-02] 45분 전에도 부른다 — 부상으로 빈 자리는 교체 창을 기다리지 않는다\n"
       "    aiSubs(this.M, m);\n"
+    ),
+  ),
+
+  dict(
+    id="SUB-03",
+    kind="버그",
+    why="부상 교체가 다음 '분'까지 밀린다 — 실려 나간 뒤 최대 1분을 열 명으로 뛴다",
+    count=1,
+    find=(
+      "      this.agents=this.agents.filter(z=>z.id!==a.id);\n"
+      "      const nm=a.p?a.p.name:\"선수\";\n"
+      "      this.say(a.side, `🚑 ${nm} 선수, 더 이상 뛸 수 없습니다. (약 ${wks}주 결장 예상)`, \"warn\");\n"
+    ),
+    repl=(
+      "      this.agents=this.agents.filter(z=>z.id!==a.id);\n"
+      "      const nm=a.p?a.p.name:\"선수\";\n"
+      "      this.say(a.side, `🚑 ${nm} 선수, 더 이상 뛸 수 없습니다. (약 ${wks}주 결장 예상)`, \"warn\");\n"
+      "      /* [KMD26 SUB-03] 빈 자리를 **그 자리에서** 채운다.\n"
+      "         subCheck() 는 분이 바뀔 때 한 번만 도므로(this._subMin), 실려 나간 뒤\n"
+      "         다음 분까지 최대 1분을 열 명으로 뛰었다. 실측: 72분 부상 → 73분 교체.\n"
+      "         재생 화면에서 그 구간에 결정적 장면이 걸리면 열 명이 한참 보인다.\n"
+      "         ⚠ 난수를 쓰지 않는 경로만 부른다(aiFillGap → subPickIn 은 벤치 순서·자리\n"
+      "           능숙도만 본다). 창(AI_SUB_WINDOWS) 교체는 여기서 건드리지 않는다 —\n"
+      "           그건 aiSubs 가 분 경계에서 하던 대로 한다.\n"
+      "         ⚠ 감독이 사람인 팀(isUser)은 손대지 않는다. 아래에서 물어본다. */\n"
+      "      const _sd=this.rec(a.side);\n"
+      "      if(!_sd.team.isUser){\n"
+      "        while(_sd.subs<5 && aiFillGap(this.M, _sd, a.side)) ;\n"
+      "        if(this.M.subQueue && this.M.subQueue.length) this.resyncSquads();\n"
+      "      }\n"
     ),
   ),
 

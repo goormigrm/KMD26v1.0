@@ -9,7 +9,7 @@
    ⚠ 이건 원본 그대로입니다. 듀얼 버그 수정은 tools/patch_kernel.py 가 붙입니다.
 
    ── 듀얼 패치 (tools/patch_kernel.py) ─────────────────────────
-   원본(kernel.raw.js) 해시: sha256:47ccdcb1e19e
+   원본(kernel.raw.js) 해시: sha256:0e6a5baac6a7
    · [전술] PASS-01   2D 엔진이 팀 전술 '패스 길이'를 읽지 않는다 — 패스 목표 선택에 연결
    · [전술] PASS-02   같은 슬라이더를 패스 실행(길게 띄우는 문턱)에도 연결 — 목표만 바꾸면 걷어차는 모양이 안 따라온다
    · [전술] PASS-03   '몇 m부터 길게 차는가' 문턱도 팀 전술을 따르게 — 원본은 선수 특성만 읽는다
@@ -22,10 +22,11 @@
    · [버그] PK-03     90분이 되는 순간 루프가 끝나 버려, 종료 직전에 선언된 PK 가 실행되지 않는다
    · [버그] SUB-01    교체 투입이 벤치 순서(S1~S9)와 자리 능숙도를 무시한다 — 스트라이커가 센터백 자리에 서고, 부상으로 빈 자리는 끝까지 안 채워진다
    · [버그] SUB-02    부상으로 빈 자리를 45분 전에는 아예 보지 않는다 — 전반에 다치면 남은 시간을 열 명으로 뛴다
+   · [버그] SUB-03    부상 교체가 다음 '분'까지 밀린다 — 실려 나간 뒤 최대 1분을 열 명으로 뛴다
    · [보류] WIDTH-01  크로스 판단 문턱이 팀 '폭'을 읽지 않는다 (수정안이 역효과라 보류)
    ⚠ 듀얼 고유 규칙(파울 누적·퇴장 체력)은 여기가 아니라 src/engine/rules.js 에 있습니다.
    ───────────────────────────────────────────────────────────── */
-import { RNG } from "./rng.js?v=074bd45315";
+import { RNG } from "./rng.js?v=6dce78598a";
 
 const R = (n)=>Math.floor(RNG()*n);
 
@@ -3462,6 +3463,19 @@ class MatchSim{
       this.agents=this.agents.filter(z=>z.id!==a.id);
       const nm=a.p?a.p.name:"선수";
       this.say(a.side, `🚑 ${nm} 선수, 더 이상 뛸 수 없습니다. (약 ${wks}주 결장 예상)`, "warn");
+      /* [KMD26 SUB-03] 빈 자리를 **그 자리에서** 채운다.
+         subCheck() 는 분이 바뀔 때 한 번만 도므로(this._subMin), 실려 나간 뒤
+         다음 분까지 최대 1분을 열 명으로 뛰었다. 실측: 72분 부상 → 73분 교체.
+         재생 화면에서 그 구간에 결정적 장면이 걸리면 열 명이 한참 보인다.
+         ⚠ 난수를 쓰지 않는 경로만 부른다(aiFillGap → subPickIn 은 벤치 순서·자리
+           능숙도만 본다). 창(AI_SUB_WINDOWS) 교체는 여기서 건드리지 않는다 —
+           그건 aiSubs 가 분 경계에서 하던 대로 한다.
+         ⚠ 감독이 사람인 팀(isUser)은 손대지 않는다. 아래에서 물어본다. */
+      const _sd=this.rec(a.side);
+      if(!_sd.team.isUser){
+        while(_sd.subs<5 && aiFillGap(this.M, _sd, a.side)) ;
+        if(this.M.subQueue && this.M.subQueue.length) this.resyncSquads();
+      }
       this.stats[a.side].injury=(this.stats[a.side].injury||0)+1;
       // 내 팀이면 경기를 멈추고 전술판으로 — 교체할지 10명으로 버틸지 감독이 정한다
       if(this.rec(a.side).team.isUser){

@@ -62,6 +62,11 @@ python tools/extract_engine.py "../km/index.html" src/engine/kernel.raw.js
 python tools/patch_kernel.py src/engine/kernel.raw.js src/engine/kernel.js
 ```
 
+> ⚠ **가끔 돌려서 앵커가 아직 맞는지 보세요.** `kernel.js` 는 이미 만들어져 커밋돼 있으므로,
+> 앵커가 어긋나도 **다음에 커널을 고칠 때까지 아무도 모릅니다.** 실제로 `SUB-01` 의 앵커가
+> 끝의 **빈 줄 하나** 때문에 깨진 채로 있었고, 새 패치를 넣으려는 순간에야 드러났습니다.
+> 앵커 끝에 빈 줄을 넣지 마세요 — 원본이 한 줄만 두면 그대로 어긋납니다.
+
 > ⚠ **재생성했으면 `git status` 로 `kernel.js` 가 스테이징됐는지 반드시 확인하세요.**
 > 자동 생성 파일이라 `git add <경로>` 로 커밋할 때 자주 빠집니다.
 > "고쳤는데 결과가 그대로다" 라고 두 번 헛짚은 원인이 둘 다 이것이었습니다.

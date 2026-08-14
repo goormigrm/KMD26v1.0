@@ -28,10 +28,15 @@ h1{font-size:19px;color:var(--gold)}
 .team.on{border-color:var(--acc);background:#12283d;box-shadow:inset 0 0 0 1px var(--acc)}
 /* 구단 색은 왼쪽 띠로만 쓴다 — 배경으로 깔면 옅은 색 구단의 이름이 안 읽힌다 */
 .chip{width:6px;height:26px;border-radius:3px;flex:none;box-shadow:0 0 0 1px #0006}
-/* 구단 이름 아래에 전력 별점 한 줄 — 눌러 보기 전에도 어느 팀이 센지 보여야 한다 */
-.tinfo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
-.trow{display:flex;align-items:center;gap:5px}
-.tsv{font-size:11px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+/* 구단 이름 아래에 전력 별점 한 줄 — 눌러 보기 전에도 어느 팀이 센지 보여야 한다.
+   ⚠ 별 다섯 개(14px · 자간 2px = 80px)에 숫자까지 붙이면 100px 인데, 124px 칸의
+     속폭은 85px(패딩 24 + 색 띠 6 + 사이 9 를 뺀 값)입니다. **15px 이 넘쳐** 숫자가
+     카드 테두리 밖으로 삐져나와 보였습니다. 카드 안에서만 별을 작게 씁니다. */
+.tinfo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;flex:1}
+.trow{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;overflow:hidden}
+.tsv{font-size:10.5px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums;flex:none}
+/* ⚠ 자간은 **마지막 글자 뒤에도** 붙습니다 — 그만큼 오른쪽으로 밀리므로 음수 여백으로 되돌립니다. */
+.team .stars{font-size:11px;letter-spacing:.5px;margin-right:-.5px;flex:none}
 
 /* ── 선수 목록 ─────────────────────────────── */
 .hd{display:flex;align-items:center;gap:11px;margin:16px 0 8px}
@@ -163,6 +168,8 @@ tr.p.on{background:#12283d}
 <div id="squad"></div>
 
 <script type="module">
+import { teamStar } from "./src/ui/teamstar.js?v=6dce78598a";
+
 const $ = s => document.querySelector(s);
 const el = (h) => { const d = document.createElement("div"); d.innerHTML = h.trim(); return d.firstChild; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -233,29 +240,13 @@ async function boot() {
   });
 }
 
-/* ── 구단 전력 별점 ────────────────────────────────────────────
-   선수 눈금(별 하나로 1,024명을 줄 세운 것)을 열한 명 평균에 그대로 쓰면 안 된다.
-   평균을 내면 값이 위로 몰려서 K리그1 이 전부 4.5~5★ 로 붙어 버린다 — 우승 후보와
-   중위권이 같은 별로 보인다. 그래서 구단은 구단끼리 비교하는 별도 눈금을 쓴다.
-   KM26 과 같은 구간이다: 주전 평균 능력치 60 이 0.5★, 77.5 가 5★.
-   (실제 29개 구단은 63.5~75.3 에 깔려 1.5★~4.5★ 로 퍼진다.)
-   ⚠ 구단 목록과 스쿼드 머리말은 반드시 이 함수 하나를 같이 써야 한다 —
-      눌러 보기 전과 후에 다른 별이 뜨면 안 된다. */
-const TEAM_STAR_LO = 60, TEAM_STAR_HI = 77.5;
-function teamStar(id) {
-  const list = DB.players[id] || [];
-  const best11 = list.slice().sort((a, b) => (b.ovr || 0) - (a.ovr || 0)).slice(0, 11);
-  if (!best11.length) return 0;
-  const o = best11.reduce((s, p) => s + (p.ovr || 0), 0) / best11.length;
-  const v = 0.5 + (o - TEAM_STAR_LO) / (TEAM_STAR_HI - TEAM_STAR_LO) * 4.5;
-  return Math.max(0.5, Math.min(5, Math.round(v * 2) / 2));
-}
-
+/* 구단 전력 별점은 src/ui/teamstar.js 하나에 있다 — 선수단·라인업·경기 세 화면이
+   같은 별을 보여야 하므로 베낀 두지 말 것. */
 function drawTeams(lg) {
   const box = $("#teams");
   box.innerHTML = "";
   for (const id of DB.order[lg]) {
-    const t = DB.teams[id], v = teamStar(id);
+    const t = DB.teams[id], v = teamStar(DB.players, id);
     const b = el(`<button class="team" data-id="${id}"
         title="${esc(t.name)} · 구단 전력 ${v.toFixed(1)}★">
         <span class="chip" style="background:${esc(t.col)}"></span>
@@ -278,7 +269,7 @@ function drawSquad() {
   const t = DB.teams[curTeam];
   const list = DB.players[curTeam].slice().sort(SORTS[sortKey]);
   // 구단 전력 — 구단 목록 버튼에 띄우는 값과 같은 계산을 쓴다 (teamStar)
-  const avg = teamStar(curTeam);
+  const avg = teamStar(DB.players, curTeam);
 
   const head = [["no", "번호"], ["name", "이름"], ["pos", "포지션"], ["age", "나이"], ["star", "능력"]];
   $("#squad").innerHTML = `

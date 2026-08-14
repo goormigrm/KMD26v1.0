@@ -128,6 +128,38 @@ function playReal(homeId, awayId) {
       return "명단 " + n + "명 (홈 " + h + " · 원정 " + a + ")" +
              (S.same ? " · id 갈림 " + (wrong ? "어긋남 " + wrong + "건" : "정상") : " · 다른 구단");
     })(),
+    /* ── 부상·퇴장·교체 감사 ────────────────────────────────────
+       "부상인데 교체가 안 되고 열 명으로 뛰더라"는 제보를 **추측이 아니라 눈으로**
+       확인하려고 둡니다. 두 가지를 함께 봅니다.
+
+         subLog  — 🚑(부상) · 퇴장 · 🔁(교체) 줄만 시각순으로
+         onPitch — 관전 트랙에서 **실제로 필드에 서 있는 사람 수**를 세어(홈v원정)
+                   숫자가 바뀌는 순간만 남긴다. 열 명으로 뛴 구간이 그대로 드러난다.
+
+       ⚠ onPitch 는 -record 로 돌려야 나옵니다 (관전 트랙이 그때만 옵니다).
+       ⚠ 골키퍼는 부상 대상이 아닙니다 — 커널 hurt() 가 GK 를 건너뜁니다.
+       ⚠ 이 문자열은 Go 의 backtick 리터럴 안에 있습니다. backtick 을 쓰지 마세요. */
+    /* ⚠ 이모지로 거릅니다. "퇴장" 이라는 낱말로만 거르면 빠지는 문구가 있습니다 —
+         "🟥 … 그라운드를 떠납니다!" 에는 그 낱말이 없어서, 사람이 사라졌는데 아무 줄도
+         안 남은 것처럼 보였습니다(실제로는 레드카드였습니다). */
+    subLog: (r.events||[]).filter(function(e){
+      return /🚑|🔁|🟥/.test(e.txt||"");
+    }).map(function(e){ return e.min + "' " + (e.t||"") + " " + e.txt; }),
+    onPitch: (function(){
+      if (!r.watch || !r.roster) return "";
+      var W = r.watch, ST = WATCH_STRIDE, n = (W.length/ST)|0, out = [], prev = "";
+      for (var i = 0; i < n; i++) {
+        var A = i*ST, h = 0, a = 0;
+        for (var q = 7; q < ST; q += 3) {
+          var id = W[A+q]; if (!id) continue;
+          var rr = r.roster[id]; if (!rr) continue;
+          if (rr.side === "h") h++; else a++;
+        }
+        var key = h + "v" + a;
+        if (key !== prev) { out.push(Math.floor(W[A]/60) + "'" + key); prev = key; }
+      }
+      return out.join("  ");
+    })(),
     clips: (r.clips||[]).length,
     clipFrames: (r.clips||[]).reduce(function(n,c){ return n + c.frames.length; }, 0),
     clipKinds: (r.clips||[]).map(function(c){ return c.min + "'" + c.kind; }).join(" "),
@@ -150,7 +182,11 @@ func main() {
 	aTac := flag.String("atac", "", "원정 전술")
 	series := flag.String("series", "", "이 구단을 여러 상대와 홈·원정으로 붙인다 (-tac 을 이 구단에 적용)")
 	oppo := flag.String("oppo", "", "상대 목록 (쉼표) — 비우면 K리그1 앞 여섯 팀")
+	audit := flag.Int("audit", 0, "이만큼의 대진을 돌려 부상·퇴장·교체만 감사한다 (-record 를 켠다)")
 	flag.Parse()
+	if *audit > 0 {
+		*record = true // 필드 인원수는 관전 트랙에서 센다
+	}
 
 	var sb strings.Builder
 	for _, m := range modules {
@@ -252,6 +288,67 @@ func main() {
 		return
 	}
 
+	/* ── 부상·퇴장·교체 감사 ─────────────────────────────────────
+	   부상은 경기당 0.45명(양 팀 합계)쯤이라 한두 판으로는 아예 안 나옵니다.
+	   대진을 바꿔 가며 여러 판 돌리고, 🚑/퇴장/🔁 줄과 **실제 필드 인원수**를
+	   나란히 찍습니다. "몇 분에 몇 명으로 뛰었나"가 눈으로 보여야 합니다. */
+	if *audit > 0 {
+		var raw struct {
+			Order struct {
+				K1 []string `json:"k1"`
+				K2 []string `json:"k2"`
+			} `json:"order"`
+		}
+		readJSON(filepath.Join(*root, "data", "teams.json"), &raw)
+		ids := append(append([]string{}, raw.Order.K1...), raw.Order.K2...)
+		inj, red, sub, short := 0, 0, 0, 0
+		for i := 0; i < *audit; i++ {
+			h, a := ids[i%len(ids)], ids[(i+1)%len(ids)]
+			v, err := play(goja.Undefined(), vm.ToValue(h), vm.ToValue(a))
+			if err != nil {
+				fail("경기 중 오류(" + h + " vs " + a + "): " + err.Error())
+			}
+			r := v.Export().(map[string]any)
+			lines, _ := r["subLog"].([]any)
+			pitch := str(r["onPitch"])
+			/* 열한 명이 아닌 구간이 있었나.
+			   ⚠ 11v11 토막까지 **함께** 남긴다 — 언제 다시 열한 명이 됐는지가 핵심이다.
+			     (처음에는 11v11 을 걸러 냈다가 "부상 뒤 언제 채워졌나"를 못 봤다.) */
+			segs := strings.Fields(pitch)
+			odd := []string{}
+			for i, seg := range segs {
+				if !strings.HasSuffix(seg, "11v11") {
+					odd = append(odd, seg)
+					if i+1 < len(segs) {
+						odd = append(odd, "→ "+segs[i+1]) // 되돌아온 시각
+					}
+				}
+			}
+			if len(odd) > 0 {
+				short++
+			}
+			fmt.Printf("[%2d] %-9s vs %-9s  %v:%v\n", i+1, str(r["hName"]), str(r["aName"]), r["hg"], r["ag"])
+			for _, l := range lines {
+				s := fmt.Sprintf("%v", l)
+				switch {
+				case strings.Contains(s, "🚑"):
+					inj++
+				case strings.Contains(s, "🟥"):
+					red++
+				case strings.Contains(s, "🔁"):
+					sub++
+				}
+				fmt.Printf("     %s\n", s)
+			}
+			if len(odd) > 0 {
+				fmt.Printf("     ▸ 필드 인원 변화: %s\n", strings.Join(odd, "  "))
+			}
+		}
+		fmt.Printf("\n%d판 — 부상 줄 %d · 퇴장 줄 %d · 교체 줄 %d · 인원이 11명이 아니었던 경기 %d\n",
+			*audit, inj, red, sub, short)
+		return
+	}
+
 	if *all {
 		// K리그1 12개 구단을 한 바퀴 돌린다 (i번째 홈 vs i+1번째 원정)
 		var raw struct {
@@ -293,6 +390,15 @@ func main() {
 		}
 		fmt.Printf("    클립 %v · 프레임 %.0f장 · %.0fKB\n      %s\n",
 			r["clipsIsArr"], num(r["clipFrames"]), num(r["bytes"])/1024, str(r["clipKinds"]))
+		// 부상·퇴장·교체는 한 판에서도 보고 싶다 (-audit 은 여러 판을 볼 때 쓴다)
+		if lines, ok := r["subLog"].([]any); ok && len(lines) > 0 {
+			for _, l := range lines {
+				fmt.Printf("    · %v\n", l)
+			}
+		}
+		if p := str(r["onPitch"]); p != "" && p != "11v11" {
+			fmt.Printf("    필드 인원: %s\n", p)
+		}
 		if c := str(r["idCheck"]); c != "" {
 			fmt.Printf("    %s\n", c)
 			if strings.Contains(c, "어긋남") {

@@ -33,10 +33,15 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .team:hover{border-color:var(--acc);background:#1c2530}
 .team.on{border-color:var(--acc);background:#12283d;box-shadow:inset 0 0 0 1px var(--acc)}
 .chip{width:5px;height:22px;border-radius:3px;flex:none;box-shadow:0 0 0 1px #0006}
-/* 구단 이름 아래에 전력 별점 한 줄 — 눌러 보기 전에도 어느 팀이 센지 보여야 한다 */
-.tinfo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
-.trow{display:flex;align-items:center;gap:5px}
-.tsv{font-size:10.5px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+/* 구단 이름 아래에 전력 별점 한 줄 — 눌러 보기 전에도 어느 팀이 센지 보여야 한다.
+   ⚠ 별 다섯 개(12px · 자간 1.5px = 67px)에 숫자까지 붙이면 87px 인데, 110px 칸의
+     속폭은 77px 뿐입니다. 넘친 만큼 숫자가 카드 밖으로 삐져나옵니다.
+     카드 안에서만 별을 작게 쓰고, 그래도 넘치면 잘라 냅니다. */
+.tinfo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;flex:1}
+.trow{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;overflow:hidden}
+.tsv{font-size:10.5px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums;flex:none}
+/* ⚠ 자간은 **마지막 글자 뒤에도** 붙습니다 — 그만큼 오른쪽으로 밀리므로 음수 여백으로 되돌립니다. */
+.team .stars{font-size:11px;letter-spacing:.5px;margin-right:-.5px;flex:none}
 
 /* ── 전술 ─────────────────────────────────── */
 .preset{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
@@ -387,9 +392,10 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=074bd45315";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=074bd45315";
-import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=074bd45315";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=6dce78598a";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=6dce78598a";
+import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=6dce78598a";
+import { teamStar } from "./src/ui/teamstar.js?v=6dce78598a";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -545,19 +551,11 @@ async function boot() {
    K리그1 이 전부 4.5~5★ 로 붙어 버린다. 그래서 구단은 구단끼리 비교하는 별도 눈금을
    쓴다 — KM26 과 같은 구간(주전 평균 능력치 60 이 0.5★, 77.5 가 5★)이다.
    ⚠ squad.html 의 teamStar 와 반드시 같은 계산이어야 한다. */
-const TEAM_STAR_LO = 60, TEAM_STAR_HI = 77.5;
-function teamStar(id) {
-  const list = DB.players[id] || [];
-  const best11 = list.slice().sort((a, b) => (b.ovr || 0) - (a.ovr || 0)).slice(0, 11);
-  if (!best11.length) return 0;
-  const o = best11.reduce((s, p) => s + (p.ovr || 0), 0) / best11.length;
-  const v = 0.5 + (o - TEAM_STAR_LO) / (TEAM_STAR_HI - TEAM_STAR_LO) * 4.5;
-  return Math.max(0.5, Math.min(5, Math.round(v * 2) / 2));
-}
+/* teamStar 는 src/ui/teamstar.js 하나에 있다 (세 화면이 같은 별을 보여야 한다) */
 
 function drawTeams(lg) {
   $("#teams").innerHTML = DB.order[lg].map(id => {
-    const t = DB.teams[id], v = teamStar(id);
+    const t = DB.teams[id], v = teamStar(DB.players, id);
     return `<button class="team${id === team ? " on" : ""}" data-id="${id}"
       title="${esc(t.name)} · 구단 전력 ${v.toFixed(1)}★">
       <span class="chip" style="background:${esc(t.col)}"></span>
