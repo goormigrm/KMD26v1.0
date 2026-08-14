@@ -29,8 +29,17 @@ a{color:var(--acc)}
 .go .s{display:block;font-size:12.5px;font-weight:700;opacity:.75;margin-top:2px}
 .go.alt{background:var(--bg3);color:var(--txt);border:1px solid var(--line)}
 .go.alt:hover{border-color:var(--ok);filter:none}
-.gorow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:620px){ .gorow{grid-template-columns:1fr} }
+/* 곁버튼 넉 장 — 글을 짧게 두었으므로 폰에서도 두 칸을 그대로 유지한다.
+   ⚠ 한 칸으로 떨어뜨리면 첫 화면이 버튼 다섯 개로 길어져 아래 설명이 안 보인다. */
+/* 곁버튼 넉 장 — 글을 짧게 두었으므로 폰에서도 두 칸을 그대로 유지한다.
+   ⚠ `.go` 는 flex 라 제목과 부제가 **옆으로** 붙는다. 칸이 좁은 곁버튼에서는 부제가
+     두 줄로 접혀 들쭉날쭉해 보인다 — 여기서는 세로로 쌓는다.
+   ⚠ 한 칸으로 떨어뜨리면 첫 화면이 버튼 다섯 개로 길어져 아래 설명이 안 보인다. */
+.gorow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.gorow .go{margin-top:0;padding:10px 8px;font-size:14px;
+     flex-direction:column;gap:0;line-height:1.35}
+.gorow .go .s{font-size:11.5px;margin-top:1px}
+@media (max-width:360px){ .gorow{grid-template-columns:1fr} }
 
 .lnk{display:block;border:1px solid var(--line);border-radius:9px;padding:13px 15px;margin-top:9px;
      text-decoration:none;color:var(--txt);background:var(--bg3)}
@@ -85,21 +94,16 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
         display:grid;grid-template-columns:1fr;overflow:visible}
   #side h1{font-size:15px;margin:0}
   #side .brand,#side .navsep{display:none}
-  /* 탭 줄 — 넘치면 옆으로 굴린다.
-     ⚠ PC 브라우저의 모바일 보기에서는 마우스로 끌어도 굴러가지 않는다 —
-       src/ui/navscroll.js 가 끌기·휠을 붙여 준다(손가락은 원래 된다). */
-  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none;
-             -webkit-overflow-scrolling:touch;position:relative}
-  #navScroll.drag{cursor:grab}
-  #navScroll.grabbing{cursor:grabbing;user-select:none}
-  /* 더 있다는 표시 — 오른쪽 끝을 흐리게 말아 둔다.
-     ⚠ 흐림은 **굴러가는 칸 밖**(#side)에 붙인다 — 안 그러면 내용과 함께 밀려 나간다.
-     ⚠ position 을 다시 잡지 말 것 — #side 는 sticky 라 이미 기준이 된다. */
-  #side.hasmore::after{content:'';position:absolute;right:0;top:0;bottom:0;width:26px;
-       pointer-events:none;background:linear-gradient(90deg,#161b2200,#161b22)}
-  #navScroll::-webkit-scrollbar{display:none}
-  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
-          background:var(--bg3);border-radius:8px 8px 0 0}
+  /* 탭 줄 — **두 줄로 접는다.**
+     ⚠ 예전에는 옆으로 굴리는 줄(overflow-x)이었는데, 탭이 여섯 개가 되면서
+       뒤쪽 탭이 항상 숨었다. 게다가 PC 브라우저의 모바일 보기에서는 마우스로
+       끌어도 굴러가지 않아 아예 닿을 수가 없었다. 접으면 **전부 보이고**
+       밀 일도 없다 — 세로로 34px 더 쓰는 값으로는 싸다(사용자 판단). */
+  #navScroll{display:flex;flex-wrap:wrap;gap:4px;padding-bottom:6px}
+  /* 두 줄로 접히므로 아래쪽도 둥글려 둔다 — 칸에 붙은 탭 모양이 아니다 */
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:7px 11px;
+          background:var(--bg3);border:1px solid var(--line);border-radius:8px;font-size:13px}
+  .navbtn.on{border-color:var(--acc)}
   .navbtn .k{display:none}
   #pageMain{padding:14px 12px 60px}
 }
@@ -126,33 +130,35 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 <div class="sub">서버 없이 <b>링크만 주고받아</b> 사람과 전술로 붙는 K리그 감독 게임.
   설치도 가입도 없습니다.</div>
 
-<!-- 첫 화면에서 할 일은 하나다 — 라인업을 짜는 것 -->
-<a class="go" href="lineup.html">⚽ 라인업 짜고 시작하기
-  <span class="s">K리그1·2 29개 구단 1,024명</span></a>
+<!-- 첫 화면에서 할 일은 하나다 — 라인업을 짜는 것.
+     ⚠ 버튼 글은 **짧게.** 길면 폰에서 두 줄로 접혀 모양이 흐트러진다. -->
+<a class="go" href="lineup.html">⚽ 라인업 짜기
+  <span class="s">여기서 시작합니다</span></a>
 
-<!-- 갈 수 있는 곳을 첫 화면에도 펼쳐 둔다 — 위쪽 탭 줄을 못 찾거나 못 넘기는 사람이 있다 -->
+<!-- 갈 수 있는 곳을 첫 화면에도 펼쳐 둔다 — 위쪽 탭을 못 찾는 사람이 있다 -->
 <div class="gorow">
   <a class="go alt" href="board.html">🗂 전술 게시판
-    <span class="s">올라온 라인업 골라서 바로 붙기 · 전술마다 승률</span></a>
+    <span class="s">상대 골라 붙기</span></a>
   <a class="go alt" href="record.html">🏛 듀얼 기록실
-    <span class="s">사람끼리 붙은 경기 다시 보기</span></a>
-</div>
-<div class="gorow">
-  <a class="go alt" href="match.html">🤖 연습부터 · 대전 코드로 붙기</a>
-  <a class="go alt" href="squad.html">🔍 선수단 먼저 보기</a>
+    <span class="s">경기 다시 보기</span></a>
+  <a class="go alt" href="match.html">⚽ 경기
+    <span class="s">대전 · 연습</span></a>
+  <a class="go alt" href="squad.html">👥 선수단
+    <span class="s">29개 구단 1,024명</span></a>
 </div>
 
 <div class="how">
   <div><span class="n">1</span><b>라인업을 짠다</b>
     <span class="d">구단 · 전술 슬라이더 여덟 개 · 선발 열한 명.
       "60분에 지고 있으면 총공세" 같은 지시도 미리 적어 둡니다.</span></div>
-  <div><span class="n">2</span><b>51자 코드를 건넨다</b>
-    <span class="d">라인업 한 벌이 코드 한 줄이 됩니다.
-      상대가 없으면 <b>전술 게시판</b>에서 고르거나 연습 AI 와 붙습니다.</span></div>
+  <div><span class="n">2</span><b>듀얼을 한다</b>
+    <span class="d">아는 사람이면 <b>대전 코드</b>를 주고받고,
+      없으면 <b>전술 게시판</b>에서 골라 바로 붙습니다.
+      혼자 시험만 할 거면 연습 AI 도 있습니다.</span></div>
   <div><span class="n">3</span><b>둘이 똑같은 90분을 본다</b>
     <span class="d">해설 · 결정적 장면 2D · 경기 뒤 팬 반응.
-      결과 링크를 열면 상대도 같은 경기를 봅니다.
-      그 경기는 <b>듀얼 기록실</b>에 남아 누구나 다시 볼 수 있습니다.</span></div>
+      그 경기는 <b>듀얼 기록실</b>에 남아 누구나 다시 볼 수 있고,
+      쌓인 기록이 <b>전술마다의 승률</b>이 됩니다.</span></div>
 </div>
 
 <div class="hook">
@@ -169,11 +175,6 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 소스: <a href="https://github.com/goormigrm/KMD26v1.0">github.com/goormigrm/KMD26v1.0</a>
 </footer>
 
-<!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
-<script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=65a3434ddf";
-installNav();
-</script>
 
 </div></div>
 </div>

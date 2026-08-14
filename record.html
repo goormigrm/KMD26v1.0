@@ -75,21 +75,16 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
         display:grid;grid-template-columns:1fr;overflow:visible}
   #side h1{font-size:15px;margin:0}
   #side .brand{display:none}
-  /* 탭 줄 — 넘치면 옆으로 굴린다.
-     ⚠ PC 브라우저의 모바일 보기에서는 마우스로 끌어도 굴러가지 않는다 —
-       src/ui/navscroll.js 가 끌기·휠을 붙여 준다(손가락은 원래 된다). */
-  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none;
-             -webkit-overflow-scrolling:touch;position:relative}
-  #navScroll.drag{cursor:grab}
-  #navScroll.grabbing{cursor:grabbing;user-select:none}
-  /* 더 있다는 표시 — 오른쪽 끝을 흐리게 말아 둔다.
-     ⚠ 흐림은 **굴러가는 칸 밖**(#side)에 붙인다 — 안 그러면 내용과 함께 밀려 나간다.
-     ⚠ position 을 다시 잡지 말 것 — #side 는 sticky 라 이미 기준이 된다. */
-  #side.hasmore::after{content:'';position:absolute;right:0;top:0;bottom:0;width:26px;
-       pointer-events:none;background:linear-gradient(90deg,#161b2200,#161b22)}
-  #navScroll::-webkit-scrollbar{display:none}
-  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
-          background:var(--bg3);border-radius:8px 8px 0 0}
+  /* 탭 줄 — **두 줄로 접는다.**
+     ⚠ 예전에는 옆으로 굴리는 줄(overflow-x)이었는데, 탭이 여섯 개가 되면서
+       뒤쪽 탭이 항상 숨었다. 게다가 PC 브라우저의 모바일 보기에서는 마우스로
+       끌어도 굴러가지 않아 아예 닿을 수가 없었다. 접으면 **전부 보이고**
+       밀 일도 없다 — 세로로 34px 더 쓰는 값으로는 싸다(사용자 판단). */
+  #navScroll{display:flex;flex-wrap:wrap;gap:4px;padding-bottom:6px}
+  /* 두 줄로 접히므로 아래쪽도 둥글려 둔다 — 칸에 붙은 탭 모양이 아니다 */
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:7px 11px;
+          background:var(--bg3);border:1px solid var(--line);border-radius:8px;font-size:13px}
+  .navbtn.on{border-color:var(--acc)}
   .navbtn .k{display:none}
   #pageMain{padding:14px 12px 60px}
 }
@@ -148,9 +143,8 @@ code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);f
 <div id="list"></div>
 
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=65a3434ddf";
-import { boardOn, listMatches, ago, matchQuery } from "./src/board/board.js?v=65a3434ddf";
-import { resultLink } from "./src/codec/duelcode.js?v=65a3434ddf";
+import { boardOn, listMatches, ago, matchQuery } from "./src/board/board.js?v=da9413b7fe";
+import { resultLink } from "./src/codec/duelcode.js?v=da9413b7fe";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -246,8 +240,6 @@ $("#q").oninput = draw;
 $("#reload").onclick = load;
 load();
 
-/* 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 — PC 브라우저의 모바일 보기에서는 그냥은 안 굴러간다 */
-installNav();
 </script>
 
 </div></div>
