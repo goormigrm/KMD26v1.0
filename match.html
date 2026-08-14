@@ -79,6 +79,11 @@ button:disabled{opacity:.45;cursor:default}
 .hl.idle canvas{filter:saturate(.62) brightness(.72)}
 .hl.idle .badge{color:#9fb0c0;font-weight:700}
 .hl.idle #hlSkip{display:none}     /* 관전 중에는 건너뛸 것이 없다 — 다시 보기만 남는다 */
+/* 경기 초반 정상 재생 구간(OPEN_MINUTES) — **빨리 감는 중이 아니다.**
+   어둡게 덮는 표시는 "지금은 눈여겨볼 대목이 아니다"라는 뜻이므로 여기서는 걷어낸다.
+   결정적 장면과 똑같이 밝게 본다. */
+.hl.idle.open canvas{filter:none}
+.hl.idle.open .badge{color:var(--ok)}
 
 /* ── 득점자 패널 (KM26 방식) ─────────────────────────────────
    골이 들어간 순간 GOAL · 득점자 · 도움을 화면 한가운데 큼직하게 띄운다. */
@@ -891,6 +896,7 @@ function tick() {
     return;
   }
   if (idx >= R.events.length && minute >= 90) finish();
+  syncWatchLook();                   // 초반 구간을 벗어나면 다시 어둡게 덮는다
   // 초반 구간을 벗어났으면 그 자리에서 새 간격으로 다시 건다
   if (playing && tickMs !== msPerMin() / speed) { pause(); resume(); }
 }
@@ -1130,6 +1136,20 @@ function isLight(hex) {
      그래서 관전 헤드는 언제나 `(지금 분 + 1) × 60초` 를 넘지 않습니다. */
 const WATCH_STRIDE = 73;               // replay.js 의 WATCH_STRIDE 와 같아야 한다
 let watchSec = 0, watchLast = 0, rafId = null, drawnSec = -1;
+let watchLabel = null;                 // backToWatch 가 받은 이름표 (없으면 구간을 보고 정한다)
+
+/** 초반 정상 재생 구간인가 — 빨리 감는 중이 아니므로 어둡게 덮지 않는다 */
+const inOpening = () => !!(R && R.watch && minute < OPEN_MINUTES);
+
+/** 관전 화면의 밝기·이름표를 지금 구간에 맞춘다 (분이 바뀔 때마다 부른다) */
+function syncWatchLook() {
+  const hl = $("#hl");
+  if (!hl.classList.contains("idle")) return;   // 장면 재생 중이면 관여하지 않는다
+  const open = inOpening();
+  hl.classList.toggle("open", open);
+  $("#hlBadge").textContent = watchLabel ||
+    (open ? "▶ 경기 시작" : (R && R.watch ? "○ 경기 진행 중" : "킥오프"));
+}
 
 const watchCount = () => (R && R.watch ? (R.watch.length / WATCH_STRIDE) | 0 : 0);
 
@@ -1181,7 +1201,8 @@ function drawWatchAt(sec) {
 function backToWatch(label) {
   const hl = $("#hl");
   hl.style.display = ""; hl.classList.add("idle");
-  $("#hlBadge").textContent = label || (R && R.watch ? "○ 경기 진행 중" : "킥오프");
+  watchLabel = label || null;
+  syncWatchLook();                    // 밝기(.open)와 이름표를 지금 구간에 맞춘다
   $("#hlBadge").classList.remove("rep");
   $("#hlCap").textContent = "";
   $("#hlReplay").style.display = lastClip ? "" : "none";   // 본 장면이 있으면 다시 볼 수 있다
