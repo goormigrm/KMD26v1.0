@@ -107,13 +107,19 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .at{border-radius:5px;padding:1px 6px;font-size:11px;font-weight:800}
 .at.xi{background:#12283d;color:var(--acc);border:1px solid #1d4d73}
 .at.bn{background:#1d2430;color:var(--sub);border:1px solid var(--line)}
-.fam{width:32px;text-align:center;font-size:11px;font-weight:800;border-radius:5px;padding:1px 0}
+.fam{width:32px;flex:none;text-align:center;font-size:11px;font-weight:800;border-radius:5px;padding:1px 0}
+/* 자리 이름표 — 폭을 **고정**한다. 글자 수에 따라 상자가 늘어나면(ST 2글자 · LAM 3글자)
+   그 뒤에 오는 이름들의 시작점이 줄마다 어긋나 목록이 삐뚤어 보인다. */
+.at.slot{width:46px;flex:none;box-sizing:border-box;text-align:center;padding:1px 4px}
 /* 선발 한 명 = 두 줄. 윗줄이 선수, 아랫줄이 역할·임무다 */
 .xir{border-bottom:1px solid #1b2028}
 .xir:last-child{border-bottom:0}
 .xir.sel{background:#12283d;box-shadow:inset 3px 0 0 var(--acc)}
-.rsel{display:grid;grid-template-columns:1fr 88px;gap:5px;padding:0 9px 7px 40px}
-.rsel select{padding:3px 6px;font-size:11.5px;font-weight:600;border-radius:6px}
+/* 아랫줄은 윗줄 **이름 시작점**에 맞춰 들여쓴다 — 9(줄 여백) + 46(이름표) + 8(간격) */
+.rsel{display:grid;grid-template-columns:1fr 92px;gap:6px;padding:0 9px 8px 63px}
+.rsel select{width:100%;box-sizing:border-box;padding:3px 6px;font-size:11.5px;font-weight:600;
+     border-radius:6px;text-overflow:ellipsis}
+@media (max-width:420px){ .rsel{padding-left:9px} }   /* 좁은 화면에서는 들여쓰기를 버린다 */
 
 /* ── 별점 ─────────────────────────────────── */
 .stars{position:relative;display:inline-block;color:#39404d;letter-spacing:1.5px;
@@ -743,7 +749,7 @@ function drawXI() {
     const R = opts.find(r => r.k === rd.r) || opts[0];
     return `<div class="xir${isSel ? " sel" : ""}" data-slot="${slot}" data-id="${p.id}">
       <div class="prow" style="border-bottom:0;padding-bottom:3px" draggable="true">
-        <span class="at xi" style="min-width:38px;text-align:center">${esc(slot)}</span>
+        <span class="at xi slot">${esc(slot)}</span>
         <span class="nm">${esc(p.name)}</span>
         <span class="fam" style="background:${lv.c}22;color:${lv.c}" title="${esc(lv.n)}">${famOf(p, slot)}</span>
         ${stars(p)}<button class="pf" data-pf="${p.id}" title="세부 능력치 보기">프로필</button>
