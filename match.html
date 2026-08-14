@@ -61,7 +61,19 @@ button:disabled{opacity:.45;cursor:default}
 .ev.bad{color:#ffb4ad}
 .ev.warn{color:#e8c46a}
 .ev.info{color:var(--sub)}
+/* 조건부 지시가 발동한 줄 — 해설이 아니라 **미리 적어 둔 것이 실행된 표시**다.
+   듀얼은 경기 중 개입이 없어 이것이 유일한 개입 수단인데, 회색 info 로 흘러가
+   발동했는지조차 모르겠다는 제보를 받았다. 카드처럼 세워 눈에 걸리게 한다. */
+.ev.order{background:#1a1608;border:1px solid #5c4a1c;border-left:3px solid var(--gold);
+     margin:4px 2px;padding:6px 8px;font-weight:700}
+.ev.order .m{color:var(--gold)}
+.ev.order .x{color:#f0dfae}
 .ev .tm{font-weight:800;font-size:11.5px;padding:0 5px;border-radius:4px;background:#161b22;flex:none}
+/* 경기 뒤 요약 — 어떤 지시가 언제 발동했는지 한자리에 모아 본다 */
+.ordlog{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.ordlog>div{background:#0b0f14;border:1px solid var(--line);border-left:3px solid var(--gold);
+     border-radius:6px;padding:5px 9px;font-size:12.5px;color:#e6ddc4}
+.ordlog b{color:var(--gold);font-variant-numeric:tabular-nums}
 
 /* ── 2D 하이라이트 ─────────────────────────── */
 .hl{position:relative;margin-bottom:12px}
@@ -356,8 +368,8 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=8becaaf894";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=8becaaf894";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=d63e0771e9";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=d63e0771e9";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -793,7 +805,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=8becaaf894", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=d63e0771e9", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -971,6 +983,7 @@ function finish() {
         : `같은 라인업끼리 붙으면 언제 어디서 돌려도 이 지문이 나옵니다.
            단계 5에서 이 값이 대전 코드에 담깁니다.`}</span>
     </div>
+    ${drawOrderLog()}
     ${drawResultLink()}
     ${drawHighlightList()}
     ${drawReactions()}`;
@@ -991,6 +1004,26 @@ function finish() {
 }
 
 const pct = (ok, n) => (n ? Math.round(ok / n * 100) + "%" : "-");
+
+/* ── 조건부 지시 요약 ──────────────────────────────────────────
+   "발동한 건지 아닌 건지 알 수가 없다"는 제보에 대한 답입니다.
+   경기 중에는 카드로 한 번 스쳐 가므로, 끝난 뒤 한자리에 모아 다시 보여 줍니다.
+   ⚠ 발동했더라도 **이미 그 상태였으면** 줄이 남지 않습니다(orders.js 의 `changed`).
+     바꿀 것이 없었다는 뜻이라, 그건 아래 안내로 대신합니다. */
+function drawOrderLog() {
+  const rows = (R.events || []).filter(e => e.type === "order");
+  if (!rows.length) {
+    return `<div class="note"><b>📋 조건부 지시</b> — 이 경기에서는 발동한 지시가 없습니다.
+      <br><span class="sub">라인업 화면에서 <b>"60분에 지고 있으면 → 총공세"</b> 처럼 미리 적어 두면
+      조건이 맞는 순간 자동으로 실행되고, 그 시각이 여기 남습니다.
+      경기 중에는 아무도 버튼을 못 누르므로 여기가 승부처입니다.
+      <br>조건이 맞았더라도 전술이 <b>이미 그 상태였다면</b> 바꿀 것이 없어 줄이 남지 않습니다.</span></div>`;
+  }
+  return `<div class="note"><b>📋 조건부 지시</b> — ${rows.length}건 발동
+    <div class="ordlog">${rows.map(e => `<div><b>${esc(String(e.min ?? ""))}'</b>
+      ${e.t ? `<span class="tm" style="color:${esc(e.col || "#a9b4c0")}">${esc(e.t)}</span>` : ""}
+      ${esc((e.txt || "").replace(/^📋\s*/, ""))}</div>`).join("")}</div></div>`;
+}
 
 /* ── 2D 화면 ──────────────────────────────────────────────────
    두 벌로 나뉩니다 (일꾼이 둘 다 보내 줍니다 — src/engine/replay.js 머리말 참고).

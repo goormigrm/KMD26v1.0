@@ -14,7 +14,7 @@
    ⚠ 발동은 분 경계에서만 봅니다 — 커널 aiTacticCheck 를 붙인 자리와 같습니다.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim } from "./kernel.js?v=8becaaf894";
+import { MatchSim } from "./kernel.js?v=d63e0771e9";
 
 /* 조건 — 4비트(0~15). 0 은 "빈 칸"이라 쓰지 않습니다. */
 export const CONDS = [
@@ -133,8 +133,13 @@ export function installOrders() {
         for (const k in want) if (t.tactic[k] !== want[k]) { t.tactic[k] = want[k]; changed = true; }
         t._ordDone[i] = true;
         if (!changed) continue;                // 이미 그 상태였다 — 해설까지 낼 일은 아니다
+        /* ⚠ 종류를 "order" 로 둔다 — 화면이 이걸 보고 **해설이 아닌 카드**로 세운다.
+           예전에는 "info" 였는데 회색으로 흘러가, 듀얼의 유일한 경기 중 개입 수단인
+           조건부 지시가 발동했는지조차 모르겠다는 제보를 받았다.
+           ⚠ 문구는 건드리지 말 것. 결과 지문이 이벤트 **본문**을 먹으므로
+             한 글자만 바꿔도 이미 나눠 가진 결과 링크의 지문이 달라진다. */
         if (this.emitEvents) {
-          this.say(key, `📋 ${t.short}, 미리 적어 둔 지시 — ${A.say || A.n}. (${C.n})`, "info");
+          this.say(key, `📋 ${t.short}, 미리 적어 둔 지시 — ${A.say || A.n}. (${C.n})`, "order");
         }
       }
     }
