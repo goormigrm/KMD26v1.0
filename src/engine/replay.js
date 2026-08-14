@@ -22,7 +22,7 @@
    ⚠ 난수를 쓰지 않습니다. 경기 결과에 영향을 주면 안 됩니다.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim } from "./kernel.js?v=5fb5b3c160";
+import { MatchSim } from "./kernel.js?v=04894c7433";
 
 /* ── 장면(clip) 규격 — KM26 의 HL_* 상수를 프레임 수로 옮긴 것 ──────────
    한 프레임이 엔진 0.2초다. 경기 시계는 두 배로 흐르므로 화면에서는 두 배로 보인다. */
@@ -97,6 +97,34 @@ export function installReplay() {
 
   const init = (sim) => {
     if (!sim._clips) { sim._clips = []; sim._pend = null; sim._watch = []; sim._wn = 0; }
+    if (!sim._caps) sim._caps = [];
+  };
+
+  /* ── 0) 실시간 해설 자막을 주워 담는다 ────────────────────────
+     커널에는 해설 줄이 **두 갈래**로 흐릅니다.
+
+       say()  → M.events   문자중계 로그. 90분에 70~90줄쯤 (골·카드·교체·코너 …)
+       cap()  → sim.caps   방송 자막용. **훨씬 촘촘한데** 링버퍼(최대 90줄)라
+                            지나가면 버려지고, 듀얼은 여태 한 줄도 쓰지 않았다
+
+     2D 는 움직이는데 해설만 멈춰 있던 원인이 이것입니다 — 한 분에 한 줄뿐이라
+     장면 재생(수 초)이나 초반 구간(1분에 7.5초) 동안 글자가 안 바뀝니다.
+     그래서 버려지던 자막을 **분과 함께** 따로 쌓아 둡니다.
+
+     ⚠ 원래 cap() 을 먼저 부르고 **결과만 읽습니다.** 난수를 새로 쓰지 않습니다
+       (문장을 고르는 F_ 는 원래 호출 안에서 이미 돌았습니다).
+     ⚠ 링버퍼가 밀려 나가기 전에 가로채야 하므로 여기서 바로 복사합니다. */
+  const _cap = MatchSim.prototype.cap;
+  MatchSim.prototype.cap = function (side, pool, vars) {
+    const prev = (this.caps && this.caps.length) ? this.caps[this.caps.length - 1] : null;
+    _cap.call(this, side, pool, vars);
+    const now = (this.caps && this.caps.length) ? this.caps[this.caps.length - 1] : null;
+    if (!now || now === prev) return;        // 커널이 걸러 아무것도 안 쌓였다
+    init(this);
+    /* ⚠ **분이 아니라 초**로 남깁니다. 장면 클립의 프레임에도 같은 시계(`c`)가 박혀 있어서,
+         화면이 지금 몇 초를 그리고 있는지에 맞춰 자막을 띄울 수 있습니다 —
+         그래야 "골!!" 자막이 공이 들어가기 전에 뜨는 일이 없습니다. */
+    this._caps.push({ sec: Math.max(0, Math.round(this.clock)), side: now.side, txt: now.txt });
   };
 
   /* 1) 장면이 잡히는 순간 — 앞부분을 링버퍼에서 떠 온다 */
@@ -209,6 +237,16 @@ export function takeWatch(sim) {
 /** 킥오프 한 장 — 관전 트랙이 아직 비어 있는 첫 순간에 세워 둘 화면 */
 export function frameZero(sim) {
   return sim._frame0 || null;
+}
+
+/**
+ * 실시간 해설 자막 — 분 오름차순으로.
+ * 화면은 이걸 문자중계(M.events) 사이에 끼워 넣어, 2D 가 움직이는 동안 글자도 함께 흐르게 한다.
+ * ⚠ **기록이 아니다.** 아래 해설 로그에는 쌓지 말 것 — 시즌 기록에 남지 않는 문장들이고,
+ *   결과(골·카드)를 말하는 줄은 say() 쪽에 이미 있다.
+ */
+export function takeCaps(sim) {
+  return (sim._caps || []).slice();
 }
 
 /** 화면이 선수를 그릴 때 필요한 것만 — 이름·등번호·어느 팀인지 */

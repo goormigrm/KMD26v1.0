@@ -160,6 +160,8 @@ function playReal(homeId, awayId) {
       }
       return out.join("  ");
     })(),
+    capCount: (r.caps||[]).length,
+    capSample: (r.caps||[]).slice(20, 34).map(function(c){ return c.min + "' " + c.txt; }),
     clips: (r.clips||[]).length,
     clipFrames: (r.clips||[]).reduce(function(n,c){ return n + c.frames.length; }, 0),
     clipKinds: (r.clips||[]).map(function(c){ return c.min + "'" + c.kind; }).join(" "),
@@ -394,6 +396,12 @@ func main() {
 		if lines, ok := r["subLog"].([]any); ok && len(lines) > 0 {
 			for _, l := range lines {
 				fmt.Printf("    · %v\n", l)
+			}
+		}
+		fmt.Printf("    자막 %v줄 (문자중계 %v줄)\n", r["capCount"], r["events"])
+		if cs, ok := r["capSample"].([]any); ok {
+			for _, c := range cs {
+				fmt.Printf("      · %v\n", c)
 			}
 		}
 		if p := str(r["onPitch"]); p != "" && p != "11v11" {

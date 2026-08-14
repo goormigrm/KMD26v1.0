@@ -32,17 +32,22 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
 button:disabled{opacity:.45;cursor:default}
 
-/* ── 전광판 ───────────────────────────────── */
-.board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;
+/* ── 전광판 ────────────────────────────────────────────────────
+   ⚠ **작게 둡니다.** 주인공은 아래 2D 필드입니다. 예전에는 점수 30px·패딩 16px 에
+     진행 막대까지 더해져 필드에 견줘 너무 넓은 자리를 차지했습니다("경기 화면만큼
+     차지한다"는 제보). 점수만 읽히면 되는 자리라 전체를 한 단계씩 줄였습니다. */
+.board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;
        background:linear-gradient(180deg,#14301c,#0f2415);border:1px solid #24402a;
-       border-radius:11px;padding:16px 14px}
-.side{display:flex;align-items:center;gap:9px;min-width:0}
+       border-radius:10px;padding:9px 13px}
+.side{display:flex;align-items:center;gap:8px;min-width:0}
 .side.a{justify-content:flex-end}
-.side .bar{width:6px;height:30px;border-radius:3px;flex:none;box-shadow:0 0 0 1px #0006}
-.side .nm{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.score{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:1px;white-space:nowrap}
-.clock{text-align:center;font-size:12.5px;color:#cfe6d6;font-variant-numeric:tabular-nums}
-.bar2{height:5px;background:#0b0f1466;border-radius:3px;overflow:hidden;margin-top:10px;grid-column:1/-1}
+.side .bar{width:5px;height:22px;border-radius:3px;flex:none;box-shadow:0 0 0 1px #0006}
+.side .nm{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score{font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.5px;
+       white-space:nowrap;line-height:1.15}
+.clock{text-align:center;font-size:11.5px;color:#cfe6d6;font-variant-numeric:tabular-nums;line-height:1.3}
+/* 진행 막대는 전광판 아래 테두리에 붙인다 — 한 줄을 따로 차지하지 않게 */
+.bar2{height:3px;background:#0b0f1466;border-radius:2px;overflow:hidden;margin-top:6px;grid-column:1/-1}
 .bar2>i{display:block;height:100%;background:var(--ok);width:0}
 
 /* ── 해설 ─────────────────────────────────────────────────────
@@ -88,6 +93,17 @@ button:disabled{opacity:.45;cursor:default}
 .hl{position:relative;margin-bottom:0}
 .hl canvas{width:100%;display:block;border-radius:10px 10px 0 0;background:#0f2415;
      border:1px solid #24402a;border-bottom:0}
+/* ── 리플레이 표시 ─────────────────────────────────────────────
+   딱 하나 남긴 예외입니다. 골 장면은 끝나고 **한 번 더** 느리게 돌아가는데, 아무 표시가
+   없으면 같은 화면이 되풀이돼 고장으로 읽힙니다("버그 같아 보인다"는 제보).
+   ⚠ 이건 결과를 미리 알려 주지 않습니다 — 이미 본 장면을 다시 보는 중이라는 표시뿐입니다.
+     그래서 나머지 덮개는 걷어냈어도 이것만 남겼습니다. 빨간색은 방송의 REPLAY 표시와 같은 뜻입니다. */
+.hl .rep{position:absolute;top:8px;right:10px;background:rgba(8,12,17,.82);
+     border:1px solid var(--bad);color:var(--bad);border-radius:6px;padding:2px 9px;
+     font-size:11.5px;font-weight:800;letter-spacing:.5px;pointer-events:none;
+     animation:repBlink 1.15s ease-in-out infinite}
+.hl .rep.hidden{display:none}
+@keyframes repBlink{0%,100%{opacity:1} 50%{opacity:.4}}
 /* 결정적 장면이 아닌 동안 — 경기는 계속 흐르지만 눈여겨볼 대목은 아니라는 뜻.
    KM26 이 하이라이트 밖에서 캔버스를 어둡게 덮는 것과 같은 표시다(#pitch2d.dim). */
 .hl.idle canvas{filter:saturate(.62) brightness(.72)}
@@ -318,11 +334,12 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
   #pageMain{padding:12px 10px 50px}
   .card{padding:10px 11px;margin-bottom:9px}
   /* 전광판 — 점수만 크게 남기고 나머지를 줄인다 */
-  .board{padding:11px 10px;gap:8px}
-  .board .nm{font-size:13px}
-  .board .bar{width:5px;height:24px}
-  .score{font-size:23px;letter-spacing:0}
-  .clock{font-size:11px}
+  .board{padding:7px 9px;gap:7px;border-radius:9px}
+  .board .nm{font-size:12px}
+  .board .bar{width:4px;height:18px}
+  .score{font-size:19px;letter-spacing:0}
+  .clock{font-size:10.5px}
+  .bar2{margin-top:5px}
   /* 버튼 줄 — 폰에서 두 줄로 접히므로 낱개를 작게 해 한 줄에 더 담는다 */
   button,select{padding:6px 9px;font-size:12px;border-radius:7px}
   .go{padding:12px 12px;font-size:14.5px} .go .s{font-size:11px}
@@ -457,11 +474,14 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
     <div class="bar2"><i id="prog"></i></div>
   </div>
 
-  <div class="card" style="margin-top:12px">
+  <!-- 전광판과 필드 사이는 좁게 — 둘이 한 덩어리로 읽혀야 한다 -->
+  <div class="card" style="margin-top:8px">
     <!-- 필드 위에는 아무것도 얹지 않습니다 (위 .hl 주석 참고) — 캔버스와 득점자 패널뿐. -->
     <div class="hl idle" id="hl" style="display:none">
       <canvas id="cv" width="700" height="440"></canvas>
       <div class="gp hidden" id="gp"></div>
+      <!-- 딱 하나 남긴 덮개 — 다시 보는 중이라는 표시 (위 .hl .rep 주석 참고) -->
+      <div class="rep hidden" id="hlRep">● 리플레이</div>
     </div>
     <!-- 2D 바로 아래 한 줄 — 지금 막 벌어진 일. 아래 기록은 그대로 쌓이고 여기는 가장 새 줄만. -->
     <div class="tick" id="tick"></div>
@@ -493,11 +513,11 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=5fb5b3c160";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=5fb5b3c160";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=04894c7433";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=04894c7433";
 import { boardOn, listPlans, ago, matchQuery, postMatch, nicksForCodes, myNick }
-  from "./src/board/board.js?v=5fb5b3c160";
-import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=5fb5b3c160";
+  from "./src/board/board.js?v=04894c7433";
+import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=04894c7433";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -1024,7 +1044,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=5fb5b3c160", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=04894c7433", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -1034,6 +1054,7 @@ function start() {
     R = e.data;
     paintTeams(R.home, R.away);
     minute = 0; idx = 0; held = null; over = false;
+    resetCaps();
     $("#play").disabled = false; $("#skip").disabled = false;
     logSet(""); tickSay("킥오프");
     // 킥오프부터 관전 화면을 흘린다 — 장면이 하나도 없는 0:0 경기에서도 필드가 움직인다
@@ -1183,12 +1204,74 @@ function tickSet(e) {
   el.classList.remove("hit");
   void el.offsetWidth;               // 애니메이션을 처음부터 다시 돌리려면 한 번 비워야 한다
   el.classList.add("hit");
+  // 문자중계 줄은 자막보다 오래 붙잡는다 — 자막이 곧바로 덮어쓰면 못 읽는다
+  capLast = e.txt || "";
+  capUntil = performance.now() + (CAP_DWELL + EVENT_HOLD) / speed;
 }
 
 /** 해설이 아닌 상태 한 줄 (준비 중 · 킥오프 · 경기 종료) */
 function tickSay(txt) {
   const el = $("#tick");
   if (el) { el.innerHTML = `<span class="sub">${esc(txt)}</span>`; el.classList.remove("hit"); }
+}
+
+/* ── 실시간 자막 흐르기 ────────────────────────────────────────
+   커널은 해설을 두 갈래로 냅니다 — 문자중계(`events`, 90분에 70~90줄)와
+   방송 자막(`caps`, **600줄쯤**). 자막은 여태 버려지고 있었습니다(replay.js 머리말).
+   그래서 2D 는 쉼 없이 움직이는데 글자는 한 분에 한 번 바뀌어 멈춘 것처럼 보였습니다.
+
+   여기서 그 자막을 **화면이 지금 그리는 시각(초)에 맞춰** 흘립니다.
+     · 관전 중  — 관전 헤드(watchSec)
+     · 장면 중  — 지금 그리는 프레임의 시계(frame.c)
+   시각을 맞추므로 **공보다 글자가 앞서지 않습니다** — "골!!" 자막이 미리 뜰 수 없습니다.
+
+   ⚠ 붙들어 둔 장면이 있으면(held) 자막도 함께 붙듭니다. 커널 자막에는 `골`·`선방` 처럼
+     결과를 말하는 줄이 섞여 있어서, 이걸 안 막으면 붙들어 둔 보람이 없습니다.
+   ⚠ 600줄을 다 띄우면 글자가 0.1초마다 갈려 읽을 수 없습니다. 한 줄에 최소 머무는
+     시간을 두고, 그 사이 지나간 줄은 **버립니다**(가장 새 줄만 보여 줍니다). */
+const CAP_DWELL = 950;      // 자막 한 줄이 최소한 머무는 시간(ms)
+const EVENT_HOLD = 700;     // 문자중계 한 줄은 이만큼 더 붙잡는다 — 중요한 줄이라
+let capAt = 0, capLast = "", capUntil = 0, capResume = -1;
+
+function resetCaps() { capAt = 0; capLast = ""; capUntil = 0; capResume = -1; }
+
+/* 장면 클립은 **이미 지나간 시각**을 다시 보여 줍니다(앞 11초부터). 관전 헤드는 벌써 그
+   구간을 지나왔으므로, 자막 커서도 함께 되감아야 장면 위로 자막이 흐릅니다 —
+   여기가 "2D 는 움직이는데 글자는 멈춰 있다"가 가장 크게 느껴지던 자리입니다.
+   ⚠ 되감아도 결과가 새지 않습니다. 붙들어 둔 장면이면 flowCaps 가 held 에서 막고,
+     공이 골망에 닿는 프레임(trig)에서 풀린 뒤에야 그 뒤 자막이 나옵니다. */
+function rewindCaps(sec) {
+  if (!R || !R.caps || !R.caps.length) return;
+  if (capResume < 0) capResume = capAt;          // 장면이 끝나면 돌아올 자리
+  let i = 0;
+  while (i < R.caps.length && R.caps[i].sec < sec) i++;
+  capAt = i; capLast = "";
+}
+/** 장면이 끝났다 — 되감기 전 자리로 되돌린다 (둘 중 더 나아간 쪽으로) */
+function releaseCapRewind() {
+  if (capResume >= 0) { capAt = Math.max(capAt, capResume); capResume = -1; }
+}
+
+function flowCaps(sec) {
+  if (!R || !R.caps || !R.caps.length || held) return;
+  // 지금 화면이 그리는 시각까지 밀어 놓는다. 지나간 줄은 버리고 **가장 새 줄**만 남긴다
+  const lim = Math.min(sec, minute * 60 + 59);
+  let hit = null;
+  while (capAt < R.caps.length && R.caps[capAt].sec <= lim) hit = R.caps[capAt++];
+  if (!hit || hit.txt === capLast) return;
+  const now = performance.now();
+  if (now < capUntil) return;                    // 앞 줄을 아직 읽는 중
+  capLast = hit.txt;
+  capUntil = now + CAP_DWELL / speed;
+  const t = hit.side === "h" ? R.home : (hit.side === "a" ? R.away : null);
+  const el = $("#tick");
+  if (!el) return;
+  /* 문자중계 줄과 달리 **번쩍이지 않습니다** — 자막은 흐르는 것이고,
+     번쩍임은 "지금 벌어진 큰 일"에만 남겨 둡니다. */
+  el.innerHTML = `<span class="m">${Math.floor(hit.sec / 60)}'</span> ${
+    t ? `<span class="tm" style="color:${esc(t.col || "#a9b4c0")}">${esc(t.short)}</span> ` : ""
+  }${esc(hit.txt)}`;
+  el.classList.remove("hit");
 }
 
 function push(e) {
@@ -1501,6 +1584,7 @@ function drawWatchAt(sec) {
 /** 관전 화면으로 (돌아)간다 — 장면이 끝났거나 경기가 막 시작했을 때 */
 function backToWatch() {
   const hl = $("#hl");
+  releaseCapRewind();                 // 장면 때문에 되감아 둔 자막 커서를 제자리로
   hl.style.display = ""; hl.classList.add("idle");
   syncWatchLook();                    // 밝기(.open)를 지금 구간에 맞춘다
   $("#hlSkip").style.display = "none";                     // 관전 중에는 건너뛸 장면이 없다
@@ -1536,6 +1620,7 @@ function watchLoop(now) {
   if (Math.abs(watchSec - drawnSec) < 0.05) return;   // 멈춰 있으면 다시 그리지 않는다
   drawnSec = watchSec;
   drawWatchAt(watchSec);
+  flowCaps(watchSec);                 // 화면이 그리는 시각에 맞춰 자막을 흘린다
 }
 
 /**
@@ -1557,6 +1642,10 @@ function playClip(c, done, o = {}) {
   $("#hl").classList.remove("idle");
   $("#hlSkip").style.display = "";           // 보는 중에만 건너뛸 것이 있다
   $("#hlReplay").style.display = "none";     // 보는 중에 "다시 보기"는 말이 안 된다
+  $("#hlRep").classList.toggle("hidden", !o.replay);   // 다시 보는 중이면 빨간 표시
+  // 장면이 되감아 보여 주는 구간만큼 자막 커서도 되감는다 (리플레이는 같은 말을 또 하지 않는다)
+  const ff = o.frames || c.frames;
+  if (!o.replay && ff && ff.length) rewindCaps(ff[0].c);
   onClipEnd = done;
   cur = { c, done, replay: !!o.replay, frames: o.frames || c.frames, i: 0 };
   startClipTimer();
@@ -1584,13 +1673,16 @@ function startClipTimer() {
       if (done) done();
       return;
     }
-    drawFrame(s.frames[s.i]);
+    const f = s.frames[s.i];
+    drawFrame(f);
     /* 공이 실제로 그 일을 하는 프레임(trig) — 여기가 해설을 푸는 자리다.
        빌드업 중에 풀면 무슨 일이 벌어질지 미리 알려 주는 꼴이 된다. */
     if (!s.replay && s.i === (s.c.trig != null ? s.c.trig : 0)) {
       if (s.c.kind === "goal") showGoalPanel(s.c);   // 득점자 패널은 골에만
       releaseHold(s.c);                              // 붙들어 둔 해설을 바로 이 순간에 푼다
     }
+    // 장면 중에도 자막은 흐른다 — 지금 그리는 프레임의 시계에 맞춘다
+    if (!s.replay && f) flowCaps(f.c);
     s.i++;
   }, ms);
 }
@@ -1649,6 +1741,7 @@ function stopClip() {
   if (clipTimer) clearInterval(clipTimer);
   clipTimer = null; cur = null;
   hideGoalPanel();
+  const rp = $("#hlRep"); if (rp) rp.classList.add("hidden");   // 리플레이 표시도 함께 걷는다
 }
 
 // 건너뛰기 — 보고 있던 장면을 접고 관전 화면으로 돌아간다

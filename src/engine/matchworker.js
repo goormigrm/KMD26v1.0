@@ -10,12 +10,12 @@
      먼저 다 돌린 뒤 재생하면 1·2·4배속도 되감기도 공짜입니다.
    ───────────────────────────────────────────────────────────── */
 
-import { runHeadless, deriveSeed } from "./duel.js?v=5fb5b3c160";
-import { checkLineup, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=5fb5b3c160";
-import { encodePlan } from "../codec/duelcode.js?v=5fb5b3c160";
-import { makeReactions } from "./reactions.js?v=5fb5b3c160";
-import { slotRating } from "./kernel.js?v=5fb5b3c160";
-import { installEngineContext } from "./stubs.js?v=5fb5b3c160";
+import { runHeadless, deriveSeed } from "./duel.js?v=04894c7433";
+import { checkLineup, prepareSides, aiLineup, AI_PRESETS, counterPreset } from "./teams.js?v=04894c7433";
+import { encodePlan } from "../codec/duelcode.js?v=04894c7433";
+import { makeReactions } from "./reactions.js?v=04894c7433";
+import { slotRating } from "./kernel.js?v=04894c7433";
+import { installEngineContext } from "./stubs.js?v=04894c7433";
 
 /* 연습 모드의 상대를 여기서 짠다 — 화면이 아니라 일꾼에서.
    "어려움"이 쓰는 slotRating 은 커널 함수라 화면에 올릴 수 없다(6천 줄). */
@@ -120,6 +120,10 @@ self.onmessage = (e) => {
       /* 장면과 장면 사이를 채우는 관전 트랙 — 평평한 Float32Array (replay.js 머리말 참고).
          예전에는 이 사이가 정지 화면이었다. */
       watch: r.watch || null,
+      /* 실시간 해설 자막 — 커널이 링버퍼에 흘려 보내고 버리던 문장들(replay.js takeCaps).
+         문자중계보다 여덟 배쯤 촘촘해서, 2D 는 움직이는데 글자만 멈춰 있던 구간을 메운다.
+         줄마다 `sec`(경기 시계 초)이 박혀 있어 **화면이 그리는 시각에 맞춰** 띄운다. */
+      caps: r.caps || [],
       // 관전 트랙이 아직 비어 있는 첫 순간에 세워 둘 킥오프 한 장
       form0: r.form0 || null,
       /* 팬 반응 — 양쪽 시선 모두. 경기가 끝난 뒤에 뽑으므로 결과에 영향이 없다.

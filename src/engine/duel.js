@@ -8,12 +8,12 @@
    단계 2부터 모든 경기는 시드를 받습니다. 같은 시드 = 같은 경기.
    ───────────────────────────────────────────────────────────── */
 
-import { MatchSim, SIM_SECONDS, MATCH_CLOCK_SCALE, onPitch } from "./kernel.js?v=5fb5b3c160";
-import { installEngineContext, normalizeTeam } from "./stubs.js?v=5fb5b3c160";
-import { seedRNG, deriveSeed } from "./rng.js?v=5fb5b3c160";
-import { installDuelRules } from "./rules.js?v=5fb5b3c160";
-import { installOrders } from "./orders.js?v=5fb5b3c160";
-import { installReplay, takeClips, takeWatch, rosterOf, frameZero } from "./replay.js?v=5fb5b3c160";
+import { MatchSim, SIM_SECONDS, MATCH_CLOCK_SCALE, onPitch } from "./kernel.js?v=04894c7433";
+import { installEngineContext, normalizeTeam } from "./stubs.js?v=04894c7433";
+import { seedRNG, deriveSeed } from "./rng.js?v=04894c7433";
+import { installDuelRules } from "./rules.js?v=04894c7433";
+import { installOrders } from "./orders.js?v=04894c7433";
+import { installReplay, takeClips, takeWatch, rosterOf, frameZero, takeCaps } from "./replay.js?v=04894c7433";
 
 // 듀얼 규칙(D-3)은 커널을 감싸는 방식이라, 경기를 만들기 전에 한 번 입혀 둔다
 installDuelRules();
@@ -114,6 +114,8 @@ export function runHeadless(home, away, opt = {}) {
     r.clips = takeClips(sim); r.roster = rosterOf(M); r.form0 = frameZero(sim);
     // 장면과 장면 사이를 채울 관전 트랙 (replay.js 머리말 참고)
     r.watch = takeWatch(sim);
+    // 버려지던 실시간 해설 자막 — 화면이 문자중계 사이에 끼워 넣는다 (replay.js takeCaps)
+    r.caps = takeCaps(sim);
   }
   r.fp = fingerprint(r);
   return r;
