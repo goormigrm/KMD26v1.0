@@ -117,6 +117,45 @@ details .body th{background:var(--bg2);color:var(--txt)}
 .cell .sl{font-size:10px;color:var(--sub);font-weight:800;margin-top:2px}
 @media (max-width:520px){ .cell{min-height:56px} .cell .who{font-size:12px} }
 
+.cell.drop{border-color:var(--ok);border-style:dashed;background:#1a3a2455}
+.cell.drag,.slot.drag,.prow.drag{opacity:.4}
+
+/* 별점 — 기본 라인업 화면과 같은 겹친 별 */
+.stars{position:relative;display:inline-block;color:#39404d;letter-spacing:1.5px;
+       font-size:12px;white-space:nowrap;line-height:1}
+.stars::before{content:'★★★★★';position:absolute;left:0;top:0;width:var(--pct,0%);
+       overflow:hidden;color:var(--gold);white-space:nowrap}
+
+/* 선수 프로필 — 능력치는 세이브에서 이미 다 읽어 왔다(기술14·정신14·신체8·GK11·능숙도17·특성).
+   페이지를 옮기지 않고 이 자리에서 본다 — 짜던 라인업이 날아가지 않게. */
+.prof{display:none;position:fixed;inset:0;z-index:1200;background:#000000b8;
+      padding:20px 12px;overflow:auto}
+.prof.on{display:block}
+.profBox{max-width:760px;margin:0 auto;background:var(--bg2);border:1px solid var(--line);
+      border-radius:12px;padding:15px 16px;box-shadow:0 18px 50px #000a}
+.profTop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.profTop .nm{font-size:18px;font-weight:800}
+.bio{color:var(--sub);font-size:12.5px;margin-top:2px}
+.pgrid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.pgrid2 h4{font-size:12px;color:var(--gold);border-bottom:1px solid var(--line);padding-bottom:3px;margin-bottom:4px}
+.at{display:flex;justify-content:space-between;gap:6px;font-size:12.5px;padding:1px 0}
+.at span{color:var(--sub)}
+.famg{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:5px;margin-top:6px}
+.fmc{background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:3px 5px;
+     font-size:11px;text-align:center;font-weight:700}
+.fmc.z{opacity:.45}
+.fmc .v{display:block;font-size:13px;font-weight:800}
+.tagx{display:inline-block;background:#0b0f14;border:1px solid var(--line);border-radius:5px;
+      padding:1px 7px;font-size:11.5px;color:var(--acc);margin:3px 3px 0 0}
+.pf{background:#161b22;border:1px solid var(--line);border-radius:5px;color:var(--sub);
+    padding:1px 6px;font-size:10.5px;font-weight:800;cursor:pointer;flex:none;margin-left:5px}
+.pf:hover{border-color:var(--km);color:var(--km)}
+
+/* 조건부 지시 간단 설정 */
+.preset{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0}
+.preset button{font-size:12.5px;padding:6px 11px}
+.preset button.on{border-color:var(--km);color:var(--km)}
+
 /* 선수 목록 — 선발·교체에 없는 나머지 */
 .plist{display:flex;flex-direction:column;gap:4px;max-height:420px;overflow-y:auto;margin-top:6px}
 .prow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
@@ -348,7 +387,8 @@ details .body th{background:var(--bg2);color:var(--txt)}
   <h2>⑤ 조건부 지시</h2>
   <div class="sub">경기 중에는 아무도 버튼을 못 누릅니다. <b>여기가 사실상 승부처입니다.</b>
     여섯 칸까지 미리 적어 두면 그 상황이 오는 순간 저절로 발동합니다.</div>
-  <div id="orders" style="margin-top:8px"></div>
+  <div class="preset" id="ordPreset"></div>
+  <div id="orders"></div>
   <div class="note">
     개리그 매니저에는 없는 기능이라 <b>세이브에서 넘어오지 않습니다</b> — 여기서 새로 적으셔야 합니다.
     조건이 볼 수 있는 것은 <b>경기 시각 · 득실차 · 내 퇴장 수</b> 셋뿐입니다.
@@ -390,6 +430,9 @@ details .body th{background:var(--bg2);color:var(--txt)}
 </div></div>
 </div>
 
+<!-- 선수 프로필 — 페이지를 옮기지 않고 이 자리에서 능력치를 본다 -->
+<div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
+
 <!-- 선수 고르기 -->
 <div class="pick" id="pick">
   <div class="box">
@@ -402,7 +445,7 @@ details .body th{background:var(--bg2);color:var(--txt)}
 import { readSave, saveInfo, teamListOf, makePack, slimPack, checkPack, PACK_KIND }
   from "./src/km26/kmsave.js?v=934f2923e8";
 import { autoLineup, planSig } from "./src/engine/teams.js?v=934f2923e8";
-import { CONDS, ACTS, packOrder, unpackOrder } from "./src/engine/orders.js?v=934f2923e8";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=934f2923e8";
 import { kmBoardOn, kmPostPlan, myNick, rememberNick, NICK_MAX }
   from "./src/board/kmboard.js?v=934f2923e8";
 
@@ -468,6 +511,7 @@ async function boot() {
   $("#reSave").onclick = () => rebuild(false);
   $("#formation").onchange = () => changeFormation($("#formation").value);
   $("#post").onclick = post;
+  $("#prof").onclick = e => { if (e.target.id === "prof") closeProfile(); };
   $("#play").onclick = play;
   drawSlots();
   if (!kmBoardOn()) $("#post").disabled = true;
@@ -642,17 +686,17 @@ function drawPitch() {
     if (!inForm.has(slot)) return `<div class="cell nf" title="${esc(pack.plan.formation)} 에는 없는 자리입니다">${esc(slot)}</div>`;
     const pid = pack.plan.xi[slot], p = pid != null ? byId(pid) : null;
     const on = picking && picking.kind === "x" && picking.slot === slot;
-    if (!p) return `<div class="cell${on ? " sel" : ""}" data-slot="${esc(slot)}">${esc(slot)}</div>`;
+    if (!p) return `<div class="cell${on ? " sel" : ""}${drag ? " drop" : ""}" data-slot="${esc(slot)}">${esc(slot)}</div>`;
     const f = famOf(p, slot), r = roleOf(slot, p.id);
-    return `<div class="cell has${on ? " sel" : ""}" data-slot="${esc(slot)}" title="${esc(slot)}">
+    return `<div class="cell has${on ? " sel" : ""}${drag ? " drop" : ""}" data-slot="${esc(slot)}"
+        draggable="true" title="${esc(slot)}">
       <span class="role">${esc(r.k)} · ${esc(r.duty)}</span>
       <span class="who"><span class="fdot" style="background:${famCol(f)}"></span>
         <span class="nm">${esc(p.name)}</span></span>
       <span class="sl">${esc(slot)}</span>
     </div>`;
   }).join("")}</div>`).join("");
-  $("#pgrid").querySelectorAll(".cell[data-slot]").forEach(el =>
-    el.onclick = () => openPick("x", el.dataset.slot, 0));
+  bindDrop("#pgrid .cell[data-slot]", el => ({ kind: "x", slot: el.dataset.slot, i: 0 }));
 }
 
 /** 선발·교체에 없는 나머지 — 여기서 눌러도 자리를 고를 수 있다 */
@@ -662,17 +706,45 @@ function drawRest() {
     .sort((a, b) => b.star - a.star || a.no - b.no);
   $("#restNote").innerHTML = `선발·교체에 없는 <b>${rest.length}명</b>입니다. 누르면 어디에 세울지 고릅니다.`;
   $("#rest").innerHTML = rest.map(p => `
-    <div class="prow" data-p="${p.id}">
+    <div class="prow" data-p="${p.id}" draggable="true">
       <span class="nm">${esc(p.name)}<span class="po">${esc(p.prefPos)} · ${p.no}번</span></span>
       <span class="tag">${esc(p.pos)}</span>
-      <span class="st">★${p.star}</span>
+      <span class="st">${stars(p)}<button class="pf" data-pf="${p.id}" title="\uc138\ubd80 \ub2a5\ub825\uce58 \ubcf4\uae30">\ud504\ub85c\ud544</button></span>
     </div>`).join("") || `<div class="sub">남은 선수가 없습니다.</div>`;
-  $("#rest").querySelectorAll("[data-p]").forEach(el => el.onclick = () => openSlotPick(+el.dataset.p));
+  $("#rest").querySelectorAll("[data-p]").forEach(el => {
+    const pid = +el.dataset.p;
+    el.ondragstart = e => {
+      dragged = false;
+      try { e.dataTransfer.setData("text/plain", String(pid)); e.dataTransfer.effectAllowed = "move"; } catch (err) { /* 오래된 브라우저 */ }
+      el.classList.add("drag");
+      dragSet({ from: null, pid });        // from 이 없으면 "목록에서 끌어온 것"이다
+    };
+    el.ondragend = () => { el.classList.remove("drag"); if (drag) dragSet(null); };
+    el.onclick = () => { if (dragged) { dragged = false; return; } openSlotPick(pid); };
+  });
+  bindProf("#rest");
 }
 
 /* ── 조건부 지시 (여섯 칸) ──────────────────────────────────── */
 function drawOrders() {
   const cond = pack.plan.cond;
+
+  /* 간단 설정 — 슬라이더 아홉 개도 부담인데 조건까지 짜라면 아무도 안 쓴다.
+     기본 라인업 화면과 **같은 프리셋**(ORDER_PRESETS)을 그대로 쓴다 — 두 화면이
+     다른 것을 내놓으면 같은 이름인데 다른 지시가 된다. */
+  $("#ordPreset").innerHTML =
+    Object.keys(ORDER_PRESETS).map(k => `<button data-op="${esc(k)}">${esc(k)}</button>`).join("")
+    + `<button data-op="">\ube44\uc6b0\uae30</button>`;
+  $("#ordPreset").querySelectorAll("[data-op]").forEach(b => {
+    const k = b.dataset.op;
+    const want = k ? ORDER_PRESETS[k] : [0, 0, 0, 0, 0, 0];
+    b.classList.toggle("on", cond.every((v, i) => (v | 0) === ((want[i] || 0) | 0)));
+    b.onclick = () => {
+      pack.plan.cond = (k ? ORDER_PRESETS[k].slice(0, 6) : [0, 0, 0, 0, 0, 0]);
+      while (pack.plan.cond.length < 6) pack.plan.cond.push(0);
+      drawOrders();
+    };
+  });
   $("#orders").innerHTML = cond.map((v, i) => {
     const u = unpackOrder(v | 0);
     return `<div class="ord">
@@ -705,6 +777,124 @@ function drawNote() {
 }
 
 const byId = id => pack.squad.find(p => p.id === id);
+/* 별점 — 기본 라인업 화면과 같은 모양(반 칸까지 채워지는 겹친 별) */
+const stars = p => `<span class="stars" style="--pct:${Math.round((p.star || 0) / 5 * 100)}%" title="${p.star || 0}\u2605">\u2605\u2605\u2605\u2605\u2605</span>`;
+function slotOfPlayer(id) {
+  for (const s of Object.keys(pack.plan.xi)) if (pack.plan.xi[s] === id) return s;
+  return null;
+}
+
+/* ── 선수 프로필 ───────────────────────────────────────────────
+   세이브에서 능력치를 **이미 다 읽어 왔다**. 화면에 띄우지 않았을 뿐이라,
+   기본 라인업 화면과 같은 표를 그대로 쓴다. 이름표(labels)는 원본에서 뽑은 것. */
+const toneOf = v => v >= 80 ? "#3fb950" : v >= 65 ? "#79c0ff" : v >= 50 ? "#e3b341" : v >= 35 ? "#d29922" : "#f85149";
+
+function showProfile(id) {
+  const p = byId(id);
+  if (!p || !DB.labels) return;
+  const L = DB.labels, age = (pack.season || 2026) - p.by;
+  const col = (title, keys, bag) => `
+    <div><h4>${title}</h4>
+      ${(keys || []).filter(k => bag && typeof bag[k] === "number").map(k => `
+        <div class="at"><span>${esc(L.attr[k] || k)}</span>
+          <b style="color:${toneOf(bag[k])}">${bag[k]}</b></div>`).join("")}
+    </div>`;
+  const at = slotOfPlayer(id);
+  const fam = (L.famOrder || []).map(f => {
+    const v = (p.posFam && p.posFam[f]) || 0;
+    return `<div class="fmc${v ? "" : " z"}">${esc(L.fam[f] || f)}
+      <span class="v" style="color:${v ? toneOf(v) : "var(--sub)"}">${v}</span></div>`;
+  }).join("");
+
+  $("#profBox").innerHTML = `
+    <div class="profTop">
+      <div>
+        <div class="nm">${esc(p.name)} ${p.frn ? '<span class="tagx">\uc678\uad6d\uc778</span>' : ""}</div>
+        <div class="bio">${esc(p.pos)} \u00b7 \uc120\ud638 ${esc(p.prefPos)} \u00b7 ${age}\uc138 \u00b7 ${p.h}cm ${p.w}kg
+          \u00b7 ${esc(p.foot || "")} \u00b7 \ub4f1\ubc88\ud638 ${p.no == null ? "-" : p.no}${at ? ` \u00b7 <b style="color:var(--km)">\uc9c0\uae08 ${esc(at)} \uc790\ub9ac</b>
+          (\ub2a5\uc219\ub3c4 ${famOf(p, at)})` : ""}</div>
+      </div>
+      <div style="text-align:right">
+        ${stars(p)}<div class="sub">${p.star == null ? 0 : p.star}\u2605</div>
+        <button id="profClose" style="margin-top:6px;padding:4px 10px;font-size:12px">\ub2eb\uae30 \u2715</button>
+      </div>
+    </div>
+    ${(p.traits || []).length
+      ? `<div style="margin-top:6px">${p.traits.map(t => `<span class="tagx">${esc(L.trait[t] || t)}</span>`).join("")}</div>` : ""}
+    <div class="pgrid2">
+      ${col("\uae30\uc220", L.tech, p.attr)}
+      ${col("\uc815\uc2e0", L.ment, p.attr)}
+      ${col("\uc2e0\uccb4", L.phys, p.attr)}
+      ${p.gkA ? col("\uace8\ud0a4\ud37c", L.gk, p.gkA) : ""}
+    </div>
+    <h4 style="font-size:12px;color:var(--gold);margin:14px 0 0;border-bottom:1px solid var(--line);padding-bottom:3px">
+      \ud3ec\uc9c0\uc158 \ub2a5\uc219\ub3c4</h4>
+    <div class="famg">${fam}</div>
+    <div class="note">\ub2a5\uc219\ub3c4\ub294 <b>\uadf8 \uc790\ub9ac\uc5d0\uc11c \uc81c \uae30\ub7c9\uc774 \ub098\uc624\ub294 \uc815\ub3c4</b>\uc785\ub2c8\ub2e4.
+      \ub0ae\uc740 \uc790\ub9ac\uc5d0 \uc138\uc6b0\uba74 \ud310\ub2e8\u00b7\uc704\uce58\uc120\uc815\ucc98\ub7fc \uc790\ub9ac \uc774\ud574\uac00 \ud544\uc694\ud55c \ucabd\uc774 \ud06c\uac8c \uae4e\uc785\ub2c8\ub2e4.</div>`;
+  $("#prof").classList.add("on");
+  $("#profClose").onclick = closeProfile;
+}
+function closeProfile() { $("#prof").classList.remove("on"); }
+
+/** 프로필 버튼 — 줄 선택·끌기와 섞이지 않게 여기서만 처리한다 */
+function bindProf(sel) {
+  document.querySelectorAll(sel + " [data-pf]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); e.preventDefault();
+    showProfile(+b.dataset.pf);
+  });
+}
+
+/* ── 끌어다 놓기 ───────────────────────────────────────────────
+   기본 라인업 화면과 같은 방식 — 마우스는 끌어서 옮기고, 손가락은 눌러서 고른다
+   (브라우저가 터치로는 HTML5 드래그를 걸어 주지 않는다).
+   \u26a0 끌고 난 뒤의 클릭은 삼킨다. 안 그러면 놓는 순간 "선수 고르기"까지 열린다.
+   \u26a0 자리끼리 끌면 **맞바꾼다**(비어 있으면 옮긴다). 목록에서 끌어오면 세운다. */
+let drag = null, dragged = false;
+
+function dragSet(v) { drag = v; if (pack) { drawPitch(); drawXI(); drawBench(); } }
+const atSpot = sp => sp.kind === "x" ? (pack.plan.xi[sp.slot] == null ? null : pack.plan.xi[sp.slot])
+                                     : (pack.plan.bench[sp.i] == null ? null : pack.plan.bench[sp.i]);
+function putSpot(sp, pid) {
+  if (sp.kind === "x") { if (pid == null) delete pack.plan.xi[sp.slot]; else pack.plan.xi[sp.slot] = pid; }
+  else pack.plan.bench[sp.i] = pid;
+}
+function dropOn(spot) {
+  if (!drag) return;
+  if (drag.from) {
+    const a = atSpot(drag.from), b = atSpot(spot);
+    putSpot(spot, a); putSpot(drag.from, b);
+  } else {
+    const pid = drag.pid;
+    for (const s of Object.keys(pack.plan.xi)) if (pack.plan.xi[s] === pid) delete pack.plan.xi[s];
+    for (let k = 0; k < pack.plan.bench.length; k++) if (pack.plan.bench[k] === pid) pack.plan.bench[k] = null;
+    putSpot(spot, pid);
+  }
+  drag = null;
+  drawPitch(); drawXI(); drawBench(); drawRest();
+}
+/** 자리 하나에 끌기·놓기·누르기를 건다 */
+function bindDrop(sel, spotOf) {
+  document.querySelectorAll(sel).forEach(el => {
+    const spot = spotOf(el);
+    el.ondragstart = e => {
+      const pid = atSpot(spot);
+      if (pid == null) { e.preventDefault(); return; }
+      dragged = false;
+      try { e.dataTransfer.setData("text/plain", String(pid)); e.dataTransfer.effectAllowed = "move"; } catch (err) { /* 오래된 브라우저 */ }
+      el.classList.add("drag");
+      dragSet({ from: spot, pid });
+    };
+    el.ondragend = () => { el.classList.remove("drag"); if (drag) dragSet(null); };
+    el.ondragover = e => { if (drag) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } };
+    el.ondrop = e => { e.preventDefault(); dragged = true; dropOn(spot); };
+    el.onclick = () => {
+      if (dragged) { dragged = false; return; }
+      openPick(spot.kind, spot.slot || "", spot.i || 0);
+    };
+  });
+}
+
 const famOf = (p, slot) => (p && p.posFam && p.posFam[T.slotFam[slot]]) || 0;
 const famCol = v => v >= 90 ? "#3fb950" : v >= 70 ? "#84c14a" : v >= 45 ? "#d29922" :
                     v >= 20 ? "#d2691e" : "#f85149";
@@ -713,27 +903,27 @@ function slotRow(slot, id, kind, i) {
   const p = byId(id);
   const f = p ? famOf(p, slot) : 0;
   const role = p && pack.plan.roles[p.id];
-  return `<div class="slot${p ? "" : " empty"}" data-k="${kind}" data-s="${esc(slot)}" data-i="${i}">
+  return `<div class="slot${p ? "" : " empty"}" data-k="${kind}" data-s="${esc(slot)}" data-i="${i}"
+      ${p ? 'draggable="true"' : ""}>
     <span class="p">${esc(kind === "b" ? "교체 " + (i + 1) : slot)}</span>
     <span class="nm">${p ? `<span class="fam" style="background:${famCol(f)}"></span>${esc(p.name)}
-      <span class="po">${esc(p.prefPos)} · ★${p.star}</span>` : "비어 있음"}</span>
-    <span class="r">${role ? esc(role.r + "/" + role.d) : ""}</span>
+      <span class="po">${esc(p.prefPos)}</span>` : "\ube44\uc5b4 \uc788\uc74c"}</span>
+    <span class="r">${p ? stars(p) + `<button class="pf" data-pf="${p.id}" title="\uc138\ubd80 \ub2a5\ub825\uce58 \ubcf4\uae30">\ud504\ub85c\ud544</button>` : ""}</span>
   </div>`;
 }
 
 function drawXI() {
   const slots = ["GK", ...T.formation[pack.plan.formation].map(s => s[1])];
   $("#xi").innerHTML = slots.map((s, i) => slotRow(s, pack.plan.xi[s], "x", i)).join("");
-  bindRows("#xi");
+  bindDrop("#xi .slot", el => ({ kind: "x", slot: el.dataset.s, i: 0 }));
+  bindProf("#xi");
 }
 function drawBench() {
   $("#bench").innerHTML = pack.plan.bench.map((id, i) => slotRow("", id, "b", i)).join("");
-  bindRows("#bench");
+  bindDrop("#bench .slot", el => ({ kind: "b", slot: "", i: +el.dataset.i }));
+  bindProf("#bench");
 }
-function bindRows(sel) {
-  document.querySelectorAll(sel + " .slot").forEach(el => el.onclick = () =>
-    openPick(el.dataset.k, el.dataset.s, +el.dataset.i));
-}
+
 
 function drawTac() {
   const keys = T.tacKeys.concat(["counter"]);
