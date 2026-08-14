@@ -77,7 +77,8 @@ python tools/patch_kernel.py src/engine/kernel.raw.js src/engine/kernel.js
 
 GitHub Pages 는 응답 헤더를 정할 수 없어서, 브라우저에게 "이 파일 바뀌었다"고 알릴 방법이
 **주소를 바꾸는 것**밖에 없습니다. `tools/stamp_version.py` 가 `src/**/*.js` 내용을 해시해
-모든 모듈 주소에 `?v=<해시>` 를 박습니다(2026-08-14 기준 29곳).
+모든 모듈 주소에 `?v=<해시>` 를 박습니다. 몇 곳인지는 **찍을 때마다 화면에 나옵니다**
+(2026-08-14 기준 34곳) — 페이지·모듈이 늘면 같이 늘어나므로 이 숫자를 외우지 마세요.
 
 > ⚠ **새 페이지를 만들었으면 `stamp_version.py` 의 `PAGES` 에 넣으세요.**
 > 안 넣으면 그 페이지만 옛 `?v=` 를 든 채로 배포돼, 다른 화면과 **다른 모듈**을 씁니다.
@@ -109,7 +110,7 @@ python tools/stamp_version.py && git status --short
 
 > 📌 해시는 **LF 로 맞춘 뒤** 계산합니다. git 이 `core.autocrlf` 설정에 따라 받아쓰기를
 > 바꾸므로, 안 맞추면 **PC 마다 다른 값**이 나옵니다 — 코드가 한 글자도 안 바뀌었는데
-> 다른 PC 에서 받아 도장을 찍는 순간 25곳이 통째로 갈립니다.
+> 다른 PC 에서 받아 도장을 찍는 순간 **박힌 곳이 통째로** 갈립니다.
 
 ---
 
@@ -136,7 +137,7 @@ export const DATA_COMPAT = [
 
 ```bash
 python tools/stamp_version.py
-cd tools/jscheck   && go run . ../../src ../../index.html ../../lineup.html ../../match.html ../../squad.html
+cd tools/jscheck   && go run . ../../src ../../index.html ../../lineup.html ../../match.html ../../board.html ../../record.html ../../squad.html
 cd tools/codecheck && go run . -root ../..
 cd tools/realmatch && go run . -root ../.. -home ulsan -away jeonbuk -record
 ```
