@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KMD26 · 듀얼 기록실</title>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#0b0f14;--line:#30363d;--txt:#e6edf3;--sub:#a9b4c0;
+      --acc:#2ea8ff;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--gold:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.6 'Segoe UI','Malgun Gothic',sans-serif}
+a{color:var(--acc);text-decoration:none}
+h1{font-size:18px;color:var(--gold)}
+.sub{color:var(--sub);font-size:12.5px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:13px 14px;margin-bottom:12px}
+button{background:var(--bg3);color:var(--txt);border:1px solid var(--line);border-radius:8px;
+       padding:8px 12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+button:hover:not(:disabled){border-color:var(--acc)}
+.note{background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
+      border-radius:6px;padding:9px 11px;font-size:12.5px;color:var(--sub);margin-top:9px}
+code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--gold);font-size:12px}
+
+/* 찾기 — 게시판과 같은 방식입니다(받아 둔 목록을 그 자리에서 거릅니다) */
+.find{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.find input{flex:1;min-width:180px;background:var(--bg3);color:var(--txt);border:1px solid var(--line);
+     border-radius:9px;padding:10px 13px;font-size:14.5px;font-family:inherit}
+.find input:focus{outline:none;border-color:var(--acc)}
+.find .cnt{flex:none;color:var(--sub);font-size:12.5px;font-variant-numeric:tabular-nums}
+
+/* ── 기록 한 줄 ────────────────────────────────────────────────
+   가운데에 점수를 두고 좌우로 홈·원정을 가릅니다 — 전광판과 같은 배치라
+   어느 쪽이 홈인지 따로 읽지 않아도 됩니다. */
+.recs{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.rec{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.rec:hover{border-color:#3d4650}
+.line{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.who{display:flex;flex-direction:column;min-width:0}
+.who.a{align-items:flex-end;text-align:right}
+.who .nk{font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.who .nk.anon{color:var(--sub);font-weight:700}
+.who .tm{font-size:11.5px;color:var(--gold);font-weight:800}
+.sc{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;
+    background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:3px 12px}
+.sc.h{color:var(--ok)} .sc.a{color:var(--acc)}
+.meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px;
+      border-top:1px solid #21262d;padding-top:8px}
+.meta .ag{color:var(--sub);font-size:11.5px;flex:1}
+.meta a.play{background:var(--ok);color:#04260e;border:1px solid var(--ok);border-radius:8px;
+      padding:6px 12px;font-size:12.5px;font-weight:800;text-decoration:none;flex:none}
+.meta a.play:hover{filter:brightness(1.08)}
+.meta button{padding:6px 10px;font-size:12px}
+.empty{padding:26px 14px;text-align:center;color:var(--sub);font-size:13px;
+      background:var(--bg2);border:1px dashed var(--line);border-radius:10px;margin-top:12px}
+
+/* ── 왼쪽 바 (다른 화면과 같은 구조) ───────────────────────────── */
+#app{display:flex;min-height:100vh}
+#side{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+      padding:14px 10px;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
+#side h1{font-size:17px;color:var(--gold);margin-bottom:2px}
+#side .brand{font-size:11px;color:var(--sub);margin-bottom:14px}
+#navScroll{display:contents}
+.navbtn{display:block;width:100%;text-align:left;background:none;border:none;color:var(--txt);
+        padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;margin-bottom:2px;
+        text-decoration:none;font-weight:600}
+.navbtn:hover{background:var(--bg3)}
+.navbtn.on{background:var(--acc);color:#fff}
+.navbtn .k{display:block;font-size:11px;font-weight:400;opacity:.8}
+#mainWrap{flex:1;min-width:0}
+#pageMain{padding:20px 22px 60px;max-width:1100px}
+@media (max-width:820px){
+  #app{display:block}
+  #side{width:100%;height:auto;position:sticky;top:0;z-index:900;padding:8px 8px 0;
+        border-right:none;border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.5);
+        display:grid;grid-template-columns:1fr;overflow:visible}
+  #side h1{font-size:15px;margin:0}
+  #side .brand{display:none}
+  #navScroll{display:flex;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:none}
+  #navScroll::-webkit-scrollbar{display:none}
+  .navbtn{display:inline-block;width:auto;white-space:nowrap;margin:0;padding:9px 12px;
+          background:var(--bg3);border-radius:8px 8px 0 0}
+  .navbtn .k{display:none}
+  #pageMain{padding:14px 12px 60px}
+}
+/* 폰 — 다른 화면과 같은 비율로 함께 줄인다 */
+@media (max-width:760px){
+  body{font-size:13px}
+  h1{font-size:16px} .sub{font-size:11.5px}
+  #pageMain{padding:12px 10px 50px}
+  .card{padding:10px 11px;margin-bottom:9px}
+  button{padding:6px 9px;font-size:12px}
+  .find input{font-size:13.5px;padding:9px 11px}
+  .rec{padding:9px 10px}
+  .who .nk{font-size:12.5px} .who .tm{font-size:10.5px}
+  .sc{font-size:16px;padding:2px 9px}
+  .note{font-size:11.5px;padding:7px 9px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<nav id="side">
+  <h1>KMD26</h1>
+  <div class="brand">개리그 매니저 듀얼</div>
+  <div id="navScroll">
+    <a class="navbtn" href="index.html">🏠 첫 페이지<span class="k">어떻게 하는 게임인가</span></a>
+    <a class="navbtn" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
+    <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
+    <a class="navbtn" href="board.html">🗂 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
+    <a class="navbtn on" href="record.html">🏛 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
+    <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
+  </div>
+</nav>
+<div id="mainWrap"><div id="pageMain">
+
+<div class="top">
+  <div><h1>듀얼 기록실</h1>
+    <div class="sub" id="meta">불러오는 중…</div></div>
+</div>
+
+<div class="card">
+  <div class="find">
+    <input id="q" placeholder="닉네임 · 구단으로 찾기 — 한 글자만 넣어도 됩니다 (예: 안)"
+           spellcheck="false" autocomplete="off">
+    <button id="reload" title="목록을 다시 불러옵니다">↻ 새로고침</button>
+    <span class="cnt" id="cnt"></span>
+  </div>
+  <div class="note" id="hint">
+    <b>사람이 짠 전술끼리 붙은 경기만 남습니다.</b> 자동 라인업이나 연습 경기는 올라가지 않습니다.
+    <b>다시 보기</b>를 누르면 그 경기가 <b>토씨 하나 안 틀리고</b> 재생됩니다 —
+    경기의 씨앗이 대전 코드 두 장에서 나오기 때문입니다.
+    <br>내 경기를 남기려면 <a href="lineup.html">라인업 화면</a>에서 코드를 발급해 상대와 붙기만 하면
+    됩니다. 끝나는 순간 자동으로 올라갑니다.
+  </div>
+</div>
+
+<div id="list"></div>
+
+<script type="module">
+import { boardOn, listMatches, ago, matchQuery } from "./src/board/board.js?v=5fb5b3c160";
+import { resultLink } from "./src/codec/duelcode.js?v=5fb5b3c160";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let ROWS = null;
+
+async function load() {
+  const box = $("#list");
+  if (!boardOn()) {
+    $("#meta").textContent = "";
+    $("#hint").style.display = "none";
+    box.innerHTML = `<div class="empty"><b>기록실이 아직 켜지지 않았습니다.</b><br>
+      <span class="sub">게임은 그대로 됩니다 — 결과 링크를 직접 주고받으면 됩니다.</span></div>`;
+    return;
+  }
+  box.innerHTML = `<div class="empty">불러오는 중…</div>`;
+  try {
+    ROWS = await listMatches(80);
+  } catch (e) {
+    ROWS = null;
+    /* 표를 아직 안 만들었으면 PostgREST 가 "relation ... does not exist" 를 준다.
+       설정이 덜 된 것과 진짜 오류를 갈라 알려 준다 — 안 그러면 고장으로 읽힌다. */
+    const notReady = /does not exist|schema cache|relation/i.test(e.message || "");
+    box.innerHTML = notReady
+      ? `<div class="empty"><b>기록실 표가 아직 없습니다.</b><br>
+         <span class="sub">Supabase 에 <code>matches</code> 표를 만들면 켜집니다 —
+         절차는 <code>docs/전술게시판-설정.md</code> 의 <b>2-1</b> 절에 있습니다.</span></div>`
+      : `<div class="empty" style="color:var(--bad)">기록을 불러오지 못했습니다 — ${esc(e.message)}
+         <br><span class="sub">잠시 뒤 <b>↻ 새로고침</b>을 눌러 보세요.</span></div>`;
+    return;
+  }
+  $("#meta").textContent = `남은 경기 ${ROWS.length}판 · 새것부터`;
+  draw();
+}
+
+/* 찾기는 닉네임·구단 네 칸을 함께 본다 — board.js 의 matchQuery 는 {nick,team,note} 를
+   보므로, 홈·원정 두 쪽을 각각 그 모양으로 만들어 둘 중 하나라도 걸리면 통과시킨다. */
+const hit = (r, q) =>
+  matchQuery({ nick: r.h_nick, team: r.h_team }, q) ||
+  matchQuery({ nick: r.a_nick, team: r.a_team }, q);
+
+function draw() {
+  const box = $("#list");
+  if (!ROWS) return;
+  if (!ROWS.length) {
+    $("#cnt").textContent = "";
+    box.innerHTML = `<div class="empty"><b>아직 남은 경기가 없습니다.</b><br>
+      <span class="sub">첫 경기의 주인공이 되어 보세요 —
+      <a href="board.html">전술 게시판</a>에서 상대를 골라 한 판 붙으면 그대로 여기 남습니다.</span></div>`;
+    return;
+  }
+  const q = $("#q").value;
+  const hits = ROWS.filter(r => hit(r, q));
+  $("#cnt").textContent = q.trim() ? `${hits.length} / ${ROWS.length}판` : `${ROWS.length}판`;
+  if (!hits.length) {
+    box.innerHTML = `<div class="empty">찾는 말 <b>${esc(q)}</b> — 걸리는 경기가 없습니다.
+      <br><span class="sub">닉네임이나 구단 이름의 일부만 넣어도 됩니다 — 초성(<code>ㅇㅇ</code>)도 됩니다.</span></div>`;
+    return;
+  }
+  const nk = n => n ? `<span class="nk">${esc(n)}</span>` : `<span class="nk anon">익명</span>`;
+  box.innerHTML = `<div class="recs">${hits.map((r, i) => {
+    /* 다시 보기 링크는 **저장된 코드로 지금 여기서** 만든다.
+       url 칸에 담긴 주소는 올린 사람의 브라우저 기준이라(localhost 로 시험한 것 등)
+       그대로 쓰면 안 열릴 수 있다. 코드 두 장만 있으면 어디서든 같은 경기가 재현된다. */
+    const link = resultLink(r.h_code, r.a_code, "match.html");
+    const w = r.hg > r.ag ? "h" : (r.ag > r.hg ? "a" : "");
+    return `<div class="rec">
+      <div class="line">
+        <div class="who">${nk(r.h_nick)}<span class="tm">🏠 ${esc(r.h_team || "")}</span></div>
+        <div class="sc${w ? " " + w : ""}">${r.hg} : ${r.ag}</div>
+        <div class="who a">${nk(r.a_nick)}<span class="tm">✈ ${esc(r.a_team || "")}</span></div>
+      </div>
+      <div class="meta">
+        <span class="ag">${esc(ago(r.created_at))} · 지문 <code>${esc(r.fp || "")}</code></span>
+        <a class="play" href="${esc(link)}">▶ 다시 보기</a>
+        <button data-c="${i}">링크 복사</button>
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+
+  box.querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
+    const r = hits[+b.dataset.c];
+    // 남에게 건넬 때는 **지금 이 사이트 기준** 전체 주소로 준다
+    const abs = resultLink(r.h_code, r.a_code,
+      location.origin + location.pathname.replace(/[^/]*$/, "") + "match.html");
+    navigator.clipboard?.writeText(abs).then(
+      () => { b.textContent = "복사됨 ✓"; setTimeout(() => { b.textContent = "링크 복사"; }, 1600); },
+      () => { b.textContent = "복사 실패"; });
+  });
+}
+
+$("#q").oninput = draw;
+$("#reload").onclick = load;
+load();
+</script>
+
+</div></div>
+</div>
+</body>
+</html>

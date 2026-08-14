@@ -32,6 +32,19 @@ export const boardOn = () => !!(BOARD.URL && BOARD.KEY);
 export const NICK_MAX = 12;
 export const NOTE_MAX = 40;
 const TABLE = "plans";
+const MATCH_TABLE = "matches";
+
+/* 내 닉네임 — 게시판에 한 번 올리면 여기 남고, 그 뒤로는 기록실에 자동으로 붙는다.
+   ⚠ 이건 신원 확인이 아니다(브라우저에 적어 둔 이름일 뿐). 기록실은 어차피
+     **대전 코드**로 경기를 재현할 수 있으므로 이름이 틀려도 경기 자체는 검증된다. */
+const MY_NICK_KEY = "kmd26.board.nick";
+export function myNick() {
+  try { return localStorage.getItem(MY_NICK_KEY) || ""; } catch (e) { return ""; }
+}
+export function rememberNick(nick) {
+  try { localStorage.setItem(MY_NICK_KEY, String(nick || "").trim().slice(0, NICK_MAX)); }
+  catch (e) { /* 사생활 모드 */ }
+}
 
 /* 같은 사람이 연달아 도배하지 못하게 하는 최소한의 장치.
    ⚠ 브라우저 쪽 장치라 마음먹으면 우회됩니다 — 진짜 방어는 표의 제약 조건과
@@ -105,6 +118,81 @@ async function readErr(r) {
     const j = await r.json();
     return j.message || j.hint || j.error_description || `서버 오류 (${r.status})`;
   } catch (e) { return `서버 오류 (${r.status})`; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   듀얼 기록실 — 사람이 짠 전술끼리 붙은 경기를 남긴다
+
+   왜 만드나
+   ---------
+   대전은 끝나면 그걸로 사라집니다. 결과 링크를 주고받는 사람끼리만 알고, 남들은
+   **누가 누구와 붙어서 어떻게 됐는지**를 볼 길이 없었습니다. 게시판에 라인업이
+   올라와도 "이거 실제로 세 보니 어떻더라"가 안 쌓입니다.
+
+   그래서 경기가 끝나면 **결과 링크를 그대로** 올립니다. 링크 하나면 누구나 그 경기를
+   토씨 하나 안 틀리고 다시 볼 수 있으므로(시드가 코드 두 개에서 나옵니다),
+   기록실은 곧 **다시 볼 수 있는 경기 목록**입니다.
+
+   ⚠ **자동 라인업이 낀 경기는 올리지 않습니다.** 사람이 짠 전술끼리 붙은 것만 남깁니다
+     — 연습 경기(AI 감독)도 마찬가지입니다(애초에 결과 링크가 안 나옵니다).
+   ⚠ 같은 경기는 한 번만 남습니다. 표에 `unique(h_code, a_code)` 가 걸려 있습니다 —
+     **같은 코드 두 장은 언제나 같은 경기**이므로 이게 곧 "같은 경기"의 정의입니다.
+   ═══════════════════════════════════════════════════════════════ */
+
+/** 기록실 목록 — 새것부터 */
+export async function listMatches(limit = 60) {
+  if (!boardOn()) return [];
+  const q = "select=id,url,fp,h_nick,h_team,h_code,a_nick,a_team,a_code,hg,ag,created_at"
+          + "&order=created_at.desc&limit=" + (limit | 0);
+  const r = await fetch(`${BOARD.URL}/rest/v1/${MATCH_TABLE}?${q}`, { headers: headers() });
+  if (!r.ok) throw new Error(await readErr(r));
+  return r.json();
+}
+
+/**
+ * 경기 한 판을 기록실에 남긴다.
+ * @returns {"saved"|"dup"} 이미 있으면 "dup" — **오류가 아니다.**
+ *   같은 코드 두 장으로 몇 번을 돌려도 같은 경기라, 두 번째부터는 그냥 넘어간다.
+ */
+export async function postMatch(row) {
+  if (!boardOn()) throw new Error("게시판이 아직 설정되지 않았습니다.");
+  const r = await fetch(`${BOARD.URL}/rest/v1/${MATCH_TABLE}`, {
+    method: "POST",
+    headers: headers({ Prefer: "return=minimal" }),
+    body: JSON.stringify({
+      url: String(row.url || "").slice(0, 400),
+      fp: String(row.fp || "").slice(0, 24),
+      h_nick: String(row.hNick || "").trim().slice(0, NICK_MAX) || null,
+      h_team: String(row.hTeam || "").slice(0, 16),
+      h_code: String(row.hCode || ""),
+      a_nick: String(row.aNick || "").trim().slice(0, NICK_MAX) || null,
+      a_team: String(row.aTeam || "").slice(0, 16),
+      a_code: String(row.aCode || ""),
+      hg: row.hg | 0, ag: row.ag | 0,
+      data_hash: String(row.dataHash || "").slice(0, 24),
+    }),
+  });
+  if (r.ok) return "saved";
+  const msg = await readErr(r);
+  if (/duplicate|unique/i.test(msg)) return "dup";
+  throw new Error(msg);
+}
+
+/**
+ * 대전 코드로 게시판에서 닉네임을 찾는다 — {코드: {nick, team}}
+ * 게시판에 올린 적 없는 코드는 빠진 채로 온다(부르는 쪽에서 "익명" 으로 채운다).
+ * ⚠ 코드는 Base64url(A-Za-z0-9-_) 이라 쉼표·괄호가 없다 — in.(…) 에 그대로 넣어도 안전하다.
+ */
+export async function nicksForCodes(codes) {
+  const list = [...new Set((codes || []).filter(Boolean))];
+  if (!boardOn() || !list.length) return {};
+  const inList = list.map(c => `"${encodeURIComponent(c)}"`).join(",");
+  const q = `select=nick,team,code&code=in.(${inList})&limit=20`;
+  const r = await fetch(`${BOARD.URL}/rest/v1/${TABLE}?${q}`, { headers: headers() });
+  if (!r.ok) return {};                       // 이름은 덤이다 — 못 찾아도 기록은 남긴다
+  const out = {};
+  for (const row of await r.json()) out[row.code] = { nick: row.nick, team: row.team };
+  return out;
 }
 
 /* ── 찾기 ──────────────────────────────────────────────────────

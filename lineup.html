@@ -254,6 +254,7 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
     <a class="navbtn on" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
     <a class="navbtn" href="board.html">🗂 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
+    <a class="navbtn" href="record.html">🏛 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
     <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
@@ -392,10 +393,11 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 <div class="prof" id="prof"><div class="profBox" id="profBox"></div></div>
 
 <script type="module">
-import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=6dce78598a";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=6dce78598a";
-import { boardOn, postPlan, NICK_MAX, NOTE_MAX } from "./src/board/board.js?v=6dce78598a";
-import { teamStar } from "./src/ui/teamstar.js?v=6dce78598a";
+import { encodePlan, inviteLink } from "./src/codec/duelcode.js?v=5fb5b3c160";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=5fb5b3c160";
+import { boardOn, postPlan, NICK_MAX, NOTE_MAX, myNick, rememberNick }
+  from "./src/board/board.js?v=5fb5b3c160";
+import { teamStar } from "./src/ui/teamstar.js?v=5fb5b3c160";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -842,7 +844,7 @@ function showCode() {
       <b>📋 전술 게시판에 올리기</b> — 상대를 못 구해도 됩니다. 올려 두면 다른 사람이
       <b>경기 화면에서 골라</b> 이 라인업과 붙습니다.
       <div class="row" style="margin-top:7px">
-        <input id="bdNick" maxlength="${NICK_MAX}" placeholder="닉네임"
+        <input id="bdNick" maxlength="${NICK_MAX}" placeholder="닉네임" value="${esc(myNick())}"
           style="flex:none;width:120px;background:var(--bg2);color:var(--txt);
                  border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px">
         <input id="bdNote" maxlength="${NOTE_MAX}" placeholder="한 줄 소개 (없어도 됩니다)"
@@ -878,6 +880,9 @@ function showCode() {
           nick: $("#bdNick").value, note: $("#bdNote").value,
           team: DB.teams[team].short, code, dataHash: DB.meta.dataHash,
         });
+        /* 이 이름을 기억해 둔다 — 다음부터 이 칸이 채워져 있고, **듀얼 기록실**에도
+           내가 직접 짠 쪽 이름으로 자동으로 붙는다(board.js 의 myNick). */
+        rememberNick($("#bdNick").value);
         say("올렸습니다 ✓ 이제 다른 사람이 경기 화면에서 이 라인업을 고를 수 있습니다.");
         btn.textContent = "올림 ✓";
       } catch (e) {

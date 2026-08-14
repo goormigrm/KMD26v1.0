@@ -29,7 +29,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PAGES = ["index.html", "lineup.html", "match.html", "board.html", "squad.html"]
+PAGES = ["index.html", "lineup.html", "match.html", "board.html", "record.html", "squad.html"]
 
 # 도장을 찍을 자리 — 상대 주소로 끝나는 .js 만 (남의 서버 주소는 건드리지 않는다)
 PATTERNS = [

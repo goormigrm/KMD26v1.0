@@ -369,6 +369,7 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
     <a class="navbtn" href="lineup.html">📋 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
     <a class="navbtn on" href="match.html">⚽ 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
     <a class="navbtn" href="board.html">🗂 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
+    <a class="navbtn" href="record.html">🏛 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
     <a class="navbtn" href="squad.html">👥 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
@@ -492,10 +493,11 @@ textarea.cin.bad{border-color:var(--bad);color:var(--bad)}
 </div>
 
 <script type="module">
-import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=6dce78598a";
-import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=6dce78598a";
-import { boardOn, listPlans, ago, matchQuery } from "./src/board/board.js?v=6dce78598a";
-import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=6dce78598a";
+import { autoLineup, planSig, sideLabels } from "./src/engine/teams.js?v=5fb5b3c160";
+import { decodePlan, encodePlan, resultLink, parseResultLink } from "./src/codec/duelcode.js?v=5fb5b3c160";
+import { boardOn, listPlans, ago, matchQuery, postMatch, nicksForCodes, myNick }
+  from "./src/board/board.js?v=5fb5b3c160";
+import { teamStar, starsHTML } from "./src/ui/teamstar.js?v=5fb5b3c160";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -635,6 +637,13 @@ async function boot() {
     sceneMode = b.dataset.m;
     document.querySelectorAll(".sc").forEach(x => x.classList.toggle("on", x === b));
   });
+
+  /* ── 결과 링크는 바로 튼다 ──────────────────────────────────
+     `#m=코드A.코드B` 는 **양쪽 라인업이 이미 다 정해진** 주소다. 고를 것이 하나도 없는데
+     대진 화면을 보여 주고 "경기 시작"을 한 번 더 누르게 하는 건 군더더기였다.
+     ⚠ `#c=`(초대 링크)는 그대로 둔다 — 그건 상대 팀만 정해진 것이라 내 라인업을 골라야 한다.
+     ⚠ 코드가 잘못됐으면 start() 가 describe() 로 되돌려 대진 화면에 그대로 남는다. */
+  if (mm) start();
 }
 
 /* ── 라인업 고르기 ────────────────────────────────────────────
@@ -1015,7 +1024,7 @@ function start() {
   const L = hid2 === aid2 ? sideLabels(DB.teams[hid2]) : null;
   paintTeams(L ? L.h : DB.teams[hid2], L ? L.a : DB.teams[aid2]);
 
-  const w = new Worker("src/engine/matchworker.js?v=6dce78598a", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=5fb5b3c160", { type: "module" });
   w.onmessage = e => {
     w.terminate();
     if (!e.data.ok) {
@@ -1035,7 +1044,9 @@ function start() {
     w.terminate();
     logSet(`<div class="ev bad"><span class="m"></span><span class="x">일꾼 오류 — ${esc(ev.message || "알 수 없음")}</span></div>`);
   };
-  lastPlans = practice ? null : { hp, ap };
+  /* 어느 칸에서 온 라인업인지도 함께 들고 있는다 — 기록실은 **사람이 짠 전술끼리** 붙은
+     경기만 남기므로, 자동 라인업(auto)이 한쪽이라도 끼면 올리지 않는다. */
+  lastPlans = practice ? null : { hp, ap, hSrc: $("#homePlan").value, aSrc: aSrc };
 
   w.postMessage({
     teams: DB.teams, players: DB.players, reactions: DB.react,
@@ -1263,6 +1274,7 @@ function finish() {
       () => { cr.textContent = "Ctrl+C"; });
   };
   bindReactions();
+  saveToRecord();      // 기록실에 남긴다 (조건은 그 함수 머리말 참고). 실패해도 결과는 그대로다
 }
 
 const pct = (ok, n) => (n ? Math.round(ok / n * 100) + "%" : "-");
@@ -1700,6 +1712,7 @@ function drawResultLink() {
       <a href="https://github.com/goormigrm/KMD26v1.0/issues">제보</a>해 주세요.</div>`;
   }
   const link = resultLink(a, b);
+  lastCodes = { a, b, link };          // 기록실에 올릴 때 다시 만들지 않으려고 들고 있는다
   return head + `
     <div class="row">
       <input id="resLink" readonly value="${esc(link)}"
@@ -1709,7 +1722,68 @@ function drawResultLink() {
     </div>
     <div class="note">이 링크를 열면 <b>같은 경기가 그대로</b> 재생됩니다 — 코드 두 개에서 시드가
       나오기 때문입니다. 상대에게 보내 결과 지문 <code>${esc(R.fp)}</code> 이 같은지 맞춰 보세요.
-      값이 다르면 한쪽 데이터가 다릅니다.</div>`;
+      값이 다르면 한쪽 데이터가 다릅니다.</div>
+    <div class="note" id="recNote" style="display:none"></div>`;
+}
+
+/* ── 듀얼 기록실에 남긴다 ──────────────────────────────────────
+   경기가 끝나면 **결과 링크를 그대로** 올립니다. 링크 하나면 누구나 그 경기를 토씨 하나
+   안 틀리고 다시 볼 수 있으므로(시드가 코드 두 개에서 나옵니다), 기록실은 곧
+   "다시 볼 수 있는 경기 목록"이 됩니다.
+
+   올리는 조건 — 셋 다 맞아야 합니다.
+     ① 게시판이 켜져 있다            (board.js 의 URL·KEY)
+     ② 연습 경기가 아니다            (AI 감독은 코드로 담을 것이 없다)
+     ③ 양쪽 다 **사람이 짠 전술**이다 (자동 라인업이 한쪽이라도 끼면 올리지 않는다)
+
+   ⚠ 같은 코드 두 장은 언제나 같은 경기이므로, 두 번째부터는 표의 unique 제약에 걸려
+     조용히 넘어갑니다("이미 기록실에 있습니다"). 그게 중복 방지의 정본입니다.
+   ⚠ 닉네임은 **게시판(plans)에서 코드로 찾아옵니다.** 올린 적 없는 코드는 익명입니다 —
+     내가 직접 짠 쪽만 이 브라우저에 적어 둔 이름을 씁니다. */
+let lastCodes = null;
+
+async function saveToRecord() {
+  const box = $("#recNote");
+  if (!box || !lastPlans || !lastCodes || !boardOn()) return;
+  if (lastPlans.hSrc === "auto" || lastPlans.aSrc === "auto") {
+    box.style.display = "";
+    box.innerHTML = `<b>🏛 듀얼 기록실</b> — <b>자동 라인업</b>이 낀 경기는 올리지 않습니다.
+      양쪽 다 직접 짠 전술로 붙으면 그 경기가 기록실에 남습니다.
+      <a href="record.html">기록실 보기</a>`;
+    return;
+  }
+  box.style.display = "";
+  box.innerHTML = `<b>🏛 듀얼 기록실</b> — 올리는 중…`;
+  try {
+    const found = await nicksForCodes([lastCodes.a, lastCodes.b]);
+    /* 코드로 세운 쪽은 게시판에서 찾고, 내가 직접 짠 쪽은 내 이름을 쓴다.
+       (코드로 세운 쪽에 내 이름을 붙이면 남의 라인업에 내 이름이 달린다) */
+    const nickOf = (code, src) =>
+      (found[code] && found[code].nick) || (src === "code" ? "" : myNick()) || "";
+    const res = await postMatch({
+      url: lastCodes.link, fp: R.fp,
+      hNick: nickOf(lastCodes.a, lastPlans.hSrc), hTeam: R.home.short, hCode: lastCodes.a,
+      aNick: nickOf(lastCodes.b, lastPlans.aSrc), aTeam: R.away.short, aCode: lastCodes.b,
+      hg: R.home.goals, ag: R.away.goals, dataHash: DB.meta.dataHash,
+    });
+    box.innerHTML = res === "dup"
+      ? `<b>🏛 듀얼 기록실</b> — 이미 올라와 있는 경기입니다.
+         <a href="record.html">기록실에서 보기</a>`
+      : `<b>🏛 듀얼 기록실</b> — 이 경기를 남겼습니다 ✓
+         <a href="record.html">기록실에서 보기</a>${myNick() ? "" : `
+         <br><span class="sub">닉네임이 <b>익명</b>으로 올라갔습니다 —
+         <a href="lineup.html">라인업 화면</a>에서 게시판에 한 번 올리면 그 이름이 계속 붙습니다.</span>`}`;
+  } catch (e) {
+    /* 기록실은 덤이다 — 못 올려도 경기 결과는 그대로 남는다. 왜 안 됐는지만 적는다.
+       표를 아직 안 만들었으면 "설정이 덜 됐다"이지 고장이 아니므로 갈라서 알린다. */
+    const notReady = /does not exist|schema cache|relation/i.test(e.message || "");
+    box.innerHTML = notReady
+      ? `<b>🏛 듀얼 기록실</b> — 아직 준비 중입니다.
+         <span class="sub">(Supabase 에 <code>matches</code> 표를 만들면 켜집니다 —
+         <code>docs/전술게시판-설정.md</code> 의 <b>2-1</b> 절)</span>`
+      : `<b>🏛 듀얼 기록실</b> — <span style="color:var(--warn)">남기지 못했습니다:
+         ${esc(e.message)}</span><br><span class="sub">경기 결과와 결과 링크는 그대로입니다.</span>`;
+  }
 }
 
 function drawHighlightList() {
