@@ -140,87 +140,50 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
     <a class="navbtn km" href="km-board.html">🧩 KM26 전술 게시판<span class="k">가져온 명단으로 올라온 라인업</span></a>
     <a class="navbtn km" href="km-match.html">🎯 KM26 경기<span class="k">가져온 명단으로 90분</span></a>
     <a class="navbtn km" href="km-record.html">📜 KM26 듀얼 기록실<span class="k">가져온 명단으로 붙은 경기</span></a>
-    <a class="navbtn" href="lineup.html">📋 2026 라인업<span class="k">전술 · 선발 · 대전 코드</span></a>
-    <a class="navbtn" href="board.html">🗂 2026 전술 게시판<span class="k">남이 올린 라인업과 붙기</span></a>
-    <a class="navbtn" href="record.html">🏛 2026 듀얼 기록실<span class="k">사람끼리 붙은 경기 다시 보기</span></a>
-    <a class="navbtn" href="match.html">⚽ 2026 경기<span class="k">대전 · 연습 · 2D 재생</span></a>
-    <a class="navbtn" href="squad.html">👥 2026 선수단<span class="k">29개 구단 1,024명</span></a>
   </div>
 </nav>
 <div id="mainWrap"><div id="pageMain">
 
 
 <h1>개리그 매니저 듀얼</h1>
-<div class="sub">서버 없이 <b>링크만 주고받아</b> 사람과 전술로 붙는 K리그 감독 게임.
-  설치도 가입도 없습니다.</div>
+<div class="sub"><b>개리그 매니저에서 키운 내 팀</b>을 그대로 가져와,
+  남이 키운 팀과 붙습니다. 가입도 설치도 없습니다.</div>
 
-<!-- 첫 화면에서 할 일은 하나다 — 라인업을 짜는 것.
-     ⚠ 버튼 글은 **짧게.** 길면 폰에서 두 줄로 접혀 모양이 흐트러진다.
-     ⚠ 갈래가 둘이 되면서 큰 버튼도 둘이다. 어느 쪽으로 들어갈지가 첫 갈림길이라
-       여기서 바로 갈라 준다 — 차이는 바로 아래 "갈래가 둘입니다" 칸이 설명한다. -->
-<a class="go" href="lineup.html">⚽ 2026 라인업 짜기
-  <span class="s">29개 구단 1,024명 · 여기서 시작합니다</span></a>
-<a class="go km" href="km-lineup.html">🎮 내 개리그 매니저 스쿼드로 하기
+<!-- 첫 화면에서 할 일은 하나다 — 세이브를 불러와 라인업을 짜는 것.
+     ⚠ 버튼 글은 **짧게.** 길면 폰에서 두 줄로 접혀 모양이 흐트러진다. -->
+<a class="go km" href="km-lineup.html">🎮 내 개리그 매니저 스쿼드로 시작하기
   <span class="s">세이브파일을 불러와 내 시즌 명단으로 붙습니다</span></a>
 
 <!-- 갈 수 있는 곳을 첫 화면에도 펼쳐 둔다 — 위쪽 탭을 못 찾는 사람이 있다 -->
 <div class="gorow">
-  <a class="go alt" href="board.html">🗂 2026 전술 게시판
+  <a class="go alt km" href="km-board.html">🧩 전술 게시판
     <span class="s">상대 골라 붙기</span></a>
-  <a class="go alt" href="record.html">🏛 2026 듀얼 기록실
-    <span class="s">경기 다시 보기</span></a>
-  <a class="go alt" href="match.html">⚽ 2026 경기
-    <span class="s">대전 · 연습</span></a>
-  <a class="go alt" href="squad.html">👥 2026 선수단
-    <span class="s">29개 구단 1,024명</span></a>
-  <a class="go alt km" href="km-match.html">🎯 KM26 경기
+  <a class="go alt km" href="km-match.html">🎯 경기
     <span class="s">가져온 명단으로 90분</span></a>
-  <a class="go alt km" href="km-record.html">📜 KM26 듀얼 기록실
-    <span class="s">가져온 명단 경기 기록</span></a>
-</div>
-
-<!-- 갈래가 둘이라는 것은 첫 화면에서 한 번은 말해 줘야 한다.
-     안 그러면 "내 세이브를 넣는 데가 어디냐"를 탭에서 찾아 헤맨다. -->
-<h2>갈래가 둘입니다</h2>
-<div class="two">
-  <div>
-    <b>📋 2026 갈래</b>
-    <span class="d">K리그1·2 <b>29개 구단 1,024명</b> 고정 명단으로 붙습니다.
-      라인업 한 벌이 <b>51자 대전 코드</b>가 되어, 그 코드만 주고받으면 아무나와 붙습니다.</span>
-    <a class="lnk" href="lineup.html"><b>2026 라인업으로 가기</b>
-      <span class="d">구단 → 전술 → 대전 코드</span></a>
-  </div>
-  <div>
-    <b>🎮 KM26 갈래</b>
-    <span class="d">개리그 매니저에서 <b>세이브파일을 저장</b>해 불러오면, 그 시즌 내 구단 명단이
-      <b>능력치까지 그대로</b> 들어옵니다. 원본 게임은 아무것도 바뀌지 않습니다 — 읽기만 합니다.</span>
-    <span class="d">선수가 사람마다 달라 51자 코드에는 담기지 않습니다. 대신
-      <b>명단을 통째로</b> 게시판에 올리고 <b>가져온 명단끼리</b> 붙습니다.</span>
-    <a class="lnk" href="km-lineup.html"><b>KM26 라인업으로 가기</b>
-      <span class="d">세이브 불러오기 → 전술 → 상대 고르기</span></a>
-  </div>
+  <a class="go alt km" href="km-record.html">📜 듀얼 기록실
+    <span class="s">경기 다시 보기</span></a>
 </div>
 
 <h2>어떻게 하는 게임인가</h2>
 <div class="how">
-  <div><span class="n">1</span><b>라인업을 짠다</b>
-    <span class="d">구단 · 전술 슬라이더 여덟 개 · 선발 열한 명.
-      "60분에 지고 있으면 총공세" 같은 지시도 미리 적어 둡니다.</span></div>
-  <div><span class="n">2</span><b>듀얼을 한다</b>
-    <span class="d">아는 사람이면 <b>대전 코드</b>를 주고받고,
-      없으면 <b>전술 게시판</b>에서 골라 바로 붙습니다.
-      혼자 시험만 할 거면 연습 AI 도 있습니다.</span></div>
-  <div><span class="n">3</span><b>둘이 똑같은 90분을 본다</b>
-    <span class="d">해설 · 결정적 장면 2D · 경기 뒤 팬 반응.
-      그 경기는 <b>듀얼 기록실</b>에 남아 누구나 다시 볼 수 있고,
-      쌓인 기록이 <b>전술마다의 승률</b>이 됩니다.</span></div>
+  <div><span class="n">1</span><b>세이브파일을 저장한다</b>
+    <span class="d">늘 하던 <a href="https://kleaguem2026.github.io/KM26v2.0/">개리그 매니저</a>에서
+      <b>설정 → 세이브파일 저장</b>. 원본 게임은 아무것도 바뀌지 않습니다 — 여기서는 읽기만 합니다.</span></div>
+  <div><span class="n">2</span><b>불러와서 라인업을 짠다</b>
+    <span class="d">그 시즌 내 구단 명단이 <b>능력치까지 그대로</b> 들어옵니다.
+      선발 열한 명 · 교체 명단 · 전술 슬라이더를 손봅니다.</span></div>
+  <div><span class="n">3</span><b>조건부 지시를 미리 적는다</b>
+    <span class="d">경기 중에는 아무도 버튼을 못 누릅니다.
+      "60분에 지고 있으면 총공세" 같은 지시를 <b>여섯 칸</b>까지 미리 적어 둡니다.</span></div>
+  <div><span class="n">4</span><b>올리고, 붙고, 같이 본다</b>
+    <span class="d">내 라인업을 게시판에 올리면 남이 올린 팀과 바로 붙습니다.
+      해설 · 2D 장면 · 경기 뒤 팬 반응까지 <b>둘이 똑같은 90분</b>을 봅니다.</span></div>
 </div>
 
 <div class="hook">
   <b>마음에 드는 결과를 골라 보낼 수 없습니다.</b>
-  경기의 씨앗이 <b>양쪽 코드에서 함께</b> 나오기 때문에, 내 코드를 확정하는 순간
-  상대 코드가 무엇이든 결과는 이미 정해져 있습니다. 서버가 없어도 조작이 안 되는 이유입니다.
-  <br>KM26 갈래도 같습니다 — 코드 대신 <b>올라온 명단 두 벌</b>에서 씨앗이 나옵니다.
+  경기의 씨앗이 <b>올라온 명단 두 벌에서 함께</b> 나오기 때문에, 내 라인업을 올리는 순간
+  상대가 누구든 결과는 이미 정해져 있습니다. 서버가 없어도 조작이 안 되는 이유입니다.
 </div>
 
 <footer>
