@@ -74,6 +74,10 @@ details .body th{background:var(--bg2);color:var(--txt)}
 .slot.empty .nm{color:var(--bad)}
 .slot:hover{border-color:var(--km);cursor:pointer}
 .fam{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+/* 능숙도를 색으로만 두면 무슨 뜻인지 알 수 없다 — 이름을 옆에 같이 적는다 */
+.famn{font-size:10.5px;font-weight:700;margin-left:5px}
+.famleg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--sub);margin-bottom:8px}
+.famleg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:middle}
 
 /* 선수 고르기 */
 .pick{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;z-index:1000;
@@ -410,11 +414,21 @@ details .body th{background:var(--bg2);color:var(--txt)}
 
 <div class="card">
   <h2>⑦ 선발</h2>
+  <!-- 색이 무슨 뜻인지 적어 두지 않으면 아무도 모른다 (사용자 제보) -->
+  <div class="famleg" id="famLeg"></div>
+  <div class="sub" style="margin-bottom:8px">이름 앞의 색은 <b>그 자리를 얼마나 소화하는가</b>입니다.
+    자리와 선수가 안 맞으면 붉어집니다 — 안 맞는 자리에 세울 수도 있습니다.</div>
   <div id="xi"></div>
 </div>
 
 <div class="card">
   <h2>⑧ 교체 명단 <span class="sub">— 순서가 곧 교체 순서입니다</span></h2>
+  <div class="sub" style="margin-bottom:8px">교체 선수는 <b>나가는 선수의 자리를 그대로 물려받습니다.</b>
+    들어갈 자리가 미리 정해져 있지 않아 여기에는 능숙도 색을 붙이지 않습니다.
+    <br>경기 중 교체는 벤치가 알아서 합니다 — 카드를 받았거나 체력이 무너진 선수를
+    후반에 여섯 번(46·58·66·73·80·86분) 살펴 <b>최대 다섯 명</b>까지 바꿉니다.
+    그 자리를 소화할 수 있는 사람 중 <b>번호가 빠른 순</b>으로 들어갑니다.
+    <span class="sub">골키퍼는 자동 교체하지 않습니다.</span></div>
   <div id="bench"></div>
 </div>
 
@@ -485,11 +499,11 @@ details .body th{background:var(--bg2);color:var(--txt)}
 
 <script type="module">
 import { readSave, saveInfo, teamListOf, makePack, slimPack, fatten, squadSig, sigKey,
-         checkPack, PACK_KIND } from "./src/km26/kmsave.js?v=38e22109f1";
-import { autoLineup, planSig } from "./src/engine/teams.js?v=38e22109f1";
-import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=38e22109f1";
+         checkPack, PACK_KIND } from "./src/km26/kmsave.js?v=88748df34e";
+import { autoLineup, planSig } from "./src/engine/teams.js?v=88748df34e";
+import { CONDS, ACTS, packOrder, unpackOrder, ORDER_PRESETS } from "./src/engine/orders.js?v=88748df34e";
 import { kmBoardOn, kmPostPlan, listKmPlans, getKmPack, myNick, rememberNick, NICK_MAX, NOTE_MAX }
-  from "./src/board/kmboard.js?v=38e22109f1";
+  from "./src/board/kmboard.js?v=88748df34e";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -796,7 +810,7 @@ function changeFormation(f) {
 }
 
 /* ── 그리기 ─────────────────────────────────────────────────── */
-function drawAll() { drawNote(); drawPitch(); drawXI(); drawBench(); drawRest(); drawOrders(); drawTac(); }
+function drawAll() { drawNote(); drawFamLegend(); drawPitch(); drawXI(); drawBench(); drawRest(); drawOrders(); drawTac(); }
 
 /* 위(공격)에서 아래(수비) 순서. 기본 라인업 화면·KM26 전술판과 같은 줄 순서다. */
 const ROW_ORDER = ["FW", "AM", "MF", "DM", "WB", "DF", "SW"];
@@ -1043,20 +1057,39 @@ function bindDrop(sel, spotOf) {
 }
 
 const famOf = (p, slot) => (p && p.posFam && p.posFam[T.slotFam[slot]]) || 0;
-const famCol = v => v >= 90 ? "#3fb950" : v >= 70 ? "#84c14a" : v >= 45 ? "#d29922" :
-                    v >= 20 ? "#d2691e" : "#f85149";
+/* 능숙도 눈금은 엔진 표(T.famLv)를 그대로 쓴다 — 자연스러움 96 … 못함 0.
+   ⚠ 예전에는 이 화면만 따로 만든 5단계 색을 썼다. 전술판·선수 고르기 창과 눈금이 달라
+     같은 선수가 자리마다 다른 색으로 보였다. */
+const famLv = v => T.famLv.find(l => v >= l.min) || T.famLv[T.famLv.length - 1];
+const famCol = v => famLv(v).c;
 
 function slotRow(slot, id, kind, i) {
   const p = byId(id);
-  const f = p ? famOf(p, slot) : 0;
-  const role = p && pack.plan.roles[p.id];
+  /* ⚠ 교체 명단에는 자리가 없다(slot === ""). 예전에는 그대로 famOf(p, "") 를 불러
+     능숙도가 무조건 0 으로 잡히고 **모든 후보가 빨간 점**으로 찍혔다 — 선수가 나빠서가
+     아니라 견줄 자리가 없어서였는데, 화면만 봐서는 알 길이 없었다(사용자 제보).
+     교체 선수는 나가는 선수의 자리를 물려받으므로 미리 정해진 자리가 아예 없다.
+     그래서 점을 찍지 않고 주 포지션만 보여 준다. */
+  const showFam = kind === "x" && !!slot;
+  const f = p && showFam ? famOf(p, slot) : 0;
+  const lv = p && showFam ? famLv(f) : null;
   return `<div class="slot${p ? "" : " empty"}" data-k="${kind}" data-s="${esc(slot)}" data-i="${i}"
       ${p ? 'draggable="true"' : ""}>
     <span class="p">${esc(kind === "b" ? "교체 " + (i + 1) : slot)}</span>
-    <span class="nm">${p ? `<span class="fam" style="background:${famCol(f)}"></span>${esc(p.name)}
-      <span class="po">${esc(p.prefPos)}</span>` : "\ube44\uc5b4 \uc788\uc74c"}</span>
+    <span class="nm">${p ? `${showFam ? `<span class="fam" style="background:${famCol(f)}"
+        title="${esc(slot)} \uc790\ub9ac \ub2a5\uc219\ub3c4 ${f} \u2014 ${esc(lv.n)}"></span>` : ""}${esc(p.name)}
+      <span class="po">${esc(p.prefPos)}</span>${showFam
+        ? `<span class="famn" style="color:${famCol(f)}">${esc(lv.n)}</span>` : ""}` : "\ube44\uc5b4 \uc788\uc74c"}</span>
     <span class="r">${p ? stars(p) + `<button class="pf" data-pf="${p.id}" title="\uc138\ubd80 \ub2a5\ub825\uce58 \ubcf4\uae30">\ud504\ub85c\ud544</button>` : ""}</span>
   </div>`;
+}
+
+/** 능숙도 색이 무슨 뜻인지 — 엔진 표를 그대로 펼쳐 둔다 */
+function drawFamLegend() {
+  const el = $("#famLeg");
+  if (!el || !T.famLv) return;
+  el.innerHTML = T.famLv.map(l =>
+    `<span><i style="background:${l.c}"></i>${esc(l.n)}</span>`).join("");
 }
 
 function drawXI() {
@@ -1338,7 +1371,7 @@ boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=38e22109f1";
+import { installNav } from "./src/ui/navscroll.js?v=88748df34e";
 installNav();
 </script>
 </body>

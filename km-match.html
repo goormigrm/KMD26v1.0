@@ -140,12 +140,25 @@ h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
 .ctrls{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .ctrls button{font-size:12.5px;padding:6px 10px}
 .ctrls button.on{border-color:var(--km);color:var(--km)}
+/* 문자 중계 — 2026 경기 화면과 같은 모양·같은 차례.
+   ⚠ 새 줄이 **맨 위**에 꽂히고 지난 줄이 아래로 밀린다(flushEvents 의 prepend).
+     예전에는 아래로 쌓으면서 스크롤을 따라 내렸는데, 사람이 스크롤을 만지는 순간
+     따라가기를 잃고 화면이 엉뚱한 데 머물렀다. 위에서 찍으면 그럴 일이 없다. */
 #evts{max-height:420px;overflow-y:auto;background:var(--bg3);border:1px solid var(--line);
-      border-radius:8px;padding:9px 11px;font-size:12.5px;line-height:1.9}
-#evts .t{color:var(--sub);font-weight:800;margin-right:4px}
-#evts .goal{color:var(--ok);font-weight:800}
-#evts .order{color:var(--gold);font-weight:700}
-#evts .warn{color:var(--warn)}
+      border-radius:8px;padding:9px 11px;font-size:12.5px;line-height:1.55}
+#evts .ev{display:flex;gap:9px;padding:4px 8px;border-radius:6px}
+#evts .ev .t{color:var(--sub);font-size:11.5px;min-width:32px;text-align:right;padding-top:2px;
+             font-variant-numeric:tabular-nums;font-weight:700;flex:none}
+#evts .ev .tm{font-size:11.5px;font-weight:800;flex:none;padding-top:2px}
+#evts .ev .x{flex:1}
+#evts .ev.goal{background:#12331c;color:var(--ok);font-weight:700}
+#evts .ev.warn{color:#e8c46a}
+#evts .ev.bad{color:#ffb4ad}
+#evts .ev.info{color:var(--sub)}
+/* 조건부 지시 — 미리 적어 둔 것이 실제로 걸린 순간이라 눈에 걸려야 한다 */
+#evts .ev.order{background:#1a1608;border:1px solid #5c4a1c;border-left:3px solid var(--gold);
+                color:var(--gold);font-weight:700}
+#evts .ev.order .t{color:var(--gold)}
 
 #app{display:flex;min-height:100vh}
 #side{width:210px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
@@ -281,13 +294,13 @@ h3{font-size:13.5px;color:var(--gold);margin:14px 0 0}
 </div>
 
 <script type="module">
-import { fatten, slimPack, squadSig, sigKey, checkPack } from "./src/km26/kmsave.js?v=38e22109f1";
-import { planSig } from "./src/engine/teams.js?v=38e22109f1";
+import { fatten, slimPack, squadSig, sigKey, checkPack } from "./src/km26/kmsave.js?v=88748df34e";
+import { planSig } from "./src/engine/teams.js?v=88748df34e";
 /* ⚠ deriveSeed 는 rng.js 에서 바로 가져온다 — duel.js 를 거치면 6천 줄짜리 커널이
      화면에 딸려 올라온다. 경기는 일꾼이 돌리므로 화면에는 커널이 필요 없다. */
-import { deriveSeed } from "./src/engine/rng.js?v=38e22109f1";
+import { deriveSeed } from "./src/engine/rng.js?v=88748df34e";
 import { kmPostMatch, kmPostPlan, getKmPack, findPlanId, listKmPlans, kmBoardOn,
-         myNick, rememberNick, NICK_MAX } from "./src/board/kmboard.js?v=38e22109f1";
+         myNick, rememberNick, NICK_MAX } from "./src/board/kmboard.js?v=88748df34e";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c =>
@@ -556,7 +569,7 @@ async function play() {
     catch (e) { REACT = null; }
   }
 
-  const w = new Worker("src/engine/matchworker.js?v=38e22109f1", { type: "module" });
+  const w = new Worker("src/engine/matchworker.js?v=88748df34e", { type: "module" });
   w.onmessage = ev => {
     w.terminate();
     $("#play").disabled = false;
@@ -821,7 +834,10 @@ function hideGoalPanel() {
   if (el) { el.classList.add("hidden"); el.innerHTML = ""; }
 }
 
-/** 그 분까지의 문자중계를 흘린다 */
+/** 그 분까지의 문자중계를 흘린다.
+    ⚠ 2026 경기 화면(match.html push)과 같은 차례다 — **새 줄이 맨 위**에 꽂히고
+      지난 줄이 아래로 밀린다. 여러 줄이 한 번에 풀릴 때도 시각 순서대로 prepend 하므로
+      마지막(가장 새) 줄이 결국 맨 위에 온다. */
 function flushEvents() {
   const box = $("#evts");
   let added = false;
@@ -830,14 +846,17 @@ function flushEvents() {
     if (!e.noTime && e.min > minute) break;
     evIdx++;
     added = true;
-    const k = e.type === "goal" ? "goal" : e.type === "order" ? "order" : e.type === "warn" ? "warn" : "";
     const d = document.createElement("div");
-    d.innerHTML = `<span class="t">${e.noTime ? "" : e.min + "'"}</span><span class="${k}">${esc(e.txt || "")}</span>`;
-    box.appendChild(d);
+    d.className = "ev " + (e.type || "txt");
+    d.innerHTML = `<span class="t">${e.noTime ? "" : e.min + "'"}</span>` +
+      (e.t ? `<span class="tm" style="color:${esc(e.col || "#a9b4c0")}">${esc(e.t)}</span>` : "") +
+      `<span class="x">${esc(e.txt || "")}</span>`;
+    box.prepend(d);
     $("#tick").innerHTML = `<b>${e.noTime ? "" : e.min + "' "}</b>${esc(e.txt || "")}`;
     if (e.hg != null) $("#bS").textContent = `${e.hg} : ${e.ag}`;
   }
-  if (added) box.scrollTop = box.scrollHeight;
+  // 맨 위가 가장 새 줄이므로 위로 붙여 둔다 (아래로 따라 내려갈 일이 없다)
+  if (added) box.scrollTop = 0;
 }
 
 function finish() {
@@ -1167,7 +1186,7 @@ boot();
 </script>
 <!-- 위쪽 탭 줄을 마우스로도 끌어 넘길 수 있게 (PC 브라우저의 모바일 보기 대응) -->
 <script type="module">
-import { installNav } from "./src/ui/navscroll.js?v=38e22109f1";
+import { installNav } from "./src/ui/navscroll.js?v=88748df34e";
 installNav();
 </script>
 </body>
